@@ -1,6 +1,8 @@
 import { notion } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
+// Data source ID for API 2025-09-03 (required for template support)
+const DS_PEDIDOS = "1c418b3a-38b1-8176-a42b-000b33f3b1aa";
 
 function extractTitle(prop) {
   if (!prop || prop.type !== "title") return "";
@@ -135,7 +137,7 @@ async function handlePost(req, res) {
         "Notion-Version": "2025-09-03",
       },
       body: JSON.stringify({
-        parent: { database_id: DB_PEDIDOS },
+        parent: { type: "data_source_id", data_source_id: DS_PEDIDOS },
         properties,
         template: { type: "default" },
       }),
