@@ -279,7 +279,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ## Notas tecnicas
 
-- `@notionhq/client` debe ser v2.x (v5.x elimino `databases.query`, NO actualizar)
+- `@notionhq/client` debe ser v2.x (v5.x elimino `databases.query`, NO actualizar). Excepcion: `handlePost` en `api/pedidos.js` usa `fetch` directo con `Notion-Version: 2025-09-03` para soportar `template: { type: "default" }` (aplica la plantilla de la BD al crear pedido). La plantilla se aplica asincronamente por Notion tras la creacion
 - El campo `"Unidades "` en Registros tiene un espacio trailing — respetar siempre
 - El campo `"Nombre"` (title) en Registros contiene solo `" "` — usar `"AUX Producto Texto"` (formula) para el nombre real del producto
 - `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`

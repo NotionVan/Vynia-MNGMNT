@@ -125,10 +125,26 @@ async function handlePost(req, res) {
       return res.status(400).json({ error: "Missing properties" });
     }
 
-    const page = await notion.pages.create({
-      parent: { database_id: DB_PEDIDOS },
-      properties,
+    // Raw fetch with Notion-Version 2025-09-03 to support template parameter
+    // (SDK v2 doesn't support it — only used here, rest of app stays on SDK v2)
+    const resp = await fetch("https://api.notion.com/v1/pages", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.NOTION_TOKEN}`,
+        "Content-Type": "application/json",
+        "Notion-Version": "2025-09-03",
+      },
+      body: JSON.stringify({
+        parent: { database_id: DB_PEDIDOS },
+        properties,
+        template: { type: "default" },
+      }),
     });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || `Notion API error ${resp.status}`);
+    }
+    const page = await resp.json();
 
     return res.status(201).json({ id: page.id });
   } catch (error) {
