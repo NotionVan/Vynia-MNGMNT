@@ -24,10 +24,9 @@ Sistema de gestion de pedidos para **Vynia**, conectado a Notion como base de da
 - Boton limpieza de registros huerfanos (archiva registros sin pedido asociado, con feedback progresivo)
 
 ### Nuevo Pedido
-- Formulario: cliente (autocompletado con sugerencias, se cierra con click fuera o Escape) + telefono
-- Selector de fecha (presets Hoy/Manana/Pasado + datepicker + hora)
-- Productos del catalogo con busqueda y cantidades
-- Toggle pagado + notas
+- Formulario dividido en dos pasos:
+  1. Cliente (sugerencias, crear nuevo), productos (catálogo con buscador), notas y estado de pago.
+  2. Selección de fecha de entrega (presets Hoy/Mañana/Pasado + datepicker + hora)
 - Crea cliente en Notion si no existe
 - Confirmacion post-creacion: pantalla de exito con "Ver pedido" (abre modal) y "Crear otro", o pantalla de error con mensaje y "Reintentar" (sin perder datos del formulario)
 

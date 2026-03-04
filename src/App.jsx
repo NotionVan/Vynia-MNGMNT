@@ -252,30 +252,25 @@ const HELP_CONTENT = [
     id: "nuevo", title: "Nuevo Pedido", icon: "➕",
     sections: [
       {
-        title: "Seleccionar cliente",
-        content: "Escribe el nombre del cliente para buscarlo. Si no existe, se creara automaticamente al crear el pedido.",
-        steps: ["Escribe al menos 2 letras para ver sugerencias", "Selecciona un cliente existente o sigue escribiendo para crear uno nuevo"],
-        tip: "Al seleccionar un cliente existente, el telefono se rellena automaticamente",
+        title: "Paso 1: Datos del Pedido",
+        content: "El formulario se divide en dos pasos. En el primer paso seleccionarás todos los datos relativos al pedido en sí:",
+        steps: [
+          "Selecciona un cliente o escribe uno nuevo. Si no existe se creará en Notion.",
+          "Agrega productos desde el buscador o lista de frecuentes, y ajusta las unidades.",
+          "Añade notas si lo necesitas y marca si el cliente ya lo ha dejado pagado.",
+        ],
+        tip: "Necesitas al menos un cliente y un producto seleccionado para avanzar al paso 2",
       },
       {
-        title: "Fecha y hora de entrega",
-        content: "Elige cuando se entregara el pedido.",
-        steps: ["Usa los botones Hoy / Mañana / Pasado para fechas rapidas", "O selecciona una fecha concreta con el calendario", "Opcionalmente, añade una hora de recogida"],
-      },
-      {
-        title: "Agregar productos",
-        content: "Selecciona productos del catalogo y ajusta las cantidades.",
-        steps: ["Busca un producto por nombre o seleccionalo de la lista de frecuentes", "Usa los botones +/- para ajustar la cantidad", "Repite para añadir mas productos"],
-      },
-      {
-        title: "Pagado y notas",
-        content: "Marca si el cliente ya ha pagado y añade notas especiales si es necesario.",
-        tip: "Las notas son utiles para alergias, personalizaciones o instrucciones especiales",
-      },
-      {
-        title: "Crear pedido",
-        content: "Pulsa Crear pedido para guardar. El pedido se crea con estado Sin empezar.",
-        tip: "Necesitas al menos un cliente y un producto para crear el pedido",
+        title: "Paso 2: Fecha de Entrega y Creación",
+        content: "En el segundo paso podrás seleccionar exclusivamente la fecha y hora.",
+        steps: [
+          "Pulsa en Siguiente: Elegir fecha cuando termines con los productos.",
+          "Selecciona el día con los atajos Hoy / Mañana / Pasado o usa el calendario.",
+          "Si te equivocas, usa el botón 'Volver a datos del pedido' para retroceder e introducir cambios.",
+          "Pulsa Crear pedido para enviar todo."
+        ],
+        tip: "El pedido siempre se crea con estado Sin empezar."
       },
     ],
   },
