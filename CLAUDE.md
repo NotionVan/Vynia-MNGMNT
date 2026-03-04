@@ -207,9 +207,9 @@ Exporta objeto `notion` con metodos:
 
 ## Tabs de la app
 
-1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado con colores, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
+1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado prominente como cabecera de cada card, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple, toggle de visibilidad de precios (boton `€ ON/OFF` junto a barra de busqueda, oculto por defecto). Fila de fecha: botones Hoy/Manana/Pasado a la izquierda + datepicker al extremo derecho. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
 2. **Nuevo** — Formulario para crear pedido: cliente (autocompletado) + telefono + fecha (presets hoy/manana/pasado + datepicker + hora) + productos del catalogo (busqueda + cantidades con NumberFlow animado) + pagado toggle + notas. Crea con Estado = "Sin empezar"
-3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos con nombre de cliente y badge de estado. Click en pedido abre modal con detalle completo
+3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado. Click en pedido abre modal con detalle completo
 
 ## Sistema de Estado
 
@@ -253,6 +253,8 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 - **Fuentes**: Roboto Condensed (titulos/numeros), Inter (texto)
 - **Responsive**: Mobile-first, max-width 960px centrado
 - **Tooltips**: Todos los botones tienen `title` para hover (desktop) + sistema de tooltip tactil por long-press ~0.4s (movil) con popup animado que desaparece tras 1.5s
+- **Cards de pedido**: Cabecera prominente con estado actual (pill 11px con color del estado), botones de accion (pipeline + picker) debajo del contenido
+- **Toggle precios**: Boton `€ ON/OFF` a la derecha de la barra de busqueda, oculto por defecto (`mostrarPrecios` state). Controla visibilidad del importe en cards
 - **Print**: CSS @media print para imprimir lista de pedidos/produccion
 - **Bottom nav**: 3 tabs fijas (Pedidos, Nuevo, Produccion) con safe-area-inset-bottom
 

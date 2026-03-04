@@ -319,6 +319,7 @@ export default function VyniaApp() {
   const [pedidos, setPedidos] = useState([]);
   const [filtro, setFiltro] = useState("pendientes"); // pendientes | hoy | todos | recogidos
   const [filtroFecha, setFiltroFecha] = useState(fmt.todayISO()); // null = all dates
+  const [mostrarPrecios, setMostrarPrecios] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [searchResults, setSearchResults] = useState([]); // clientes found
   const [fichaCliente, setFichaCliente] = useState(null); // selected client card
@@ -999,7 +1000,7 @@ export default function VyniaApp() {
       return { prodView: [], totalPendiente: 0, totalRecogido: 0, activeProductCount: 0 };
     }
     const view = produccionData.map(prod => {
-      const pedsFiltrados = ocultarRecogidos ? prod.pedidos.filter(p => p.estado !== "Recogido" && p.recogido !== true) : prod.pedidos;
+      const pedsFiltrados = ocultarRecogidos ? prod.pedidos.filter(p => p.estado !== "Recogido" && p.estado !== "Listo para recoger" && p.recogido !== true) : prod.pedidos;
       const uds = pedsFiltrados.reduce((s, p) => s + p.unidades, 0);
       return { ...prod, pedidosFiltrados: pedsFiltrados, udsFiltradas: uds, udsRecogidas: prod.totalUnidades - uds };
     }).filter(p => p.udsFiltradas > 0 || !ocultarRecogidos);
@@ -1219,7 +1220,8 @@ export default function VyniaApp() {
         {tab === "pedidos" && (
           <div style={{ paddingTop: 12 }}>
             {/* ── Date selector row ── */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 8, maxWidth: isDesktop ? 600 : undefined }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 6 }}>
               {[
                 { label: "Hoy", val: fmt.todayISO() },
                 { label: "Mañana", val: fmt.tomorrowISO() },
@@ -1230,7 +1232,7 @@ export default function VyniaApp() {
                 <button key={d.label} title={`Ver pedidos de ${d.label.toLowerCase()}`}
                   onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); }}
                   style={{
-                    flex: 1, padding: "9px 0", borderRadius: 10,
+                    padding: "9px 16px", borderRadius: 10,
                     border: sel ? "2px solid #4F6867" : "1.5px solid #d4cec6",
                     background: sel ? "#E1F2FC" : "#fff",
                     color: sel ? "#1B1C39" : "#4F6867",
@@ -1242,7 +1244,9 @@ export default function VyniaApp() {
                 </button>
                 );
               })}
-              <div style={{ flex: 0.7, position: "relative", display: "flex", alignItems: "center" }}>
+              </div>
+              <div style={{ flex: 1 }} />
+              <div style={{ width: 140, position: "relative", display: "flex", alignItems: "center" }}>
                 <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
                 <input type="date" lang="es" value={filtroFecha || ""}
                   onChange={e => { const v = e.target.value || null; setFiltroFecha(v); loadPedidos(v); }}
@@ -1351,6 +1355,19 @@ export default function VyniaApp() {
                   </div>
                 )}
               </div>
+              <button title={mostrarPrecios ? "Ocultar precios" : "Mostrar precios"} onClick={() => setMostrarPrecios(v => !v)}
+                style={{
+                  padding: "7px 12px", borderRadius: 20, fontSize: 12,
+                  border: mostrarPrecios ? "1.5px solid #4F6867" : "1.5px solid #d4cec6",
+                  background: mostrarPrecios ? "#E1F2FC" : "#fff",
+                  color: mostrarPrecios ? "#1B1C39" : "#4F6867",
+                  fontWeight: mostrarPrecios ? 700 : 500,
+                  cursor: "pointer", transition: "all 0.15s",
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+                }}>
+                € {mostrarPrecios ? "ON" : "OFF"}
+              </button>
             </div>
 
             {/* ── Ficha cliente ── */}
@@ -1591,6 +1608,23 @@ export default function VyniaApp() {
                       cursor: bulkMode ? "pointer" : undefined,
                       position: "relative",
                     }}>
+                      {/* Estado actual — cabecera */}
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        marginBottom: 10, paddingBottom: 8,
+                        borderBottom: `1px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}20`,
+                      }}>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: "0.03em",
+                          padding: "3px 10px", borderRadius: 6,
+                          background: ESTADOS[p.estado]?.bg || "#F0F0F0",
+                          color: ESTADOS[p.estado]?.color || "#8B8B8B",
+                          border: `1px solid ${ESTADOS[p.estado]?.color || "#8B8B8B"}30`,
+                        }}>
+                          {ESTADOS[p.estado]?.icon} {ESTADOS[p.estado]?.label || "Sin empezar"}
+                        </span>
+                      </div>
+
                       {/* Top row: name + time + amount (clickable for detail) */}
                       <div onClick={bulkMode ? undefined : () => setSelectedPedido({
                         ...p,
@@ -1619,14 +1653,6 @@ export default function VyniaApp() {
                             }}>
                               {p.cliente || p.nombre}
                             </span>
-                            {p.estado !== "Sin empezar" && (
-                              <span style={{
-                                fontSize: 9, padding: "2px 6px", borderRadius: 4,
-                                background: ESTADOS[p.estado]?.bg || "#F0F0F0",
-                                color: ESTADOS[p.estado]?.color || "#8B8B8B",
-                                fontWeight: 700, border: `0.5px solid ${ESTADOS[p.estado]?.color || "#8B8B8B"}22`,
-                              }}>{ESTADOS[p.estado]?.icon} {ESTADOS[p.estado]?.label}</span>
-                            )}
                             {p.pagado && (
                               <span style={{
                                 fontSize: 9, padding: "2px 6px", borderRadius: 4,
@@ -1682,7 +1708,7 @@ export default function VyniaApp() {
                         </div>
 
                         {/* Amount */}
-                        <div style={{ textAlign: "right", minWidth: 60 }}>
+                        {mostrarPrecios && <div style={{ textAlign: "right", minWidth: 60 }}>
                           <span style={{
                             fontSize: 18, fontWeight: 800,
                             fontFamily: "'Roboto Condensed', sans-serif",
@@ -1690,7 +1716,7 @@ export default function VyniaApp() {
                           }}>
                             {typeof p.importe === "number" && p.importe > 0 ? `${p.importe.toFixed(2)}€` : "—"}
                           </span>
-                        </div>
+                        </div>}
                       </div>
 
                       {/* Action buttons (hidden in bulk mode) */}
@@ -1707,18 +1733,16 @@ export default function VyniaApp() {
                           return (
                             <button className="estado-btn" title={`→ ${next}`} onClick={() => cambiarEstado(p, next)}
                               style={{
-                                flex: 1, padding: "10px 0", borderRadius: 12,
-                                border: `1.5px solid ${cfg.color}50`,
+                                flex: 1, padding: "8px 0", borderRadius: 8,
+                                border: `1.5px solid ${cfg.color}40`,
                                 fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
                                 cursor: "pointer", display: "flex",
                                 alignItems: "center", justifyContent: "center", gap: 6,
                                 background: `linear-gradient(135deg, ${cfg.color}ee, ${cfg.color}cc)`,
                                 color: "#fff",
-                                boxShadow: `0 3px 12px ${cfg.color}35, 0 1px 3px ${cfg.color}20`,
+                                boxShadow: `0 1px 4px ${cfg.color}25`,
                               }}>
-                              <div className="btn-shimmer" />
-                              <div className="btn-glow" style={{ background: `radial-gradient(circle at 50% 50%, ${cfg.color}30, transparent 70%)` }} />
-                              <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                 {action}
                                 <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style={{ width: 13, height: 13, opacity: 0.7 }}>
                                   <path d="M9 5l7 7-7 7" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
@@ -2381,12 +2405,12 @@ export default function VyniaApp() {
                           <p style={{ fontSize: 10, color: "#A2C2D0", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                             Pedidos con {prod.nombre}:
                           </p>
-                          {prod.pedidos.map((ped, i) => (
+                          {(ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).map((ped, i) => (
                             <button title="Ver detalle del pedido" key={ped.pedidoId + "-" + i} onClick={() => setSelectedPedido({ ...ped, id: ped.pedidoId, estado: effectiveEstado(ped) })}
                               style={{
                                 width: "100%", padding: "10px 12px",
                                 border: "none",
-                                borderBottom: i < prod.pedidos.length - 1 ? "1px solid #E1F2FC" : "none",
+                                borderBottom: i < (ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).length - 1 ? "1px solid #E1F2FC" : "none",
                                 background: "transparent", cursor: "pointer",
                                 display: "flex", alignItems: "center", justifyContent: "space-between",
                                 textAlign: "left", fontSize: 13,
