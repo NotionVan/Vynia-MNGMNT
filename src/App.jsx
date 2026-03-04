@@ -95,6 +95,14 @@ const ESTADOS = {
   "No acude":           { group: "complete",    color: "#C62828", bg: "#FFEBEE", label: "No acude",    icon: "✗" },
   "Incidencia":         { group: "complete",    color: "#795548", bg: "#FDE8E5", label: "Incidencia",  icon: "!" },
 };
+const ESTADO_PROGRESS = {
+  "Sin empezar": 0,
+  "En preparación": 0.33,
+  "Listo para recoger": 0.66,
+  "Recogido": 1,
+  "No acude": 1,
+  "Incidencia": 1,
+};
 const ESTADO_NEXT = {
   "Sin empezar": "En preparación",
   "En preparación": "Listo para recoger",
@@ -228,6 +236,30 @@ function useBreakpoint() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
   return bp;
+}
+
+// ─── ESTADO GAUGE (half-circle SVG) ───
+function EstadoGauge({ estado, size = 44 }) {
+  const cfg = ESTADOS[estado] || ESTADOS["Sin empezar"];
+  const progress = ESTADO_PROGRESS[estado] ?? 0;
+  const h = Math.round(size * 0.6);
+  const r = Math.round(size * 0.36);
+  const cx = size / 2;
+  const cy = h - 2;
+  const semi = Math.PI * r;
+  const offset = semi * (1 - progress);
+  return (
+    <svg width={size} height={h} viewBox={`0 0 ${size} ${h}`} style={{ flexShrink: 0 }}>
+      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none" stroke={cfg.bg} strokeWidth="4" strokeLinecap="round" />
+      {progress > 0 && (
+        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+          fill="none" stroke={cfg.color} strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={semi} strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.65, 0, 0.35, 1)" }} />
+      )}
+    </svg>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1645,21 +1677,45 @@ export default function VyniaApp() {
                       cursor: bulkMode ? "pointer" : undefined,
                       position: "relative",
                     }}>
-                      {/* Estado actual — cabecera */}
-                      <div style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        marginBottom: 10, paddingBottom: 8,
-                        borderBottom: `1px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}20`,
+                      {/* Estado actual — cabecera prominente */}
+                      <div className="estado-header" style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "10px 14px", marginBottom: 12,
+                        borderRadius: 10,
+                        background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}90)`,
+                        border: `1.5px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}30`,
+                        boxShadow: `0 2px 8px ${ESTADOS[p.estado]?.color || "#8B8B8B"}12`,
+                        position: "relative", overflow: "hidden",
                       }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, letterSpacing: "0.03em",
-                          padding: "3px 10px", borderRadius: 6,
-                          background: ESTADOS[p.estado]?.bg || "#F0F0F0",
-                          color: ESTADOS[p.estado]?.color || "#8B8B8B",
-                          border: `1px solid ${ESTADOS[p.estado]?.color || "#8B8B8B"}30`,
+                        {/* Shimmer overlay */}
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          background: `linear-gradient(90deg, transparent 0%, ${ESTADOS[p.estado]?.color || "#8B8B8B"}08 50%, transparent 100%)`,
+                          pointerEvents: "none",
+                        }} />
+                        <div style={{
+                          padding: "6px", borderRadius: 8,
+                          background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.color || "#8B8B8B"}20, ${ESTADOS[p.estado]?.color || "#8B8B8B"}10)`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
-                          {ESTADOS[p.estado]?.icon} {ESTADOS[p.estado]?.label || "Sin empezar"}
-                        </span>
+                          <EstadoGauge estado={p.estado} size={44} />
+                        </div>
+                        <div style={{ position: "relative", zIndex: 1 }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, letterSpacing: "0.02em",
+                            color: ESTADOS[p.estado]?.color || "#8B8B8B",
+                          }}>
+                            {ESTADOS[p.estado]?.label || "Sin empezar"}
+                          </div>
+                          <div style={{
+                            fontSize: 10, color: ESTADOS[p.estado]?.color || "#8B8B8B",
+                            opacity: 0.7, marginTop: 1,
+                          }}>
+                            {ESTADO_PROGRESS[p.estado] === 1 ? "Completado" :
+                             ESTADO_PROGRESS[p.estado] > 0 ? `${Math.round((ESTADO_PROGRESS[p.estado] || 0) * 100)}% del pipeline` :
+                             "Pipeline pendiente"}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Top row: name + time + amount (clickable for detail) */}
@@ -1770,14 +1826,13 @@ export default function VyniaApp() {
                           return (
                             <button className="estado-btn" title={`→ ${next}`} onClick={() => cambiarEstado(p, next)}
                               style={{
-                                flex: 1, padding: "8px 0", borderRadius: 8,
-                                border: `1.5px solid ${cfg.color}40`,
-                                fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
+                                flex: 1, padding: "7px 0", borderRadius: 8,
+                                border: `1.5px solid ${cfg.color}30`,
+                                fontSize: 11, fontWeight: 600, letterSpacing: "0.01em",
                                 cursor: "pointer", display: "flex",
-                                alignItems: "center", justifyContent: "center", gap: 6,
-                                background: `linear-gradient(135deg, ${cfg.color}ee, ${cfg.color}cc)`,
-                                color: "#fff",
-                                boxShadow: `0 1px 4px ${cfg.color}25`,
+                                alignItems: "center", justifyContent: "center", gap: 5,
+                                background: `${cfg.color}15`,
+                                color: cfg.color,
                               }}>
                               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                 {action}
@@ -3125,7 +3180,7 @@ export default function VyniaApp() {
           { key: "nuevo", icon: <I.Plus s={22} />, label: "Nuevo", tip: "Crear nuevo pedido" },
           { key: "produccion", icon: <I.Store s={22} />, label: "Producción", tip: "Ver producción diaria" },
         ].map(t => (
-          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setCreateResult(null); if (t.key === "nuevo") resetForm(); if (t.key !== "pedidos") { setBusqueda(""); setAllPedidos(null); setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
+          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setCreateResult(null); if (t.key === "nuevo") resetForm(); if (t.key !== "pedidos") { setBusqueda(""); setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
             style={{
               flex: 1, padding: "6px 0", border: "none",
               background: "transparent", cursor: "pointer",
