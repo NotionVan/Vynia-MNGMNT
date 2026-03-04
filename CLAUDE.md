@@ -15,7 +15,7 @@ Vynia-MNGMNT/
 │   ├── pedidos.js          # GET (listar con filtro) + POST (crear pedido)
 │   ├── pedidos/[id].js     # PATCH (cambiar estado, propiedades)
 │   ├── clientes.js         # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
-│   ├── registros.js        # POST (crear linea de pedido)
+│   ├── registros.js        # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
 │   ├── produccion.js       # GET (produccion diaria agregada con clientes)
 │   └── tracking.js         # GET (seguimiento publico por telefono)
 ├── public/
@@ -203,7 +203,7 @@ Exporta objeto `notion` con metodos:
 - `deleteRegistros(registroIds)` — DELETE /api/registros
 - `findOrphanRegistros()` — GET /api/registros?orphans=true
 - `loadProduccion(fecha)` — GET /api/produccion?fecha=...
-- `loadProductos()` — GET /api/productos
+- `loadProductos()` — GET /api/registros?productos=true
 
 ## Tabs de la app
 
@@ -290,7 +290,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
 - Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
 - Toda la UI esta en un solo componente `App.jsx` (~2700 lineas) — no hay componentes separados
-- El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en App.jsx, con carga dinamica via `/api/productos`
+- El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en App.jsx, con carga dinamica via `/api/registros?productos=true`
+- `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
 - **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
 - **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange`, (2) polling cada 60s mientras la pestaña esta activa, (3) boton recargar manual. Todas invalidan el cache frontend (30s TTL en `api.js`) antes de hacer fetch. El cache de `api.js` (`CACHE_TTL = 30000`) evita llamadas duplicadas en operaciones rapidas pero se invalida explicitamente en cada recarga
