@@ -12,17 +12,19 @@
 ```
 Vynia-MNGMNT/
 ├── api/                    # Vercel Serverless Functions
+│   ├── _notion.js          # Notion client, retry, cache, shared constants (PROP_UNIDADES)
 │   ├── pedidos.js          # GET (listar con filtro) + POST (crear pedido)
 │   ├── pedidos/[id].js     # PATCH (cambiar estado, propiedades)
 │   ├── clientes.js         # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
 │   ├── registros.js        # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
 │   ├── produccion.js       # GET (produccion diaria agregada con clientes)
 │   └── tracking.js         # GET (seguimiento publico por telefono)
+├── __tests__/              # Vitest test suite (51 tests, 14 files)
 ├── public/
 │   ├── seguimiento.html    # Pagina publica de seguimiento de pedidos (standalone, sin React)
 │   └── logovynia2_azul.png # Logo Vynia usado en seguimiento
 ├── src/
-│   ├── App.jsx             # Componente principal (toda la UI, ~2700 lineas)
+│   ├── App.jsx             # Componente principal (toda la UI, ~2800 lineas)
 │   └── api.js              # Cliente API frontend (wrapper fetch)
 ├── main.jsx                # Entry point React
 ├── index.html
@@ -272,6 +274,7 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 - **Update banner**: Chequeo automatico de `/version.json` cada 2 min + al volver a la pestaña. Si hay nueva version desplegada, muestra banner flotante "Nueva version disponible" con boton "Actualizar" (reload). Plugin Vite `version-json` genera el fichero en build y lo sirve en dev
 - **Print**: CSS @media print para imprimir lista de pedidos/produccion
 - **Bottom nav**: 3 tabs fijas (Pedidos, Nuevo, Produccion) con safe-area-inset-bottom
+- **Seccion de Ayuda**: Boton `?` en header abre modal full-screen con manual de instrucciones. Dos niveles de navegacion: (1) Bento Grid con 5 cards de categoria (Pedidos, Nuevo Pedido, Produccion, Seguimiento, General) con gradientes de color unicos, iconos, animaciones staggered de entrada y hover scale; (2) Animated List con secciones expandibles estilo acordeon, numero circular coloreado, preview truncado, pasos numerados y tips con borde de acento. Contextual: abre la categoria del tab activo. Estado: `showHelp`, `helpExpanded` (Set), `helpActiveCategory`. Contenido estatico en constante `HELP_CONTENT` (~180 lineas). Colores por categoria: Pedidos (#1565C0 azul), Nuevo (#2E7D32 verde), Produccion (#E65100 naranja), Seguimiento (#7B1FA2 morado), General (#4F6867). CSS: `helpSlideUp`, `helpItemIn`, `.help-bento-card`, `.help-list-item`. Oculto en @media print
 
 ## Modos
 
@@ -298,7 +301,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ## Notas tecnicas
 
 - `@notionhq/client` debe ser v2.x (v5.x elimino `databases.query`, NO actualizar). Excepcion: `handlePost` en `api/pedidos.js` usa `fetch` directo con `Notion-Version: 2025-09-03` y `parent: { type: "data_source_id", data_source_id: DS_PEDIDOS }` para soportar `template: { type: "default" }` (aplica la plantilla de la BD al crear pedido). `DS_PEDIDOS` (`1c418b3a-38b1-8176-a42b-000b33f3b1aa`) es el data_source_id (diferente del database_id). La plantilla se aplica asincronamente por Notion tras la creacion
-- El campo `"Unidades "` en Registros tiene un espacio trailing — respetar siempre
+- El campo `"Unidades "` en Registros tiene un espacio trailing — definido como `PROP_UNIDADES` en `api/_notion.js` y exportado. Usar siempre la constante, nunca el string literal
 - El campo `"Nombre"` (title) en Registros contiene solo `" "` — usar `"AUX Producto Texto"` (formula) para el nombre real del producto
 - `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
@@ -309,3 +312,33 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
 - **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
 - **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange`, (2) polling cada 60s mientras la pestaña esta activa, (3) boton recargar manual. Todas invalidan el cache frontend (30s TTL en `api.js`) antes de hacer fetch. El cache de `api.js` (`CACHE_TTL = 30000`) evita llamadas duplicadas en operaciones rapidas pero se invalida explicitamente en cada recarga
+- **Renderizado progresivo** — La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Al hacer scroll, carga automaticamente mas cards. Se resetea al cambiar filtro/datos. Muestra "Mostrando X de Y pedidos" cuando hay mas por cargar
+
+## Tests
+
+- **Framework**: Vitest 4.x con jsdom
+- **Ejecutar**: `npm test` (o `npx vitest run`)
+- **14 archivos de test**, 51 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones
+- **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
+
+## Changelog v1.4.0
+
+### Bug fixes
+- **BUG-01**: `effectiveEstado` no resolvia correctamente estados legacy
+- **BUG-02**: `toISOString()` generaba fecha UTC en lugar de local (fijo via `fmt.localISO()`)
+- **BUG-03**: `produccion.js` no paginaba pedidos (max 100). Añadida paginacion con cursor
+- **BUG-04**: `"Unidades "` hardcodeado como string literal en 3 archivos. Extraido a constante `PROP_UNIDADES` en `_notion.js`
+- **BUG-05**: `registros.js` no validaba si el producto existe antes de crear registro
+- **BUG-06**: `clientes.js` no validaba telefono (min 6 digitos) al crear cliente
+- **BUG-07**: Busqueda de cliente en POST `/api/clientes` usaba `equals` (case-sensitive). Cambiado a `contains` + filtro client-side case-insensitive
+- **BUG-08**: `tracking.js` no priorizaba match exacto de telefono cuando hay multiples resultados
+- **BUG-09**: Filtro "pendientes" en `pedidos.js` no excluia Incidencias
+- **BUG-10**: `effectiveEstado` sobrescribia estados desconocidos. Simplificado para confiar en Estado como source of truth
+- **BUG-11**: Propiedad `telefono`/`tel` inconsistente en `setSelectedPedido` — normalizado en todos los call sites
+- **BUG-12**: Cache de `api.js` no deduplicaba llamadas en vuelo
+- **BUG-13**: Creacion de registros sin rollback — `crearPedido()` ahora reporta productos fallidos; `guardarModificacion()` crea antes de borrar
+- **BUG-14**: `cambiarEstadoBulk()` sin rollback — añadido `prevEstados` Map + rollback automatico de fallos
+
+### Mejoras
+- **CHAOS-01**: Fechas locales — nuevo helper `fmt.localISO()` reemplaza todos los `toISOString().split("T")[0]`
+- **CHAOS-08**: Renderizado progresivo — IntersectionObserver con lotes de 30 cards para listas largas de pedidos
