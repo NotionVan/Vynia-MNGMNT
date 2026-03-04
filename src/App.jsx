@@ -116,11 +116,11 @@ const ESTADO_ACTION = {
 };
 const ESTADO_TRANSITIONS = {
   "Sin empezar":        ["En preparación", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
-  "En preparación":     ["Listo para recoger", "Recogido", "No acude", "Incidencia"],
-  "Listo para recoger": ["Recogido", "No acude", "Incidencia"],
-  "Recogido":           ["Listo para recoger", "Sin empezar"],
-  "No acude":           ["Sin empezar"],
-  "Incidencia":         ["Sin empezar"],
+  "En preparación":     ["Sin empezar", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
+  "Listo para recoger": ["Sin empezar", "En preparación", "Recogido", "No acude", "Incidencia"],
+  "Recogido":           ["Sin empezar", "En preparación", "Listo para recoger", "No acude", "Incidencia"],
+  "No acude":           ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "Incidencia"],
+  "Incidencia":         ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "No acude"],
 };
 function effectiveEstado(raw) {
   if (raw.estado && ESTADOS[raw.estado]) return raw.estado;
@@ -655,6 +655,26 @@ export default function VyniaApp() {
 
   // ─── CAMBIAR ESTADO ───
   const [estadoPicker, setEstadoPicker] = useState(null);
+  const [pendingEstadoChange, setPendingEstadoChange] = useState(null); // { pedido, nuevoEstado, isBulk }
+
+  const requestEstadoChange = (pedido, nuevoEstado, opts = {}) => {
+    setPendingEstadoChange({ pedido, nuevoEstado, ...opts });
+    if (!opts.keepPicker) setEstadoPicker(null);
+  };
+
+  const confirmarCambioEstado = () => {
+    if (!pendingEstadoChange) return;
+    const { pedido, nuevoEstado, isBulk } = pendingEstadoChange;
+    setPendingEstadoChange(null);
+    if (isBulk) {
+      cambiarEstadoBulk(nuevoEstado);
+    } else {
+      cambiarEstado(pedido, nuevoEstado);
+      if (selectedPedido && selectedPedido.id === pedido.id) {
+        setSelectedPedido(prev => prev ? { ...prev, estado: nuevoEstado } : prev);
+      }
+    }
+  };
 
   const cambiarEstado = async (pedido, nuevoEstado) => {
     if (apiMode === "demo") {
@@ -830,12 +850,13 @@ export default function VyniaApp() {
     }
     setLoading(true);
     try {
+      // Create new registros FIRST, delete old AFTER (prevents data loss on partial failure)
+      for (const linea of newLineas) {
+        await notion.crearRegistro(pedido.id, linea.nombre, linea.cantidad);
+      }
       const oldIds = (pedido.productos || []).filter(p => p.id).map(p => p.id);
       if (oldIds.length > 0) {
         await notion.deleteRegistros(oldIds);
-      }
-      for (const linea of newLineas) {
-        await notion.crearRegistro(pedido.id, linea.nombre, linea.cantidad);
       }
       // Reload fresh registros (with new IDs)
       const freshProds = await notion.loadRegistros(pedido.id);
@@ -1825,7 +1846,7 @@ export default function VyniaApp() {
                           const cfg = ESTADOS[next];
                           const action = ESTADO_ACTION[next] || cfg.label;
                           return (
-                            <button className="estado-btn" title={`→ ${next}`} onClick={() => cambiarEstado(p, next)}
+                            <button className="estado-btn" title={`→ ${next}`} onClick={() => requestEstadoChange(p, next)}
                               style={{
                                 flex: 1, padding: "7px 0", borderRadius: 8,
                                 border: `1.5px solid ${cfg.color}30`,
@@ -2858,8 +2879,7 @@ export default function VyniaApp() {
                       const isPrimary = i === 0; // First transition is the primary/next logical step
                       return (
                         <button className="estado-btn" key={est} onClick={() => {
-                          cambiarEstado(selectedPedido, est);
-                          setSelectedPedido(prev => prev ? { ...prev, estado: est } : prev);
+                          requestEstadoChange(selectedPedido, est);
                         }}
                         style={isPrimary ? {
                           padding: "10px 18px", borderRadius: 12,
@@ -2990,8 +3010,7 @@ export default function VyniaApp() {
                   return (
                     <button key={est} onClick={() => {
                       const pedido = pedidos.find(p => p.id === estadoPicker.pedidoId) || { id: estadoPicker.pedidoId, fecha: "", tel: "", cliente: "" };
-                      cambiarEstado(pedido, est);
-                      setEstadoPicker(null);
+                      requestEstadoChange(pedido, est);
                     }}
                     style={{
                       width: "100%", padding: "12px 14px",
@@ -3017,6 +3036,64 @@ export default function VyniaApp() {
             </div>
           </div>
         )}
+
+        {/* ══════════════════════════════════════════
+            CONFIRM ESTADO CHANGE
+        ══════════════════════════════════════════ */}
+        {pendingEstadoChange && (() => {
+          const cfg = ESTADOS[pendingEstadoChange.nuevoEstado];
+          return (
+            <div style={{ position: "fixed", inset: 0, zIndex: 350, background: "rgba(27,28,57,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => setPendingEstadoChange(null)}>
+              <div style={{
+                background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 20, padding: "28px 24px 20px", maxWidth: 320, width: "90%",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.18)", textAlign: "center",
+                animation: "popoverIn 0.18s ease-out",
+              }} onClick={e => e.stopPropagation()}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: "50%",
+                  background: `${cfg?.color || "#4F6867"}18`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 14px", fontSize: 22,
+                }}>
+                  {cfg?.icon || "?"}
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1B1C39", margin: "0 0 6px", fontFamily: "'Roboto Condensed', sans-serif" }}>
+                  ¿Cambiar estado?
+                </p>
+                <p style={{ fontSize: 13, color: "#4F6867", margin: "0 0 20px" }}>
+                  {pendingEstadoChange.isBulk
+                    ? <>{pendingEstadoChange.pedido ? "" : `${bulkSelected.size} pedido${bulkSelected.size > 1 ? "s" : ""}`} → <strong style={{ color: cfg?.color }}>{cfg?.label || pendingEstadoChange.nuevoEstado}</strong></>
+                    : <>{pendingEstadoChange.pedido?.cliente || pendingEstadoChange.pedido?.titulo || "Pedido"} → <strong style={{ color: cfg?.color }}>{cfg?.label || pendingEstadoChange.nuevoEstado}</strong></>
+                  }
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setPendingEstadoChange(null)}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12,
+                      border: "1.5px solid rgba(162,194,208,0.3)", background: "transparent",
+                      color: "#4F6867", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                    }}>
+                    Cancelar
+                  </button>
+                  <button onClick={confirmarCambioEstado}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12,
+                      border: "none",
+                      background: `linear-gradient(135deg, ${cfg?.color || "#4F6867"}ee, ${cfg?.color || "#4F6867"}cc)`,
+                      color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                      boxShadow: `0 3px 12px ${cfg?.color || "#4F6867"}35`,
+                    }}>
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ══════════════════════════════════════════
             WHATSAPP LISTO PROMPT
@@ -3130,7 +3207,7 @@ export default function VyniaApp() {
               {bulkTransitions.map(est => {
                 const cfg = ESTADOS[est];
                 return (
-                  <button key={est} disabled={bulkLoading} onClick={() => cambiarEstadoBulk(est)}
+                  <button key={est} disabled={bulkLoading} onClick={() => requestEstadoChange(null, est, { isBulk: true })}
                     style={{
                       padding: "8px 14px", borderRadius: 10,
                       border: "none",

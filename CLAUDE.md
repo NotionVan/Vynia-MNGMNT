@@ -174,11 +174,16 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Pagina standalone (HTML+JS vanilla, sin React) en `public/seguimiento.html`
 - Logo Vynia real (`public/logovynia2_azul.png`) en header (oculto en modo iframe)
 - El cliente introduce su telefono → llama a `/api/tracking?tel=...`
-- Muestra pipeline visual de 4 pasos (Sin empezar → Preparando → Listo → Recogido)
-- Para estados no-lineales (No acude, Incidencia) muestra badge en lugar de pipeline
+- Tarjetas glass-morphism con `backdrop-filter: blur(20px)`, bordes semi-transparentes y sombras inset
+- Gauge semicircular SVG animado por pedido: gradiente de color segun estado, fill animado via Web Animations API con easing `cubic-bezier(0.65, 0, 0.35, 1)`, progreso 0%/33%/66%/100%, `stroke-linecap="round"`
+- Label del estado centrado dentro del gauge (nombre grande + subtitulo contextual: "pedido recibido", "en proceso", "pasa a recoger", "entregado")
+- Barra de acento coloreada (3px) en la parte superior de cada tarjeta
+- Animaciones de entrada staggered: cards con `cardSlideUp` + delay por indice, labels con `labelReveal`, iconos especiales con `iconPop` (bounce)
+- Para estados no-lineales (No acude, Incidencia) muestra icono circular con animacion pop en lugar de gauge
+- Fondo de pagina con gradientes radiales sutiles para dar profundidad al efecto glass
 - Vynia-branded: misma paleta de colores y fuentes que la app principal
 - Mobile-first, responsive
-- Modo iframe: detecta `window !== window.top`, añade clase `.embedded` (oculta logo y footer, fondo transparente)
+- Modo iframe: detecta `window !== window.top`, añade clase `.embedded` (oculta logo y footer, fondo transparente, sin gradientes de fondo)
 - Iframe embed code para WordPress:
   ```html
   <iframe src="https://vynia-mngmnt.vercel.app/seguimiento" style="width:100%;min-height:600px;border:none;background:transparent" loading="lazy" allow="clipboard-write"></iframe>
@@ -239,10 +244,18 @@ Para pedidos que no tienen la propiedad Estado asignada, se deriva el estado des
 ### Constantes en App.jsx
 - `ESTADOS` — mapa de config (group, color, bg, label, icon) por cada estado
 - `ESTADO_NEXT` — siguiente estado en el pipeline lineal (para boton 1-tap)
-- `ESTADO_TRANSITIONS` — transiciones validas desde cada estado (para picker)
+- `ESTADO_TRANSITIONS` — todos los estados posibles desde cualquier estado (excluye el estado actual). Permite cambiar a cualquier estado sin restricciones
+
+### Confirmacion de cambio de estado
+Todos los cambios de estado (pipeline 1-tap, modal detalle, picker popover, bulk) pasan por un dialogo de confirmacion antes de ejecutarse. El flujo es:
+1. El usuario hace click en cualquier boton de estado → se llama a `requestEstadoChange(pedido, nuevoEstado)`
+2. Se muestra un popup de confirmacion (glass-morphism, Vynia-branded) con el icono del estado destino, nombre del pedido (o conteo en bulk), y botones Cancelar/Confirmar
+3. Al confirmar → se ejecuta `cambiarEstado` o `cambiarEstadoBulk` segun corresponda
+- Estado: `pendingEstadoChange` — almacena `{ pedido, nuevoEstado, isBulk }`
+- Funcion: `confirmarCambioEstado()` — ejecuta el cambio pendiente y cierra el dialogo
 
 ### Seleccion bulk (`cambiarEstadoBulk`)
-Boton "Seleccionar" en la barra de filtros activa modo bulk. Cada card muestra checkbox circular; click togglea seleccion. Barra flotante (fixed, encima del bottom nav) muestra contador + botones de estado. Solo muestra transiciones validas comunes a todos los seleccionados (interseccion de `ESTADO_TRANSITIONS`). Ejecuta `cambiarEstado` en paralelo via `Promise.allSettled`. WhatsApp NO se dispara en bulk. Al completar o cambiar de tab, el modo se desactiva.
+Boton "Seleccionar" en la barra de filtros activa modo bulk. Cada card muestra checkbox circular; click togglea seleccion. Barra flotante (fixed, encima del bottom nav) muestra contador + botones de estado. Muestra todos los estados comunes a los seleccionados (interseccion de `ESTADO_TRANSITIONS`, excluye estados actuales). Ejecuta `cambiarEstado` en paralelo via `Promise.allSettled`. WhatsApp NO se dispara en bulk. Al completar o cambiar de tab, el modo se desactiva.
 
 ### WhatsApp notification
 Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se muestra un popup preguntando si se quiere avisar al cliente. Si se acepta, se abre `wa.me/{telefono}?text={mensaje}` con el texto: "¡Hola! Tu pedido de Vynia ya esta listo para que pases a recogerlo."
@@ -280,6 +293,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - Variable de entorno en Vercel: `NOTION_TOKEN`
 - Git integration: push a `main` autodeploya automaticamente
 - Repo: `github.com/javintnvn/Vynia-MNGMNT`
+- **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 6 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
 
 ## Notas tecnicas
 
