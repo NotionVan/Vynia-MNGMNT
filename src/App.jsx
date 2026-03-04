@@ -383,6 +383,7 @@ export default function VyniaApp() {
   const [produccionData, setProduccionData] = useState([]);
   const [produccionFecha, setProduccionFecha] = useState(fmt.todayISO());
   const [expandedProduct, setExpandedProduct] = useState(null);
+  const [expandAll, setExpandAll] = useState(false);
   const [ocultarRecogidos, setOcultarRecogidos] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [phoneMenu, setPhoneMenu] = useState(null); // { tel, x, y }
@@ -2361,7 +2362,7 @@ export default function VyniaApp() {
                 { label: "Mañana", val: fmt.tomorrowISO() },
                 { label: "Pasado", val: fmt.dayAfterISO() },
               ].map(d => (
-                <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); loadProduccion(d.val); }}
+                <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); }}
                   style={{
                     flex: 1, padding: "10px 0", borderRadius: 10,
                     border: produccionFecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
@@ -2377,7 +2378,7 @@ export default function VyniaApp() {
               <div style={{ flex: 0.8, position: "relative", display: "flex", alignItems: "center" }}>
                 <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
                 <input type="date" lang="es" value={produccionFecha}
-                  onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); loadProduccion(e.target.value); }}
+                  onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); setExpandAll(false); loadProduccion(e.target.value); }}
                   style={{
                     width: "100%", padding: "8px 8px 8px 30px", borderRadius: 10,
                     border: "2px solid #4F6867", fontSize: 13,
@@ -2389,14 +2390,14 @@ export default function VyniaApp() {
 
             {/* Toggle recogidos */}
             <div style={{ display: "flex", gap: 8, flex: isDesktop ? "none" : undefined }}>
-              <button title="Ver solo producción pendiente" onClick={() => setOcultarRecogidos(true)}
+              <button title="Ver solo producción pendiente" onClick={() => { setOcultarRecogidos(true); setExpandAll(false); setExpandedProduct(null); }}
                 style={{
                   flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
                   border: ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
                   background: ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
                   color: ocultarRecogidos ? "#1B1C39" : "#4F6867",
                 }}>Pendiente</button>
-              <button title="Ver toda la producción del día" onClick={() => setOcultarRecogidos(false)}
+              <button title="Ver toda la producción del día" onClick={() => { setOcultarRecogidos(false); setExpandAll(false); setExpandedProduct(null); }}
                 style={{
                   flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
                   border: !ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
@@ -2428,9 +2429,20 @@ export default function VyniaApp() {
                     padding: "10px 14px", marginBottom: 12,
                     background: "#E1F2FC", borderRadius: 10,
                   }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#4F6867" }}>
-                      {activeProductCount} {activeProductCount === 1 ? "producto" : "productos"}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#4F6867" }}>
+                        {activeProductCount} {activeProductCount === 1 ? "producto" : "productos"}
+                      </span>
+                      <button
+                        title={expandAll ? "Contraer todos los productos" : "Desplegar todos los productos"}
+                        onClick={() => { setExpandAll(!expandAll); setExpandedProduct(null); }}
+                        style={{
+                          border: "1.5px solid #4F6867", background: expandAll ? "#4F6867" : "transparent",
+                          color: expandAll ? "#fff" : "#4F6867", borderRadius: 6, padding: "2px 8px",
+                          fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+                        }}
+                      >{expandAll ? "Contraer" : "Desplegar"}</button>
+                    </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       {totalRecogido > 0 && (
                         <span style={{ fontSize: 11, color: "#A2C2D0", textDecoration: "line-through" }}>
@@ -2453,7 +2465,10 @@ export default function VyniaApp() {
                       boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
                     }}>
                       {/* Product row */}
-                      <button title={expandedProduct === prod.nombre ? "Contraer producto" : "Ver pedidos de este producto"} onClick={() => setExpandedProduct(expandedProduct === prod.nombre ? null : prod.nombre)}
+                      <button title={(expandAll || expandedProduct === prod.nombre) ? "Contraer producto" : "Ver pedidos de este producto"} onClick={() => {
+                        if (expandAll) { setExpandAll(false); setExpandedProduct(prod.nombre); }
+                        else setExpandedProduct(expandedProduct === prod.nombre ? null : prod.nombre);
+                      }}
                         style={{
                           width: "100%", padding: "14px 16px",
                           border: "none", background: "transparent",
@@ -2481,14 +2496,14 @@ export default function VyniaApp() {
                           </span>
                           <span style={{
                             fontSize: 10, color: "#A2C2D0",
-                            transform: expandedProduct === prod.nombre ? "rotate(90deg)" : "rotate(0deg)",
+                            transform: (expandAll || expandedProduct === prod.nombre) ? "rotate(90deg)" : "rotate(0deg)",
                             transition: "transform 0.2s",
                           }}>▶</span>
                         </div>
                       </button>
 
                       {/* Expanded: pedidos list */}
-                      {expandedProduct === prod.nombre && (
+                      {(expandAll || expandedProduct === prod.nombre) && (
                         <div style={{
                           borderTop: "1px solid #E1F2FC",
                           padding: "8px 16px 12px",
