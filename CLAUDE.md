@@ -193,7 +193,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 
 ## Frontend API client (src/api.js)
 
-Exporta objeto `notion` con metodos:
+Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()` (limpia todo) e `invalidatePedidosCache()` (solo claves de pedidos):
 - `loadAllPedidos()` — GET /api/pedidos?filter=todos
 - `loadPedidos()` — GET /api/pedidos?filter=pendientes
 - `loadPedidosByDate(fecha)` — GET /api/pedidos?fecha=...
@@ -311,7 +311,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
 - **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
-- **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange`, (2) polling cada 60s mientras la pestaña esta activa, (3) boton recargar manual. Todas invalidan el cache frontend (30s TTL en `api.js`) antes de hacer fetch. El cache de `api.js` (`CACHE_TTL = 30000`) evita llamadas duplicadas en operaciones rapidas pero se invalida explicitamente en cada recarga
+- **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras la pestaña esta activa, (3) boton recargar manual. Los polls automaticos y visibility usan `skipEnrich: true` (no re-fetchan registros, preservan datos de productos/importe del estado previo). Carga inicial y reload manual hacen enrichment completo. El cache de `api.js` (`CACHE_TTL = 45000`) evita llamadas duplicadas. `invalidatePedidosCache()` invalida solo claves de pedidos (no registros/produccion/catalogo) — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads completos
+- **Server-side cache** — `api/_notion.js` exporta `cached(key, ttlMs, fn)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: `/api/pedidos` GET 10s, `/api/produccion` 60s, `/api/registros?productos=true` 300s (5min), `/api/tracking` 15s
 - **Renderizado progresivo** — La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Al hacer scroll, carga automaticamente mas cards. Se resetea al cambiar filtro/datos. Muestra "Mostrando X de Y pedidos" cuando hay mas por cargar
 
 ## Tests

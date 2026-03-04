@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const productos = await cached(`produccion:${fecha}`, 30000, async () => {
+    const productos = await cached(`produccion:${fecha}`, 60000, async () => {
     const BATCH_SIZE = 5; // Limit concurrent Notion API calls
     // 1. Get pedidos for the given date (paginated — handles >100 pedidos)
     let pedidos = [];

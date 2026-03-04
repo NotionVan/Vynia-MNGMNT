@@ -5,7 +5,7 @@ const _inflight = new Map();
 
 // ─── In-memory cache with 30s TTL (GET only) ───
 const _cache = new Map();
-const CACHE_TTL = 30000;
+const CACHE_TTL = 45000;
 
 function getCached(key) {
   const entry = _cache.get(key);
@@ -14,6 +14,12 @@ function getCached(key) {
 }
 
 export function invalidateApiCache() { _cache.clear(); }
+
+export function invalidatePedidosCache() {
+  for (const key of _cache.keys()) {
+    if (key.startsWith("GET:/pedidos")) _cache.delete(key);
+  }
+}
 
 async function apiCall(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();

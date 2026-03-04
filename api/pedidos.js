@@ -1,4 +1,4 @@
-import { notion } from "./_notion.js";
+import { notion, cached } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 // Data source ID for API 2025-09-03 (required for template support)
@@ -40,78 +40,81 @@ async function handleGet(req, res) {
     const filter = req.query.filter || "todos";
     const fecha = req.query.fecha; // YYYY-MM-DD — filter by delivery date
     const clienteId = req.query.clienteId; // filter by client relation
+    const cacheKey = `pedidos:${filter}:${fecha || ""}:${clienteId || ""}`;
 
-    const conditions = [];
+    const pedidos = await cached(cacheKey, 10000, async () => {
+      const conditions = [];
 
-    // Client filter: pedidos for a specific client
-    if (clienteId) {
-      conditions.push({ property: "Clientes", relation: { contains: clienteId } });
-    }
+      // Client filter: pedidos for a specific client
+      if (clienteId) {
+        conditions.push({ property: "Clientes", relation: { contains: clienteId } });
+      }
 
-    // Date filter: if fecha is provided, filter to that specific day
-    if (fecha) {
-      conditions.push({ property: "Fecha entrega", date: { on_or_after: fecha } });
-      conditions.push({ property: "Fecha entrega", date: { before: nextDay(fecha) } });
-    }
+      // Date filter: if fecha is provided, filter to that specific day
+      if (fecha) {
+        conditions.push({ property: "Fecha entrega", date: { on_or_after: fecha } });
+        conditions.push({ property: "Fecha entrega", date: { before: nextDay(fecha) } });
+      }
 
-    // Status filter
-    if (filter === "pendientes") {
-      conditions.push({ property: "Recogido", checkbox: { equals: false } });
-      conditions.push({ property: "No acude", checkbox: { equals: false } });
-      conditions.push({ property: "Incidencia", checkbox: { equals: false } });
-    } else if (filter === "recogidos") {
-      conditions.push({ property: "Recogido", checkbox: { equals: true } });
-    }
+      // Status filter
+      if (filter === "pendientes") {
+        conditions.push({ property: "Recogido", checkbox: { equals: false } });
+        conditions.push({ property: "No acude", checkbox: { equals: false } });
+        conditions.push({ property: "Incidencia", checkbox: { equals: false } });
+      } else if (filter === "recogidos") {
+        conditions.push({ property: "Recogido", checkbox: { equals: true } });
+      }
 
-    let notionFilter = undefined;
-    if (conditions.length === 1) {
-      notionFilter = conditions[0];
-    } else if (conditions.length > 1) {
-      notionFilter = { and: conditions };
-    }
+      let notionFilter = undefined;
+      if (conditions.length === 1) {
+        notionFilter = conditions[0];
+      } else if (conditions.length > 1) {
+        notionFilter = { and: conditions };
+      }
 
-    const sorts = [{ property: "Fecha entrega", direction: "ascending" }];
+      const sorts = [{ property: "Fecha entrega", direction: "ascending" }];
 
-    let allResults = [];
-    let cursor = undefined;
-    do {
-      const response = await notion.databases.query({
-        database_id: DB_PEDIDOS,
-        ...(notionFilter && { filter: notionFilter }),
-        sorts,
-        start_cursor: cursor,
-        page_size: 100,
+      let allResults = [];
+      let cursor = undefined;
+      do {
+        const response = await notion.databases.query({
+          database_id: DB_PEDIDOS,
+          ...(notionFilter && { filter: notionFilter }),
+          sorts,
+          start_cursor: cursor,
+          page_size: 100,
+        });
+        allResults = allResults.concat(response.results);
+        cursor = response.has_more ? response.next_cursor : undefined;
+      } while (cursor);
+
+      // Build pedido list (client name from rollup — no extra API calls)
+      return allResults.map((page) => {
+        const p = page.properties;
+        const clientRelation = p["Clientes"]?.relation || [];
+        const clientId = clientRelation.length > 0 ? clientRelation[0].id : null;
+        const telRollup = p["Teléfono"]?.rollup?.array || [];
+        const telefono = telRollup.length > 0 ? (telRollup[0].phone_number || "") : "";
+        const clienteRollup = p["AUX Nombre Cliente"]?.rollup?.array || [];
+        const cliente = clienteRollup.length > 0
+          ? (clienteRollup[0].title || []).map(t => t.plain_text).join("")
+          : "";
+        return {
+          id: page.id,
+          titulo: extractTitle(p["Pedido"]),
+          fecha: extractDateStart(p["Fecha entrega"]),
+          recogido: p["Recogido"]?.checkbox || false,
+          noAcude: p["No acude"]?.checkbox || false,
+          pagado: p["Pagado al reservar"]?.checkbox || false,
+          incidencia: p["Incidencia"]?.checkbox || false,
+          estado: p["Estado"]?.status?.name || null,
+          notas: extractRichText(p["Notas"]),
+          numPedido: p["Nº Pedido"]?.unique_id?.number || 0,
+          clienteId: clientId,
+          telefono,
+          cliente,
+        };
       });
-      allResults = allResults.concat(response.results);
-      cursor = response.has_more ? response.next_cursor : undefined;
-    } while (cursor);
-
-    // Build pedido list (client name from rollup — no extra API calls)
-    const pedidos = allResults.map((page) => {
-      const p = page.properties;
-      const clientRelation = p["Clientes"]?.relation || [];
-      const clientId = clientRelation.length > 0 ? clientRelation[0].id : null;
-      const telRollup = p["Teléfono"]?.rollup?.array || [];
-      const telefono = telRollup.length > 0 ? (telRollup[0].phone_number || "") : "";
-      const clienteRollup = p["AUX Nombre Cliente"]?.rollup?.array || [];
-      const cliente = clienteRollup.length > 0
-        ? (clienteRollup[0].title || []).map(t => t.plain_text).join("")
-        : "";
-      return {
-        id: page.id,
-        titulo: extractTitle(p["Pedido"]),
-        fecha: extractDateStart(p["Fecha entrega"]),
-        recogido: p["Recogido"]?.checkbox || false,
-        noAcude: p["No acude"]?.checkbox || false,
-        pagado: p["Pagado al reservar"]?.checkbox || false,
-        incidencia: p["Incidencia"]?.checkbox || false,
-        estado: p["Estado"]?.status?.name || null,
-        notas: extractRichText(p["Notas"]),
-        numPedido: p["Nº Pedido"]?.unique_id?.number || 0,
-        clienteId: clientId,
-        telefono,
-        cliente,
-      };
     });
 
     return res.status(200).json(pedidos);

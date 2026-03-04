@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import NumberFlow from "@number-flow/react";
-import { notion, invalidateApiCache } from "./api.js";
+import { notion, invalidateApiCache, invalidatePedidosCache } from "./api.js";
 
 // ════════════════════════════════════════════════════════════
 //  VYNIA — Sistema de Gestión de Pedidos
@@ -658,7 +658,7 @@ export default function VyniaApp() {
   };
 
   // Invalidate caches when data changes
-  const invalidateSearchCache = () => { invalidateApiCache(); };
+  const invalidateSearchCache = () => { invalidatePedidosCache(); };
   const invalidateProduccion = (pedidoFecha) => {
     // Only invalidate if the pedido's date matches the currently loaded produccion date
     const pedidoDate = (pedidoFecha || "").split("T")[0];
@@ -666,7 +666,9 @@ export default function VyniaApp() {
   };
 
   // ─── LOAD PEDIDOS ───
-  const loadPedidos = useCallback(async (fechaParam) => {
+  // skipEnrich: when true, skips the registros enrichment phase and preserves
+  // existing productos/importe from previous state (used by auto-polls to save invocations)
+  const loadPedidos = useCallback(async (fechaParam, { skipEnrich = false } = {}) => {
     const f = fechaParam !== undefined ? fechaParam : filtroFecha;
     if (apiMode === "demo") {
       const allDemo = [
@@ -703,6 +705,22 @@ export default function VyniaApp() {
         };
       });
 
+      if (skipEnrich) {
+        // Preserve enrichment data (productos, importe) from previous state
+        setPedidos(prev => {
+          const prevMap = {};
+          for (const p of prev) { prevMap[p.id] = p; }
+          return mapped.map(p => {
+            const existing = prevMap[p.id];
+            if (existing && (existing.productos || existing.importe)) {
+              return { ...p, productos: existing.productos, importe: existing.importe };
+            }
+            return p;
+          });
+        });
+        return;
+      }
+
       setPedidos(mapped);
       notify("ok", `${mapped.length} pedido${mapped.length !== 1 ? "s" : ""} cargado${mapped.length !== 1 ? "s" : ""}`);
       // Enrich pedidos with importe in background (single setState after all batches)
@@ -735,14 +753,22 @@ export default function VyniaApp() {
 
   useEffect(() => { loadPedidos(); loadProduccion(); }, [apiMode]);
 
-  // ─── Auto-refresh: reload on tab focus + poll every 60s ───
+  // ─── Auto-refresh: reload on tab focus (debounced) + poll every 120s ───
+  // Polls use skipEnrich to avoid re-fetching registros (preserves existing data).
+  // Manual reloads and initial load still do full enrichment.
   useEffect(() => {
     if (apiMode === "demo") return;
-    const reload = () => { invalidateApiCache(); loadPedidos(); if (tab === "produccion") loadProduccion(); };
-    const onVisible = () => { if (!document.hidden) reload(); };
+    const reload = () => { invalidateApiCache(); loadPedidos(undefined, { skipEnrich: true }); if (tab === "produccion") loadProduccion(); };
+    let visDebounce = null;
+    const onVisible = () => {
+      if (!document.hidden) {
+        clearTimeout(visDebounce);
+        visDebounce = setTimeout(reload, 2000);
+      }
+    };
     document.addEventListener("visibilitychange", onVisible);
-    const interval = setInterval(() => { if (!document.hidden) reload(); }, 60000);
-    return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); };
+    const interval = setInterval(() => { if (!document.hidden) reload(); }, 120000);
+    return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); clearTimeout(visDebounce); };
   }, [apiMode, tab, loadPedidos]);
 
   // ─── Version check: notify user when a new deploy is available ───
