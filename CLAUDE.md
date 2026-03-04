@@ -255,6 +255,8 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 - **Tooltips**: Todos los botones tienen `title` para hover (desktop) + sistema de tooltip tactil por long-press ~0.4s (movil) con popup animado que desaparece tras 1.5s
 - **Cards de pedido**: Cabecera prominente con estado actual (pill 11px con color del estado), botones de accion (pipeline + picker) debajo del contenido
 - **Toggle precios**: Boton `€ ON/OFF` a la derecha de la barra de busqueda, oculto por defecto (`mostrarPrecios` state). Controla visibilidad del importe en cards
+- **Changelog popup**: Click en numero de version en header abre popup con fecha del commit y mensaje de cambios (inyectados en build time via `__APP_CHANGELOG__` desde `git log`)
+- **Update banner**: Chequeo automatico de `/version.json` cada 2 min + al volver a la pestaña. Si hay nueva version desplegada, muestra banner flotante "Nueva version disponible" con boton "Actualizar" (reload). Plugin Vite `version-json` genera el fichero en build y lo sirve en dev
 - **Print**: CSS @media print para imprimir lista de pedidos/produccion
 - **Bottom nav**: 3 tabs fijas (Pedidos, Nuevo, Produccion) con safe-area-inset-bottom
 

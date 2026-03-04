@@ -320,6 +320,8 @@ export default function VyniaApp() {
   const [filtro, setFiltro] = useState("pendientes"); // pendientes | hoy | todos | recogidos
   const [filtroFecha, setFiltroFecha] = useState(fmt.todayISO()); // null = all dates
   const [mostrarPrecios, setMostrarPrecios] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [searchResults, setSearchResults] = useState([]); // clientes found
   const [fichaCliente, setFichaCliente] = useState(null); // selected client card
@@ -524,6 +526,19 @@ export default function VyniaApp() {
     const interval = setInterval(() => { if (!document.hidden) reload(); }, 60000);
     return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); };
   }, [apiMode, tab, loadPedidos]);
+
+  // ─── Version check: notify user when a new deploy is available ───
+  useEffect(() => {
+    const check = () => {
+      fetch("/version.json?t=" + Date.now()).then(r => r.json()).then(d => {
+        if (d.version && d.version !== __APP_VERSION__) setUpdateAvailable(true);
+      }).catch(() => {});
+    };
+    const onVisible = () => { if (!document.hidden) check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = setInterval(check, 120000);
+    return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); };
+  }, []);
 
   // ─── Load product catalog from Notion (source of truth) ───
   useEffect(() => {
@@ -1044,16 +1059,38 @@ export default function VyniaApp() {
             }}>
               <img src={VYNIA_LOGO} alt="Vynia" style={{ width: 34, height: 34, objectFit: "contain" }} />
             </div>
-            <div>
+            <div style={{ position: "relative" }}>
               <h1 style={{
                 fontFamily: "'Roboto Condensed', sans-serif", fontSize: 15, fontWeight: 600,
                 margin: 0, color: "#4F6867", letterSpacing: "0.08em",
                 textTransform: "uppercase",
               }}>Pedidos</h1>
-              <span style={{
+              <span onClick={() => setShowChangelog(v => !v)} style={{
                 fontFamily: "Inter, sans-serif", fontSize: 9, color: "#A2C2D0",
-                letterSpacing: "0.03em",
+                letterSpacing: "0.03em", cursor: "pointer",
               }}>v{__APP_VERSION__} · {new Date(__APP_BUILD_DATE__).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</span>
+              {showChangelog && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 6,
+                  background: "rgba(239,233,228,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  borderRadius: 12, padding: "12px 16px", minWidth: 240, maxWidth: 320,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06)",
+                  zIndex: 80, animation: "popoverIn 0.18s ease-out",
+                  border: "1px solid rgba(162,194,208,0.3)",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1B1C39", marginBottom: 4 }}>
+                    v{__APP_VERSION__} — {new Date(__APP_BUILD_DATE__).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#4F6867", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                    {__APP_CHANGELOG__ || "Sin notas de cambio"}
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); setShowChangelog(false); }} style={{
+                    marginTop: 8, padding: "4px 12px", borderRadius: 8,
+                    border: "1px solid #A2C2D0", background: "#fff", color: "#4F6867",
+                    fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  }}>Cerrar</button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -3047,6 +3084,29 @@ export default function VyniaApp() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ════ UPDATE BANNER ════ */}
+      {updateAvailable && (
+        <div style={{
+          position: "fixed", bottom: 64, left: "50%", transform: "translateX(-50%)",
+          background: "#1B1C39", color: "#fff", borderRadius: 12,
+          padding: "10px 20px", display: "flex", alignItems: "center", gap: 12,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.25)", zIndex: 200,
+          animation: "popoverIn 0.25s ease-out", fontSize: 13, fontWeight: 500,
+          fontFamily: "'Roboto Condensed', sans-serif",
+        }}>
+          Nueva versión disponible
+          <button onClick={() => window.location.reload()} style={{
+            padding: "6px 14px", borderRadius: 8, border: "none",
+            background: "#4F6867", color: "#fff", fontSize: 12,
+            fontWeight: 700, cursor: "pointer",
+          }}>Actualizar</button>
+          <button onClick={() => setUpdateAvailable(false)} style={{
+            background: "none", border: "none", color: "#A2C2D0",
+            fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1,
+          }}>✕</button>
         </div>
       )}
 
