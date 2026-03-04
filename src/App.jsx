@@ -88,12 +88,12 @@ const CATALOGO_FALLBACK = [
 
 // ─── ESTADO CONFIG ───
 const ESTADOS = {
-  "Sin empezar":        { group: "to_do",      color: "#8B8B8B", bg: "#F0F0F0", label: "Sin empezar", icon: "○" },
-  "En preparación":     { group: "in_progress", color: "#1565C0", bg: "#E3F2FD", label: "Preparando",  icon: "◐" },
-  "Listo para recoger": { group: "in_progress", color: "#E65100", bg: "#FFF3E0", label: "Listo",       icon: "●" },
-  "Recogido":           { group: "complete",    color: "#2E7D32", bg: "#E8F5E9", label: "Recogido",    icon: "✓" },
-  "No acude":           { group: "complete",    color: "#C62828", bg: "#FFEBEE", label: "No acude",    icon: "✗" },
-  "Incidencia":         { group: "complete",    color: "#795548", bg: "#FDE8E5", label: "Incidencia",  icon: "!" },
+  "Sin empezar": { group: "to_do", color: "#8B8B8B", bg: "#F0F0F0", label: "Sin empezar", icon: "○" },
+  "En preparación": { group: "in_progress", color: "#1565C0", bg: "#E3F2FD", label: "Preparando", icon: "◐" },
+  "Listo para recoger": { group: "in_progress", color: "#E65100", bg: "#FFF3E0", label: "Listo", icon: "●" },
+  "Recogido": { group: "complete", color: "#2E7D32", bg: "#E8F5E9", label: "Recogido", icon: "✓" },
+  "No acude": { group: "complete", color: "#C62828", bg: "#FFEBEE", label: "No acude", icon: "✗" },
+  "Incidencia": { group: "complete", color: "#795548", bg: "#FDE8E5", label: "Incidencia", icon: "!" },
 };
 const ESTADO_PROGRESS = {
   "Sin empezar": 0,
@@ -115,12 +115,12 @@ const ESTADO_ACTION = {
   "Recogido": "Marcar recogido",
 };
 const ESTADO_TRANSITIONS = {
-  "Sin empezar":        ["En preparación", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
-  "En preparación":     ["Sin empezar", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
+  "Sin empezar": ["En preparación", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
+  "En preparación": ["Sin empezar", "Listo para recoger", "Recogido", "No acude", "Incidencia"],
   "Listo para recoger": ["Sin empezar", "En preparación", "Recogido", "No acude", "Incidencia"],
-  "Recogido":           ["Sin empezar", "En preparación", "Listo para recoger", "No acude", "Incidencia"],
-  "No acude":           ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "Incidencia"],
-  "Incidencia":         ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "No acude"],
+  "Recogido": ["Sin empezar", "En preparación", "Listo para recoger", "No acude", "Incidencia"],
+  "No acude": ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "Incidencia"],
+  "Incidencia": ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "No acude"],
 };
 function effectiveEstado(raw) {
   // Estado status property is source of truth — trust it if present
@@ -150,30 +150,30 @@ const FRECUENTES = [
 
 // ─── ICONS ───
 const I = {
-  Search: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
-  Plus: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>,
-  Check: (p = {}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5"/></svg>,
-  Box: (p = {}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>,
-  User: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  Cal: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect width="18" x="3" y="4" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
-  Clock: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
-  Phone: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-  Trash: (p = {}) => <svg width={p.s||15} height={p.s||15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-  Refresh: (p = {}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>,
-  Store: (p = {}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v12h18V9M3 9l1.5-5h15L21 9M3 9h18M9 21V13h6v8"/></svg>,
-  Minus: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14"/></svg>,
-  Alert: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>,
-  Back: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6"/></svg>,
-  Send: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="m22 2-11 11"/></svg>,
-  List: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>,
-  Tag: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2zM7 7h.01"/></svg>,
-  Euro: () => <span style={{fontWeight:700,fontSize:13}}>€</span>,
-  Printer: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
-  Edit: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>,
-  Ext: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
-  Broom: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 11 9-9"/><path d="M14.6 12.6c.8.8.8 2 0 2.8l-7.8 7.8H2v-4.8l7.8-7.8c.8-.8 2-.8 2.8 0z"/></svg>,
-  Help: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>,
-  Chevron: (p = {}) => <svg width={p.s||12} height={p.s||12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>,
+  Search: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>,
+  Plus: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>,
+  Check: (p = {}) => <svg width={p.s || 16} height={p.s || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6 9 17l-5-5" /></svg>,
+  Box: (p = {}) => <svg width={p.s || 20} height={p.s || 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" /></svg>,
+  User: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+  Cal: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect width="18" x="3" y="4" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>,
+  Clock: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>,
+  Phone: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></svg>,
+  Trash: (p = {}) => <svg width={p.s || 15} height={p.s || 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>,
+  Refresh: (p = {}) => <svg width={p.s || 16} height={p.s || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" /></svg>,
+  Store: (p = {}) => <svg width={p.s || 22} height={p.s || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v12h18V9M3 9l1.5-5h15L21 9M3 9h18M9 21V13h6v8" /></svg>,
+  Minus: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12h14" /></svg>,
+  Alert: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>,
+  Back: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6" /></svg>,
+  Send: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z" /><path d="m22 2-11 11" /></svg>,
+  List: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>,
+  Tag: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2zM7 7h.01" /></svg>,
+  Euro: () => <span style={{ fontWeight: 700, fontSize: 13 }}>€</span>,
+  Printer: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>,
+  Edit: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>,
+  Ext: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>,
+  Broom: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 11 9-9" /><path d="M14.6 12.6c.8.8.8 2 0 2.8l-7.8 7.8H2v-4.8l7.8-7.8c.8-.8 2-.8 2.8 0z" /></svg>,
+  Help: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>,
+  Chevron: (p = {}) => <svg width={p.s || 12} height={p.s || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6" /></svg>,
 };
 
 // ─── HELP CONTENT ───
@@ -360,19 +360,19 @@ const fmt = {
   date: (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
-    const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-    const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
   },
   time: (iso) => {
     if (!iso || !iso.includes("T")) return "";
     const d = new Date(iso);
-    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   },
   dateShort: (iso) => {
     if (!iso) return "";
     const d = new Date(iso);
-    return `${d.getDate()}/${d.getMonth()+1}`;
+    return `${d.getDate()}/${d.getMonth() + 1}`;
   },
   localISO: (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
   isToday: (iso) => {
@@ -381,7 +381,7 @@ const fmt = {
   },
   isTomorrow: (iso) => {
     if (!iso) return false;
-    const t = new Date(); t.setDate(t.getDate()+1);
+    const t = new Date(); t.setDate(t.getDate() + 1);
     return iso.startsWith(fmt.localISO(t));
   },
   isPast: (iso) => {
@@ -389,8 +389,8 @@ const fmt = {
     return new Date(iso) < new Date(fmt.localISO());
   },
   todayISO: () => fmt.localISO(),
-  tomorrowISO: () => { const t = new Date(); t.setDate(t.getDate()+1); return fmt.localISO(t); },
-  dayAfterISO: () => { const t = new Date(); t.setDate(t.getDate()+2); return fmt.localISO(t); },
+  tomorrowISO: () => { const t = new Date(); t.setDate(t.getDate() + 1); return fmt.localISO(t); },
+  dayAfterISO: () => { const t = new Date(); t.setDate(t.getDate() + 2); return fmt.localISO(t); },
 };
 
 // ─── MAÑANA / TARDE DETECTION ───
@@ -530,7 +530,7 @@ export default function VyniaApp() {
       clearTimeout(timer);
     };
   }, []);
-  
+
   // Pedidos data
   const [pedidos, setPedidos] = useState([]);
   const [filtro, setFiltro] = useState("pendientes"); // pendientes | hoy | todos | recogidos
@@ -555,6 +555,7 @@ export default function VyniaApp() {
   const clienteWrapperRef = useRef(null);
 
   // Nuevo pedido form
+  const [nuevoPaso, setNuevoPaso] = useState(1);
   const [cliente, setCliente] = useState("");
   const [clienteSuggestions, setClienteSuggestions] = useState([]);
   const [selectedClienteId, setSelectedClienteId] = useState(null);
@@ -754,7 +755,7 @@ export default function VyniaApp() {
     const check = () => {
       fetch("/version.json?t=" + Date.now()).then(r => r.json()).then(d => {
         if (d.version && d.version !== __APP_VERSION__) setUpdateAvailable(true);
-      }).catch(() => {});
+      }).catch(() => { });
     };
     const onVisible = () => { if (!document.hidden) check(); };
     document.addEventListener("visibilitychange", onVisible);
@@ -1018,7 +1019,7 @@ export default function VyniaApp() {
   const addEditProducto = (prod) => {
     const existing = editLineas.find(l => l.nombre === prod.nombre);
     if (existing) {
-      setEditLineas(editLineas.map(l => l.nombre === prod.nombre ? {...l, cantidad: l.cantidad + 1} : l));
+      setEditLineas(editLineas.map(l => l.nombre === prod.nombre ? { ...l, cantidad: l.cantidad + 1 } : l));
     } else {
       setEditLineas([...editLineas, { nombre: prod.nombre, precio: prod.precio, cantidad: 1, cat: prod.cat }]);
     }
@@ -1026,7 +1027,7 @@ export default function VyniaApp() {
   };
 
   const updateEditQty = (nombre, delta) => {
-    setEditLineas(ls => ls.map(l => l.nombre === nombre ? {...l, cantidad: Math.max(0, l.cantidad + delta)} : l).filter(l => l.cantidad > 0));
+    setEditLineas(ls => ls.map(l => l.nombre === nombre ? { ...l, cantidad: Math.max(0, l.cantidad + delta) } : l).filter(l => l.cantidad > 0));
   };
 
   const editProductosFiltrados = editSearchProd
@@ -1166,6 +1167,7 @@ export default function VyniaApp() {
   };
 
   const resetForm = () => {
+    setNuevoPaso(1);
     setCliente(""); setTelefono(""); setFecha(fmt.todayISO());
     setHora(""); setNotas(""); setPagado(false); setLineas([]);
     setSearchProd(""); setShowCatFull(false);
@@ -1199,7 +1201,7 @@ export default function VyniaApp() {
   const addProducto = (prod) => {
     const existing = lineas.find(l => l.nombre === prod.nombre);
     if (existing) {
-      setLineas(lineas.map(l => l.nombre === prod.nombre ? {...l, cantidad: l.cantidad + 1} : l));
+      setLineas(lineas.map(l => l.nombre === prod.nombre ? { ...l, cantidad: l.cantidad + 1 } : l));
     } else {
       setLineas([...lineas, { nombre: prod.nombre, precio: prod.precio, cantidad: 1, cat: prod.cat }]);
     }
@@ -1208,7 +1210,7 @@ export default function VyniaApp() {
   };
 
   const updateQty = (nombre, delta) => {
-    setLineas(ls => ls.map(l => l.nombre === nombre ? {...l, cantidad: Math.max(0, l.cantidad + delta)} : l).filter(l => l.cantidad > 0));
+    setLineas(ls => ls.map(l => l.nombre === nombre ? { ...l, cantidad: Math.max(0, l.cantidad + delta) } : l).filter(l => l.cantidad > 0));
   };
 
   const totalPedido = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
@@ -1534,28 +1536,28 @@ export default function VyniaApp() {
             {/* ── Date selector row ── */}
             <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
               <div style={{ display: "flex", gap: 6 }}>
-              {[
-                { label: "Hoy", val: fmt.todayISO() },
-                { label: "Mañana", val: fmt.tomorrowISO() },
-                { label: "Pasado", val: fmt.dayAfterISO() },
-              ].map(d => {
-                const sel = filtroFecha === d.val;
-                return (
-                <button key={d.label} title={`Ver pedidos de ${d.label.toLowerCase()}`}
-                  onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); }}
-                  style={{
-                    padding: "9px 16px", borderRadius: 10,
-                    border: sel ? "2px solid #4F6867" : "1.5px solid #d4cec6",
-                    background: sel ? "#E1F2FC" : "#fff",
-                    color: sel ? "#1B1C39" : "#4F6867",
-                    fontWeight: sel ? 700 : 500,
-                    fontSize: 13, cursor: "pointer", transition: "all 0.15s",
-                    fontFamily: "'Roboto Condensed', sans-serif",
-                  }}>
-                  {d.label}
-                </button>
-                );
-              })}
+                {[
+                  { label: "Hoy", val: fmt.todayISO() },
+                  { label: "Mañana", val: fmt.tomorrowISO() },
+                  { label: "Pasado", val: fmt.dayAfterISO() },
+                ].map(d => {
+                  const sel = filtroFecha === d.val;
+                  return (
+                    <button key={d.label} title={`Ver pedidos de ${d.label.toLowerCase()}`}
+                      onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); }}
+                      style={{
+                        padding: "9px 16px", borderRadius: 10,
+                        border: sel ? "2px solid #4F6867" : "1.5px solid #d4cec6",
+                        background: sel ? "#E1F2FC" : "#fff",
+                        color: sel ? "#1B1C39" : "#4F6867",
+                        fontWeight: sel ? 700 : 500,
+                        fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+                        fontFamily: "'Roboto Condensed', sans-serif",
+                      }}>
+                      {d.label}
+                    </button>
+                  );
+                })}
               </div>
               <div style={{ flex: 1 }} />
               <div style={{ width: 140, position: "relative", display: "flex", alignItems: "center" }}>
@@ -1585,18 +1587,18 @@ export default function VyniaApp() {
                 ].map(f => {
                   const sel = filtro === f.key;
                   return (
-                  <button key={f.key} title={`Filtrar: ${f.label}`} onClick={() => setFiltro(f.key)}
-                    style={{
-                      padding: "7px 16px", borderRadius: 20, fontSize: 12,
-                      border: sel ? "1.5px solid #4F6867" : "1.5px solid #d4cec6",
-                      background: sel ? "#E1F2FC" : "#fff",
-                      color: sel ? "#1B1C39" : "#4F6867",
-                      fontWeight: sel ? 700 : 500,
-                      cursor: "pointer", transition: "all 0.15s",
-                      fontFamily: "'Roboto Condensed', sans-serif",
-                    }}>
-                    {f.label}
-                  </button>
+                    <button key={f.key} title={`Filtrar: ${f.label}`} onClick={() => setFiltro(f.key)}
+                      style={{
+                        padding: "7px 16px", borderRadius: 20, fontSize: 12,
+                        border: sel ? "1.5px solid #4F6867" : "1.5px solid #d4cec6",
+                        background: sel ? "#E1F2FC" : "#fff",
+                        color: sel ? "#1B1C39" : "#4F6867",
+                        fontWeight: sel ? 700 : 500,
+                        cursor: "pointer", transition: "all 0.15s",
+                        fontFamily: "'Roboto Condensed', sans-serif",
+                      }}>
+                      {f.label}
+                    </button>
                   );
                 })}
                 <button title={bulkMode ? "Cancelar selección" : "Seleccionar pedidos"} onClick={() => {
@@ -1854,299 +1856,304 @@ export default function VyniaApp() {
                 )}
               </div>
             ) : (
-            <>
-            {/* Orders grouped by date */}
-            {pedidosFiltrados.length === 0 ? (
-              <div style={{
-                textAlign: "center", padding: "40px 20px",
-                color: "#A2C2D0",
-              }}>
-                <img src={VYNIA_LOGO_MD} alt="Vynia" style={{ width: 60, height: 60, opacity: 0.35, filter: "grayscale(30%)" }} />
-                <p style={{ marginTop: 12, fontSize: 14 }}>No hay pedidos con este filtro</p>
-              </div>
-            ) : (
-              sortedDates.map(dateKey => (
-                <div key={dateKey} style={{ marginBottom: 20 }}>
-                  {/* Date header */}
+              <>
+                {/* Orders grouped by date */}
+                {pedidosFiltrados.length === 0 ? (
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    marginBottom: 8, padding: "0 4px",
+                    textAlign: "center", padding: "40px 20px",
+                    color: "#A2C2D0",
                   }}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 700, color: "#4F6867",
-                      textTransform: "uppercase", letterSpacing: "0.06em",
-                    }}>
-                      {fmt.isToday(dateKey) ? "Hoy" :
-                       fmt.isTomorrow(dateKey) ? "Mañana" :
-                       fmt.date(dateKey)}
-                    </span>
-                    <span style={{
-                      fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                      background: "#E1F2FC", color: "#4F6867", fontWeight: 600,
-                    }}>
-                      {groups[dateKey].length}
-                    </span>
-                    {fmt.isPast(dateKey) && !fmt.isToday(dateKey) && (
-                      <span style={{ fontSize: 10, color: "#C4402F", fontWeight: 600 }}>
-                        ⚠ PASADO
-                      </span>
-                    )}
+                    <img src={VYNIA_LOGO_MD} alt="Vynia" style={{ width: 60, height: 60, opacity: 0.35, filter: "grayscale(30%)" }} />
+                    <p style={{ marginTop: 12, fontSize: 14 }}>No hay pedidos con este filtro</p>
                   </div>
-
-                  {/* Order cards — split by Mañana/Tarde */}
-                  {(() => {
-                    const tardeSet = new Set();
-                    for (const p of groups[dateKey]) { if (esTarde(p)) tardeSet.add(p.id); }
-                    const manana = groups[dateKey].filter(p => !tardeSet.has(p.id));
-                    const tarde = groups[dateKey].filter(p => tardeSet.has(p.id));
-                    const gridStyle = { display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : isTablet ? "repeat(2, 1fr)" : "1fr", gap: isDesktop ? 12 : 8 };
-                    const renderCards = (list) => list.map(p => {
-                    const isBulkSel = bulkMode && bulkSelected.has(p.id);
-                    return (
-                    <div key={p.id} className="order-card" onClick={bulkMode ? () => {
-                      setBulkSelected(prev => {
-                        const next = new Set(prev);
-                        next.has(p.id) ? next.delete(p.id) : next.add(p.id);
-                        return next;
-                      });
-                    } : undefined} style={{
-                      background: isBulkSel ? "#E1F2FC" : "#fff",
-                      borderRadius: 14,
-                      border: isBulkSel ? "2px solid #4F6867" : `1px solid ${ESTADOS[p.estado]?.group === "complete" ? (ESTADOS[p.estado]?.color + "40") : "#A2C2D0"}`,
-                      padding: "14px 16px",
-                      boxShadow: isBulkSel ? "0 2px 8px rgba(79,104,103,0.18)" : "0 1px 4px rgba(60,50,30,0.04)",
-                      opacity: ESTADOS[p.estado]?.group === "complete" && !bulkMode ? 0.65 : 1,
-                      transition: "all 0.2s",
-                      cursor: bulkMode ? "pointer" : undefined,
-                      position: "relative",
-                    }}>
-                      {/* Estado actual — cabecera prominente */}
-                      <div className="estado-header" style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "10px 14px", marginBottom: 12,
-                        borderRadius: 10,
-                        background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}90)`,
-                        border: `1.5px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}30`,
-                        boxShadow: `0 2px 8px ${ESTADOS[p.estado]?.color || "#8B8B8B"}12`,
-                        position: "relative", overflow: "hidden",
+                ) : (
+                  sortedDates.map(dateKey => (
+                    <div key={dateKey} style={{ marginBottom: 20 }}>
+                      {/* Date header */}
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        marginBottom: 8, padding: "0 4px",
                       }}>
-                        {/* Shimmer overlay */}
-                        <div style={{
-                          position: "absolute", inset: 0,
-                          background: `linear-gradient(90deg, transparent 0%, ${ESTADOS[p.estado]?.color || "#8B8B8B"}08 50%, transparent 100%)`,
-                          pointerEvents: "none",
-                        }} />
-                        <div style={{
-                          padding: "6px", borderRadius: 8,
-                          background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.color || "#8B8B8B"}20, ${ESTADOS[p.estado]?.color || "#8B8B8B"}10)`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
+                        <span style={{
+                          fontSize: 12, fontWeight: 700, color: "#4F6867",
+                          textTransform: "uppercase", letterSpacing: "0.06em",
                         }}>
-                          <EstadoGauge estado={p.estado} size={44} />
-                        </div>
-                        <div style={{ position: "relative", zIndex: 1 }}>
-                          <div style={{
-                            fontSize: 13, fontWeight: 700, letterSpacing: "0.02em",
-                            color: ESTADOS[p.estado]?.color || "#8B8B8B",
-                          }}>
-                            {ESTADOS[p.estado]?.label || "Sin empezar"}
-                          </div>
-                          <div style={{
-                            fontSize: 10, color: ESTADOS[p.estado]?.color || "#8B8B8B",
-                            opacity: 0.7, marginTop: 1,
-                          }}>
-                            {ESTADO_PROGRESS[p.estado] === 1 ? "Completado" :
-                             ESTADO_PROGRESS[p.estado] > 0 ? `${Math.round((ESTADO_PROGRESS[p.estado] || 0) * 100)}% del pipeline` :
-                             "Pipeline pendiente"}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Top row: name + time + amount (clickable for detail) */}
-                      <div onClick={bulkMode ? undefined : () => setSelectedPedido({
-                        ...p,
-                        pedidoTitulo: p.nombre,
-                        tel: p.tel, telefono: p.tel,
-                        productos: typeof p.productos === "string" ? parseProductsStr(p.productos) : (Array.isArray(p.productos) ? p.productos : []),
-                      })} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", cursor: bulkMode ? "default" : "pointer" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            {bulkMode && (
-                              <span style={{
-                                width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                                border: isBulkSel ? "2px solid #4F6867" : "2px solid #ccc",
-                                background: isBulkSel ? "#4F6867" : "transparent",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                transition: "all 0.15s", color: "#fff", fontSize: 13, fontWeight: 700,
-                              }}>
-                                {isBulkSel && "✓"}
-                              </span>
-                            )}
-                            <span style={{
-                              fontSize: 15, fontWeight: 700,
-                              color: ESTADOS[p.estado]?.group === "complete" ? "#4F6867" : "#1B1C39",
-                              textDecoration: p.estado === "Recogido" ? "line-through" : "none",
-                              overflowWrap: "break-word", wordBreak: "break-word",
-                            }}>
-                              {p.cliente || p.nombre}
-                            </span>
-                            {p.pagado && (
-                              <span style={{
-                                fontSize: 9, padding: "2px 6px", borderRadius: 4,
-                                background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
-                              }}>PAGADO</span>
-                            )}
-                            {tardeSet.has(p.id) && (
-                              <span style={{
-                                fontSize: 9, padding: "2px 6px", borderRadius: 4,
-                                background: "#FFF3E0", color: "#E65100", fontWeight: 700,
-                              }}>TARDE</span>
-                            )}
-                          </div>
-                          
-                          {/* Details */}
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 6 }}>
-                            {(p.hora || fmt.time(p.fecha)) && (
-                              <span style={{ fontSize: 12, color: "#4F6867", display: "flex", alignItems: "center", gap: 3 }}>
-                                <I.Clock /> {p.hora || fmt.time(p.fecha)}
-                              </span>
-                            )}
-                            {p.tel && (
-                              <span onClick={(e) => openPhoneMenu(p.tel, e)} style={{
-                                fontSize: 12, color: "#1B1C39", display: "flex", alignItems: "center", gap: 3,
-                                cursor: "pointer",
-                              }}>
-                                <I.Phone /> {p.tel}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Products */}
-                          {p.productos && (
-                            <div style={{
-                              fontSize: 12, color: "#4F6867", marginTop: 6,
-                              lineHeight: 1.4,
-                            }}>
-                              {typeof p.productos === "string" ? p.productos :
-                               Array.isArray(p.productos) ? p.productos.map(x => 
-                                 typeof x === "object" ? (x.plain_text || x.title || JSON.stringify(x)) : x
-                               ).join(", ") : ""}
-                            </div>
-                          )}
-                          
-                          {p.notas && (
-                            <div style={{
-                              fontSize: 11, color: "#1B1C39", marginTop: 4,
-                              fontStyle: "italic", overflowWrap: "break-word", wordBreak: "break-word",
-                            }}>
-                              📝 {p.notas}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Amount */}
-                        {mostrarPrecios && <div style={{ textAlign: "right", minWidth: 60 }}>
-                          <span style={{
-                            fontSize: 18, fontWeight: 800,
-                            fontFamily: "'Roboto Condensed', sans-serif",
-                            color: "#4F6867",
-                          }}>
-                            {typeof p.importe === "number" && p.importe > 0 ? `${p.importe.toFixed(2)}€` : "—"}
+                          {fmt.isToday(dateKey) ? "Hoy" :
+                            fmt.isTomorrow(dateKey) ? "Mañana" :
+                              fmt.date(dateKey)}
+                        </span>
+                        <span style={{
+                          fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                          background: "#E1F2FC", color: "#4F6867", fontWeight: 600,
+                        }}>
+                          {groups[dateKey].length}
+                        </span>
+                        {fmt.isPast(dateKey) && !fmt.isToday(dateKey) && (
+                          <span style={{ fontSize: 10, color: "#C4402F", fontWeight: 600 }}>
+                            ⚠ PASADO
                           </span>
-                        </div>}
+                        )}
                       </div>
 
-                      {/* Action buttons (hidden in bulk mode) */}
-                      {!bulkMode && <div className="card-actions" style={{
-                        display: "flex", gap: 8, marginTop: 10,
-                        borderTop: "1px solid #E1F2FC", paddingTop: 10,
-                      }}>
-                        {/* Primary: advance to next logical state */}
-                        {(() => {
-                          const next = ESTADO_NEXT[p.estado];
-                          if (!next) return null;
-                          const cfg = ESTADOS[next];
-                          const action = ESTADO_ACTION[next] || cfg.label;
+                      {/* Order cards — split by Mañana/Tarde */}
+                      {(() => {
+                        const tardeSet = new Set();
+                        for (const p of groups[dateKey]) { if (esTarde(p)) tardeSet.add(p.id); }
+                        const manana = groups[dateKey].filter(p => !tardeSet.has(p.id));
+                        const tarde = groups[dateKey].filter(p => tardeSet.has(p.id));
+                        const gridStyle = { display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : isTablet ? "repeat(2, 1fr)" : "1fr", gap: isDesktop ? 12 : 8 };
+                        const renderCards = (list) => list.map(p => {
+                          const isBulkSel = bulkMode && bulkSelected.has(p.id);
                           return (
-                            <button className="estado-btn" title={`→ ${next}`} onClick={() => requestEstadoChange(p, next)}
-                              style={{
-                                flex: 1, padding: "7px 0", borderRadius: 8,
-                                border: `1.5px solid ${cfg.color}30`,
-                                fontSize: 11, fontWeight: 600, letterSpacing: "0.01em",
-                                cursor: "pointer", display: "flex",
-                                alignItems: "center", justifyContent: "center", gap: 5,
-                                background: `${cfg.color}15`,
-                                color: cfg.color,
+                            <div key={p.id} className="order-card" onClick={bulkMode ? () => {
+                              setBulkSelected(prev => {
+                                const next = new Set(prev);
+                                next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                                return next;
+                              });
+                            } : undefined} style={{
+                              background: isBulkSel ? "#E1F2FC" : "#fff",
+                              borderRadius: 14,
+                              border: isBulkSel ? "2px solid #4F6867" : `1px solid ${ESTADOS[p.estado]?.group === "complete" ? (ESTADOS[p.estado]?.color + "40") : "#A2C2D0"}`,
+                              padding: "14px 16px",
+                              boxShadow: isBulkSel ? "0 2px 8px rgba(79,104,103,0.18)" : "0 1px 4px rgba(60,50,30,0.04)",
+                              opacity: ESTADOS[p.estado]?.group === "complete" && !bulkMode ? 0.65 : 1,
+                              transition: "all 0.2s",
+                              cursor: bulkMode ? "pointer" : undefined,
+                              position: "relative",
+                            }}>
+                              {/* Estado actual — cabecera prominente */}
+                              <div className="estado-header" style={{
+                                display: "flex", alignItems: "center", gap: 10,
+                                padding: "10px 14px", marginBottom: 12,
+                                borderRadius: 10,
+                                background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}90)`,
+                                border: `1.5px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}30`,
+                                boxShadow: `0 2px 8px ${ESTADOS[p.estado]?.color || "#8B8B8B"}12`,
+                                position: "relative", overflow: "hidden",
                               }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                {action}
-                                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style={{ width: 13, height: 13, opacity: 0.7 }}>
-                                  <path d="M9 5l7 7-7 7" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-                                </svg>
-                              </span>
-                            </button>
-                          );
-                        })()}
-
-                        {/* Estado picker: shows current state + opens full picker */}
-                        <button className="estado-btn" title="Más opciones de estado" onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setEstadoPicker({ pedidoId: p.id, currentEstado: p.estado, x: rect.left + rect.width / 2, y: rect.bottom + 4 });
-                        }}
-                          style={{
-                            padding: "10px 12px", borderRadius: 12,
-                            border: `1.5px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}35`,
-                            background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}dd)`,
-                            color: ESTADOS[p.estado]?.color || "#4F6867",
-                            fontSize: 11, fontWeight: 600, cursor: "pointer",
-                            display: "flex", alignItems: "center", gap: 5,
-                            boxShadow: `0 2px 6px ${ESTADOS[p.estado]?.color || "#4F6867"}15`,
-                          }}>
-                          <div className="btn-shimmer" style={{ background: `linear-gradient(90deg, transparent 0%, ${ESTADOS[p.estado]?.color || "#4F6867"}15 50%, transparent 100%)` }} />
-                          <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
-                            ···
-                          </span>
-                        </button>
-                      </div>}
-                    </div>
-                    );});
-                    return (
-                      <>
-                        {manana.length > 0 && (
-                          <>
-                            {tarde.length > 0 && (
-                              <div style={{ fontSize: 11, fontWeight: 700, color: "#4F6867",
-                                textTransform: "uppercase", letterSpacing: "0.06em",
-                                padding: "4px 0", marginBottom: 4 }}>
-                                Mañana
+                                {/* Shimmer overlay */}
+                                <div style={{
+                                  position: "absolute", inset: 0,
+                                  background: `linear-gradient(90deg, transparent 0%, ${ESTADOS[p.estado]?.color || "#8B8B8B"}08 50%, transparent 100%)`,
+                                  pointerEvents: "none",
+                                }} />
+                                <div style={{
+                                  padding: "6px", borderRadius: 8,
+                                  background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.color || "#8B8B8B"}20, ${ESTADOS[p.estado]?.color || "#8B8B8B"}10)`,
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                }}>
+                                  <EstadoGauge estado={p.estado} size={44} />
+                                </div>
+                                <div style={{ position: "relative", zIndex: 1 }}>
+                                  <div style={{
+                                    fontSize: 13, fontWeight: 700, letterSpacing: "0.02em",
+                                    color: ESTADOS[p.estado]?.color || "#8B8B8B",
+                                  }}>
+                                    {ESTADOS[p.estado]?.label || "Sin empezar"}
+                                  </div>
+                                  <div style={{
+                                    fontSize: 10, color: ESTADOS[p.estado]?.color || "#8B8B8B",
+                                    opacity: 0.7, marginTop: 1,
+                                  }}>
+                                    {ESTADO_PROGRESS[p.estado] === 1 ? "Completado" :
+                                      ESTADO_PROGRESS[p.estado] > 0 ? `${Math.round((ESTADO_PROGRESS[p.estado] || 0) * 100)}% del pipeline` :
+                                        "Pipeline pendiente"}
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div style={gridStyle}>{renderCards(manana)}</div>
-                          </>
-                        )}
-                        {tarde.length > 0 && (
-                          <>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#E65100",
-                              textTransform: "uppercase", letterSpacing: "0.06em",
-                              padding: "4px 0", marginTop: manana.length > 0 ? 10 : 0, marginBottom: 4 }}>
-                              Tarde
+
+                              {/* Top row: name + time + amount (clickable for detail) */}
+                              <div onClick={bulkMode ? undefined : () => setSelectedPedido({
+                                ...p,
+                                pedidoTitulo: p.nombre,
+                                tel: p.tel, telefono: p.tel,
+                                productos: typeof p.productos === "string" ? parseProductsStr(p.productos) : (Array.isArray(p.productos) ? p.productos : []),
+                              })} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", cursor: bulkMode ? "default" : "pointer" }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    {bulkMode && (
+                                      <span style={{
+                                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                                        border: isBulkSel ? "2px solid #4F6867" : "2px solid #ccc",
+                                        background: isBulkSel ? "#4F6867" : "transparent",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        transition: "all 0.15s", color: "#fff", fontSize: 13, fontWeight: 700,
+                                      }}>
+                                        {isBulkSel && "✓"}
+                                      </span>
+                                    )}
+                                    <span style={{
+                                      fontSize: 15, fontWeight: 700,
+                                      color: ESTADOS[p.estado]?.group === "complete" ? "#4F6867" : "#1B1C39",
+                                      textDecoration: p.estado === "Recogido" ? "line-through" : "none",
+                                      overflowWrap: "break-word", wordBreak: "break-word",
+                                    }}>
+                                      {p.cliente || p.nombre}
+                                    </span>
+                                    {p.pagado && (
+                                      <span style={{
+                                        fontSize: 9, padding: "2px 6px", borderRadius: 4,
+                                        background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
+                                      }}>PAGADO</span>
+                                    )}
+                                    {tardeSet.has(p.id) && (
+                                      <span style={{
+                                        fontSize: 9, padding: "2px 6px", borderRadius: 4,
+                                        background: "#FFF3E0", color: "#E65100", fontWeight: 700,
+                                      }}>TARDE</span>
+                                    )}
+                                  </div>
+
+                                  {/* Details */}
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 6 }}>
+                                    {(p.hora || fmt.time(p.fecha)) && (
+                                      <span style={{ fontSize: 12, color: "#4F6867", display: "flex", alignItems: "center", gap: 3 }}>
+                                        <I.Clock /> {p.hora || fmt.time(p.fecha)}
+                                      </span>
+                                    )}
+                                    {p.tel && (
+                                      <span onClick={(e) => openPhoneMenu(p.tel, e)} style={{
+                                        fontSize: 12, color: "#1B1C39", display: "flex", alignItems: "center", gap: 3,
+                                        cursor: "pointer",
+                                      }}>
+                                        <I.Phone /> {p.tel}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Products */}
+                                  {p.productos && (
+                                    <div style={{
+                                      fontSize: 12, color: "#4F6867", marginTop: 6,
+                                      lineHeight: 1.4,
+                                    }}>
+                                      {typeof p.productos === "string" ? p.productos :
+                                        Array.isArray(p.productos) ? p.productos.map(x =>
+                                          typeof x === "object" ? (x.plain_text || x.title || JSON.stringify(x)) : x
+                                        ).join(", ") : ""}
+                                    </div>
+                                  )}
+
+                                  {p.notas && (
+                                    <div style={{
+                                      fontSize: 11, color: "#1B1C39", marginTop: 4,
+                                      fontStyle: "italic", overflowWrap: "break-word", wordBreak: "break-word",
+                                    }}>
+                                      📝 {p.notas}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Amount */}
+                                {mostrarPrecios && <div style={{ textAlign: "right", minWidth: 60 }}>
+                                  <span style={{
+                                    fontSize: 18, fontWeight: 800,
+                                    fontFamily: "'Roboto Condensed', sans-serif",
+                                    color: "#4F6867",
+                                  }}>
+                                    {typeof p.importe === "number" && p.importe > 0 ? `${p.importe.toFixed(2)}€` : "—"}
+                                  </span>
+                                </div>}
+                              </div>
+
+                              {/* Action buttons (hidden in bulk mode) */}
+                              {!bulkMode && <div className="card-actions" style={{
+                                display: "flex", gap: 8, marginTop: 10,
+                                borderTop: "1px solid #E1F2FC", paddingTop: 10,
+                              }}>
+                                {/* Primary: advance to next logical state */}
+                                {(() => {
+                                  const next = ESTADO_NEXT[p.estado];
+                                  if (!next) return null;
+                                  const cfg = ESTADOS[next];
+                                  const action = ESTADO_ACTION[next] || cfg.label;
+                                  return (
+                                    <button className="estado-btn" title={`→ ${next}`} onClick={() => requestEstadoChange(p, next)}
+                                      style={{
+                                        flex: 1, padding: "7px 0", borderRadius: 8,
+                                        border: `1.5px solid ${cfg.color}30`,
+                                        fontSize: 11, fontWeight: 600, letterSpacing: "0.01em",
+                                        cursor: "pointer", display: "flex",
+                                        alignItems: "center", justifyContent: "center", gap: 5,
+                                        background: `${cfg.color}15`,
+                                        color: cfg.color,
+                                      }}>
+                                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        {action}
+                                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style={{ width: 13, height: 13, opacity: 0.7 }}>
+                                          <path d="M9 5l7 7-7 7" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                                        </svg>
+                                      </span>
+                                    </button>
+                                  );
+                                })()}
+
+                                {/* Estado picker: shows current state + opens full picker */}
+                                <button className="estado-btn" title="Más opciones de estado" onClick={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setEstadoPicker({ pedidoId: p.id, currentEstado: p.estado, x: rect.left + rect.width / 2, y: rect.bottom + 4 });
+                                }}
+                                  style={{
+                                    padding: "10px 12px", borderRadius: 12,
+                                    border: `1.5px solid ${ESTADOS[p.estado]?.color || "#A2C2D0"}35`,
+                                    background: `linear-gradient(135deg, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}, ${ESTADOS[p.estado]?.bg || "#F0F0F0"}dd)`,
+                                    color: ESTADOS[p.estado]?.color || "#4F6867",
+                                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                    display: "flex", alignItems: "center", gap: 5,
+                                    boxShadow: `0 2px 6px ${ESTADOS[p.estado]?.color || "#4F6867"}15`,
+                                  }}>
+                                  <div className="btn-shimmer" style={{ background: `linear-gradient(90deg, transparent 0%, ${ESTADOS[p.estado]?.color || "#4F6867"}15 50%, transparent 100%)` }} />
+                                  <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
+                                    ···
+                                  </span>
+                                </button>
+                              </div>}
                             </div>
-                            <div style={gridStyle}>{renderCards(tarde)}</div>
+                          );
+                        });
+                        return (
+                          <>
+                            {manana.length > 0 && (
+                              <>
+                                {tarde.length > 0 && (
+                                  <div style={{
+                                    fontSize: 11, fontWeight: 700, color: "#4F6867",
+                                    textTransform: "uppercase", letterSpacing: "0.06em",
+                                    padding: "4px 0", marginBottom: 4
+                                  }}>
+                                    Mañana
+                                  </div>
+                                )}
+                                <div style={gridStyle}>{renderCards(manana)}</div>
+                              </>
+                            )}
+                            {tarde.length > 0 && (
+                              <>
+                                <div style={{
+                                  fontSize: 11, fontWeight: 700, color: "#E65100",
+                                  textTransform: "uppercase", letterSpacing: "0.06em",
+                                  padding: "4px 0", marginTop: manana.length > 0 ? 10 : 0, marginBottom: 4
+                                }}>
+                                  Tarde
+                                </div>
+                                <div style={gridStyle}>{renderCards(tarde)}</div>
+                              </>
+                            )}
                           </>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              ))
-            )}
-            {hasMorePedidos && (
-              <div ref={sentinelRef} style={{
-                textAlign: "center", padding: "16px 0 8px", color: "#A2C2D0", fontSize: 12,
-              }}>
-                Mostrando {Math.min(renderLimit, pedidosFiltrados.length)} de {pedidosFiltrados.length} pedidos…
-              </div>
-            )}
-            </>
+                        );
+                      })()}
+                    </div>
+                  ))
+                )}
+                {hasMorePedidos && (
+                  <div ref={sentinelRef} style={{
+                    textAlign: "center", padding: "16px 0 8px", color: "#A2C2D0", fontSize: 12,
+                  }}>
+                    Mostrando {Math.min(renderLimit, pedidosFiltrados.length)} de {pedidosFiltrados.length} pedidos…
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -2228,332 +2235,368 @@ export default function VyniaApp() {
               margin: "0 0 16px", color: "#1B1C39",
             }}>Nuevo Pedido</h2>
 
-            <div style={{
-              display: isDesktop ? "grid" : "block",
-              gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
-              gap: isDesktop ? 16 : 0,
-              alignItems: "start",
-            }}>
-            {/* ── Left column (desktop) ── */}
-            <div>
-            {/* ── Cliente ── */}
-            <section style={{
-              background: "#fff", borderRadius: 14, padding: "16px",
-              border: "1px solid #A2C2D0", marginBottom: 12,
-            }}>
-              <label style={labelStyle}>
-                <I.User s={13} /> Cliente
-              </label>
-              <div ref={clienteWrapperRef} style={{ position: "relative" }}>
-                <input placeholder="Nombre del cliente" value={cliente}
-                  onChange={e => onClienteChange(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Escape") setClienteSuggestions([]); }}
-                  autoComplete="off"
-                  style={inputStyle} />
-                {clienteSuggestions.length > 0 && (
-                  <div style={{
-                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
-                    background: "rgba(239,233,228,0.88)",
-                    backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                    borderRadius: 14, marginTop: 4, padding: 3,
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
-                    maxHeight: 200, overflowY: "auto",
-                    animation: "popoverIn 0.15s ease-out",
-                  }}>
-                    <div style={{
-                      background: "rgba(255,255,255,0.95)", borderRadius: 12,
-                      overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
-                    }}>
-                      {clienteSuggestions.map(c => (
-                        <button key={c.id} onClick={() => selectCliente(c)} style={{
-                          display: "block", width: "100%", padding: "11px 14px",
-                          border: "none", background: "transparent", cursor: "pointer",
-                          textAlign: "left", fontSize: 13, transition: "background 0.15s",
-                          borderBottom: "1px solid rgba(162,194,208,0.15)",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                          <span style={{ fontWeight: 600, color: "#1B1C39" }}>{c.nombre}</span>
-                          {c.telefono && (
-                            <span style={{ fontSize: 11, color: "#A2C2D0", marginLeft: 8 }}>{c.telefono}</span>
-                          )}
-                        </button>
-                      ))}
+            {nuevoPaso === 1 && (
+            <>
+              <div style={{
+                display: isDesktop ? "grid" : "block",
+                gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+                gap: isDesktop ? 16 : 0,
+                alignItems: "start",
+              }}>
+                {/* ── Left column (desktop) ── */}
+                <div>
+                  {/* ── Cliente ── */}
+                <section style={{
+                  background: "#fff", borderRadius: 14, padding: "16px",
+                  border: "1px solid #A2C2D0", marginBottom: 12,
+                }}>
+                  <label style={labelStyle}>
+                    <I.User s={13} /> Cliente
+                  </label>
+                  <div ref={clienteWrapperRef} style={{ position: "relative" }}>
+                    <input placeholder="Nombre del cliente" value={cliente}
+                      onChange={e => onClienteChange(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Escape") setClienteSuggestions([]); }}
+                      autoComplete="off"
+                      style={inputStyle} />
+                    {clienteSuggestions.length > 0 && (
+                      <div style={{
+                        position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+                        background: "rgba(239,233,228,0.88)",
+                        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                        borderRadius: 14, marginTop: 4, padding: 3,
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
+                        maxHeight: 200, overflowY: "auto",
+                        animation: "popoverIn 0.15s ease-out",
+                      }}>
+                        <div style={{
+                          background: "rgba(255,255,255,0.95)", borderRadius: 12,
+                          overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
+                        }}>
+                          {clienteSuggestions.map(c => (
+                            <button key={c.id} onClick={() => selectCliente(c)} style={{
+                              display: "block", width: "100%", padding: "11px 14px",
+                              border: "none", background: "transparent", cursor: "pointer",
+                              textAlign: "left", fontSize: 13, transition: "background 0.15s",
+                              borderBottom: "1px solid rgba(162,194,208,0.15)",
+                            }}
+                              onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                              <span style={{ fontWeight: 600, color: "#1B1C39" }}>{c.nombre}</span>
+                              {c.telefono && (
+                                <span style={{ fontSize: 11, color: "#A2C2D0", marginLeft: 8 }}>{c.telefono}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedClienteId && (
+                    <p style={{ fontSize: 10, color: "#4F6867", margin: "4px 0 0", fontWeight: 600 }}>
+                      Cliente vinculado
+                    </p>
+                  )}
+                  <input placeholder="Teléfono (opcional)" value={telefono}
+                    onChange={e => setTelefono(e.target.value)}
+                    type="tel"
+                    style={{ ...inputStyle, marginTop: 8 }} />
+                  <p style={{ fontSize: 10, color: "#A2C2D0", margin: "6px 0 0" }}>
+                    Si no existe, se creará automáticamente en Notion
+                  </p>
+                </section>
+
+                  {/* ── Notas + Pagado ── */}
+                <section style={{
+                  background: "#fff", borderRadius: 14, padding: "16px",
+                  border: "1px solid #A2C2D0", marginBottom: 16,
+                }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Notas</label>
+                      <textarea value={notas} onChange={e => setNotas(e.target.value)}
+                        placeholder="Notas del pedido..."
+                        rows={2}
+                        style={{
+                          ...inputStyle, resize: "vertical",
+                          fontFamily: "inherit", marginTop: 8,
+                        }} />
+                    </div>
+                    <div style={{ textAlign: "center", paddingTop: 4 }}>
+                      <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Pagado</label>
+                      <button title={pagado ? "Desmarcar como pagado" : "Marcar como pagado al reservar"} onClick={() => setPagado(!pagado)}
+                        style={{
+                          width: 52, height: 52, borderRadius: 14,
+                          border: pagado ? "2.5px solid #4F6867" : "2px solid #A2C2D0",
+                          background: pagado ? "#E1F2FC" : "transparent",
+                          cursor: "pointer", display: "flex",
+                          alignItems: "center", justifyContent: "center",
+                          color: pagado ? "#3D5655" : "#A2C2D0",
+                          fontSize: 20, transition: "all 0.2s",
+                        }}>
+                        {pagado ? <I.Check s={22} /> : "€"}
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-              {selectedClienteId && (
-                <p style={{ fontSize: 10, color: "#4F6867", margin: "4px 0 0", fontWeight: 600 }}>
-                  Cliente vinculado
-                </p>
-              )}
-              <input placeholder="Teléfono (opcional)" value={telefono}
-                onChange={e => setTelefono(e.target.value)}
-                type="tel"
-                style={{ ...inputStyle, marginTop: 8 }} />
-              <p style={{ fontSize: 10, color: "#A2C2D0", margin: "6px 0 0" }}>
-                Si no existe, se creará automáticamente en Notion
-              </p>
-            </section>
-
-            {/* ── Fecha ── */}
-            <section style={{
-              background: "#fff", borderRadius: 14, padding: "16px",
-              border: "1px solid #A2C2D0", marginBottom: 12,
-            }}>
-              <label style={labelStyle}>
-                <I.Cal s={13} /> Entrega
-              </label>
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                {[
-                  { label: "Hoy", val: fmt.todayISO() },
-                  { label: "Mañana", val: fmt.tomorrowISO() },
-                  { label: "Pasado", val: fmt.dayAfterISO() },
-                ].map(d => (
-                  <button key={d.label} title={`Fecha de entrega: ${d.label.toLowerCase()}`} onClick={() => setFecha(d.val)}
-                    style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10,
-                      border: fecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                      background: fecha === d.val ? "#E1F2FC" : "#EFE9E4",
-                      color: fecha === d.val ? "#1B1C39" : "#4F6867",
-                      fontWeight: fecha === d.val ? 700 : 500,
-                      fontSize: 13, cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}>
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "absolute", left: 10, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
-                  <input type="date" lang="es" value={fecha}
-                    onChange={e => setFecha(e.target.value)}
-                    style={{ ...inputStyle, paddingLeft: 30, border: "2px solid #4F6867", background: "#fff" }} />
+                </section>
                 </div>
-                <input type="time" value={hora}
-                  onChange={e => setHora(e.target.value)}
-                  placeholder="Hora"
-                  style={inputStyle} />
-              </div>
-            </section>
-
-            </div>{/* end left column */}
-            {/* ── Right column (desktop) ── */}
-            <div>
-            {/* ── Productos ── */}
-            <section style={{
-              background: "#fff", borderRadius: 14, padding: "16px",
-              border: "1px solid #A2C2D0", marginBottom: 12,
-            }}>
-              <label style={labelStyle}>
-                <I.Box s={13} /> Productos
-              </label>
-              
-              {/* Search bar */}
-              <div style={{ position: "relative", marginTop: 8 }}>
-                <div style={{
-                  position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                  color: "#A2C2D0", pointerEvents: "none",
-                }}><I.Search s={16} /></div>
-                <input ref={searchRef}
-                  placeholder="Buscar producto..."
-                  value={searchProd}
-                  onChange={e => setSearchProd(e.target.value)}
-                  style={{ ...inputStyle, paddingLeft: 36 }} />
-              </div>
-
-              {/* Search results dropdown */}
-              {searchProd && productosFiltrados.length > 0 && (
-                <div style={{
-                  marginTop: 4, maxHeight: 220, overflowY: "auto",
-                  borderRadius: 14, padding: 3,
-                  background: "rgba(239,233,228,0.88)",
-                  backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
-                  animation: "popoverIn 0.15s ease-out",
+                {/* ── Right column (desktop) ── */}
+                <div>
+                  {/* ── Productos ── */}
+                <section style={{
+                  background: "#fff", borderRadius: 14, padding: "16px",
+                  border: "1px solid #A2C2D0", marginBottom: 12,
                 }}>
-                  <div style={{
-                    background: "rgba(255,255,255,0.95)", borderRadius: 12,
-                    overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
-                  }}>
-                    {productosFiltrados.slice(0, 8).map((p, i) => (
-                      <button key={p.nombre} onClick={() => addProducto(p)}
-                        style={{
-                          width: "100%", padding: "10px 14px",
-                          border: "none",
-                          borderBottom: i < productosFiltrados.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
-                          background: "transparent", cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          fontSize: 13, textAlign: "left", transition: "background 0.15s",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ color: "#4F6867", fontWeight: 700, fontSize: 15 }}>+</span>
-                          <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                  <label style={labelStyle}>
+                    <I.Box s={13} /> Productos
+                  </label>
+
+                  {/* Search bar */}
+                  <div style={{ position: "relative", marginTop: 8 }}>
+                    <div style={{
+                      position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                      color: "#A2C2D0", pointerEvents: "none",
+                    }}><I.Search s={16} /></div>
+                    <input ref={searchRef}
+                      placeholder="Buscar producto..."
+                      value={searchProd}
+                      onChange={e => setSearchProd(e.target.value)}
+                      style={{ ...inputStyle, paddingLeft: 36 }} />
+                  </div>
+
+                  {/* Search results dropdown */}
+                  {searchProd && productosFiltrados.length > 0 && (
+                    <div style={{
+                      marginTop: 4, maxHeight: 220, overflowY: "auto",
+                      borderRadius: 14, padding: 3,
+                      background: "rgba(239,233,228,0.88)",
+                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
+                      animation: "popoverIn 0.15s ease-out",
+                    }}>
+                      <div style={{
+                        background: "rgba(255,255,255,0.95)", borderRadius: 12,
+                        overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
+                      }}>
+                        {productosFiltrados.slice(0, 8).map((p, i) => (
+                          <button key={p.nombre} onClick={() => addProducto(p)}
+                            style={{
+                              width: "100%", padding: "10px 14px",
+                              border: "none",
+                              borderBottom: i < productosFiltrados.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
+                              background: "transparent", cursor: "pointer",
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                              fontSize: 13, textAlign: "left", transition: "background 0.15s",
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ color: "#4F6867", fontWeight: 700, fontSize: 15 }}>+</span>
+                              <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                              <span style={{
+                                fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                                background: p.cat === "Panadería" ? "#E1F2FC" : "#E1F2FC",
+                                color: p.cat === "Panadería" ? "#4F6867" : "#1B1C39",
+                                fontWeight: 600,
+                              }}>{p.cat === "Panadería" ? "PAN" : "PAST"}</span>
+                            </div>
+                            <span style={{ fontWeight: 700, color: "#4F6867" }}>{p.precio.toFixed(2)}€</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick buttons */}
+                  {!searchProd && lineas.length === 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <p style={{ fontSize: 10, color: "#A2C2D0", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        Más pedidos:
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {FRECUENTES.map(name => {
+                          const p = catalogo.find(c => c.nombre === name);
+                          if (!p) return null;
+                          return (
+                            <button key={name} onClick={() => addProducto(p)}
+                              style={{
+                                padding: "6px 11px", borderRadius: 18, fontSize: 11,
+                                border: "1px solid #A2C2D0", background: "#EFE9E4",
+                                cursor: "pointer", color: "#1B1C39",
+                                transition: "all 0.12s", fontWeight: 500,
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#A2C2D0"; }}
+                            >
+                              + {name.length > 20 ? name.substring(0, 18) + "…" : name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cart lines */}
+                  {lineas.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      {lineas.map((l, i) => (
+                        <div key={l.nombre} style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "10px 0",
+                          borderBottom: i < lineas.length - 1 ? "1px solid #E1F2FC" : "none",
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontSize: 13, fontWeight: 600,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>{l.nombre}</div>
+                            <div style={{ fontSize: 11, color: "#4F6867" }}>{l.precio.toFixed(2)}€/ud</div>
+                          </div>
+
+                          {/* Quantity controls */}
+                          <div style={{
+                            display: "flex", alignItems: "center",
+                            background: "#E1F2FC", borderRadius: 10, overflow: "hidden",
+                          }}>
+                            <button title="Quitar una unidad" onClick={() => updateQty(l.nombre, -1)}
+                              style={{
+                                width: 34, height: 34, border: "none", background: "transparent",
+                                cursor: "pointer", display: "flex", alignItems: "center",
+                                justifyContent: "center", color: "#4F6867",
+                              }}><I.Minus /></button>
+                            <NumberFlow
+                              value={l.cantidad}
+                              format={{ useGrouping: false }}
+                              style={{
+                                width: 28, textAlign: "center", fontSize: 15,
+                                fontWeight: 800, color: "#1B1C39",
+                                fontFamily: "'Roboto Condensed', sans-serif",
+                              }}
+                              willChange
+                            />
+                            <button title="Añadir una unidad" onClick={() => updateQty(l.nombre, 1)}
+                              style={{
+                                width: 34, height: 34, border: "none", background: "transparent",
+                                cursor: "pointer", display: "flex", alignItems: "center",
+                                justifyContent: "center", color: "#4F6867",
+                              }}><I.Plus s={14} /></button>
+                          </div>
+
                           <span style={{
-                            fontSize: 9, padding: "1px 5px", borderRadius: 3,
-                            background: p.cat === "Panadería" ? "#E1F2FC" : "#E1F2FC",
-                            color: p.cat === "Panadería" ? "#4F6867" : "#1B1C39",
-                            fontWeight: 600,
-                          }}>{p.cat === "Panadería" ? "PAN" : "PAST"}</span>
+                            minWidth: 52, textAlign: "right",
+                            fontSize: 14, fontWeight: 700, color: "#4F6867",
+                          }}>{(l.cantidad * l.precio).toFixed(2)}€</span>
+
+                          <button title="Eliminar producto del pedido" onClick={() => setLineas(ls => ls.filter(x => x.nombre !== l.nombre))}
+                            style={{
+                              width: 30, height: 30, borderRadius: 8, border: "none",
+                              background: "transparent", cursor: "pointer",
+                              color: "#E57373", display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                            }}><I.Trash /></button>
                         </div>
-                        <span style={{ fontWeight: 700, color: "#4F6867" }}>{p.precio.toFixed(2)}€</span>
+                      ))}
+
+                      {/* Total bar */}
+                      <div style={{
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "12px 14px", marginTop: 8,
+                        background: "linear-gradient(135deg, #E1F2FC, #E1F2FC)",
+                        borderRadius: 12,
+                      }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39" }}>
+                          {totalItems} {totalItems === 1 ? "producto" : "productos"}
+                        </span>
+                        <span style={{
+                          fontSize: 24, fontWeight: 800,
+                          fontFamily: "'Roboto Condensed', sans-serif", color: "#1B1C39",
+                        }}>{totalPedido.toFixed(2)}€</span>
+                      </div>
+                    </div>
+                  )}
+                </section>
+                </div>
+              </div>{/* end 2-column grid */}
+
+              {/* ── Submit Paso 1 ── */}
+              <button title="Siguiente paso: elegir fecha" onClick={() => setNuevoPaso(2)}
+                disabled={!cliente.trim() || lineas.length === 0}
+                style={{
+                  width: "100%", padding: "16px",
+                  borderRadius: 14, border: "none",
+                  background: (!cliente.trim() || lineas.length === 0)
+                    ? "#A2C2D0"
+                    : "linear-gradient(135deg, #4F6867, #1B1C39)",
+                  color: "#fff",
+                  fontSize: 16, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  boxShadow: (!cliente.trim() || lineas.length === 0)
+                    ? "none" : "0 4px 16px rgba(166,119,38,0.35)",
+                  transition: "all 0.3s",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  letterSpacing: "-0.01em",
+                }}>
+                Siguiente: Elegir fecha
+              </button>
+            </>
+            )}
+
+            {nuevoPaso === 2 && (
+              <div>
+                <button 
+                  onClick={() => setNuevoPaso(1)}
+                  style={{
+                    background: "transparent", border: "none", padding: "8px 0",
+                    color: "#4F6867", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 6, marginBottom: 12
+                  }}>
+                  <I.Back s={16} /> Volver a datos del pedido
+                </button>
+
+                {/* ── Fecha ── */}
+                <section style={{
+                  background: "#fff", borderRadius: 14, padding: "16px",
+                  border: "1px solid #A2C2D0", marginBottom: 12,
+                }}>
+                  <label style={labelStyle}>
+                    <I.Cal s={13} /> Entrega
+                  </label>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    {[
+                      { label: "Hoy", val: fmt.todayISO() },
+                      { label: "Mañana", val: fmt.tomorrowISO() },
+                      { label: "Pasado", val: fmt.dayAfterISO() },
+                    ].map(d => (
+                      <button key={d.label} title={`Fecha de entrega: ${d.label.toLowerCase()}`} onClick={() => setFecha(d.val)}
+                        style={{
+                          flex: 1, padding: "10px 0", borderRadius: 10,
+                          border: fecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
+                          background: fecha === d.val ? "#E1F2FC" : "#EFE9E4",
+                          color: fecha === d.val ? "#1B1C39" : "#4F6867",
+                          fontWeight: fecha === d.val ? 700 : 500,
+                          fontSize: 13, cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}>
+                        {d.label}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Quick buttons */}
-              {!searchProd && lineas.length === 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <p style={{ fontSize: 10, color: "#A2C2D0", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    Más pedidos:
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                    {FRECUENTES.map(name => {
-                      const p = catalogo.find(c => c.nombre === name);
-                      if (!p) return null;
-                      return (
-                        <button key={name} onClick={() => addProducto(p)}
-                          style={{
-                            padding: "6px 11px", borderRadius: 18, fontSize: 11,
-                            border: "1px solid #A2C2D0", background: "#EFE9E4",
-                            cursor: "pointer", color: "#1B1C39",
-                            transition: "all 0.12s", fontWeight: 500,
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#A2C2D0"; }}
-                        >
-                          + {name.length > 20 ? name.substring(0, 18) + "…" : name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Cart lines */}
-              {lineas.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  {lineas.map((l, i) => (
-                    <div key={l.nombre} style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "10px 0",
-                      borderBottom: i < lineas.length - 1 ? "1px solid #E1F2FC" : "none",
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: 13, fontWeight: 600,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>{l.nombre}</div>
-                        <div style={{ fontSize: 11, color: "#4F6867" }}>{l.precio.toFixed(2)}€/ud</div>
-                      </div>
-                      
-                      {/* Quantity controls */}
-                      <div style={{
-                        display: "flex", alignItems: "center",
-                        background: "#E1F2FC", borderRadius: 10, overflow: "hidden",
-                      }}>
-                        <button title="Quitar una unidad" onClick={() => updateQty(l.nombre, -1)}
-                          style={{
-                            width: 34, height: 34, border: "none", background: "transparent",
-                            cursor: "pointer", display: "flex", alignItems: "center",
-                            justifyContent: "center", color: "#4F6867",
-                          }}><I.Minus /></button>
-                        <NumberFlow
-                          value={l.cantidad}
-                          format={{ useGrouping: false }}
-                          style={{
-                            width: 28, textAlign: "center", fontSize: 15,
-                            fontWeight: 800, color: "#1B1C39",
-                            fontFamily: "'Roboto Condensed', sans-serif",
-                          }}
-                          willChange
-                        />
-                        <button title="Añadir una unidad" onClick={() => updateQty(l.nombre, 1)}
-                          style={{
-                            width: 34, height: 34, border: "none", background: "transparent",
-                            cursor: "pointer", display: "flex", alignItems: "center",
-                            justifyContent: "center", color: "#4F6867",
-                          }}><I.Plus s={14} /></button>
-                      </div>
-                      
-                      <span style={{
-                        minWidth: 52, textAlign: "right",
-                        fontSize: 14, fontWeight: 700, color: "#4F6867",
-                      }}>{(l.cantidad * l.precio).toFixed(2)}€</span>
-                      
-                      <button title="Eliminar producto del pedido" onClick={() => setLineas(ls => ls.filter(x => x.nombre !== l.nombre))}
-                        style={{
-                          width: 30, height: 30, borderRadius: 8, border: "none",
-                          background: "transparent", cursor: "pointer",
-                          color: "#E57373", display: "flex",
-                          alignItems: "center", justifyContent: "center",
-                        }}><I.Trash /></button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                      <div style={{ position: "absolute", left: 10, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
+                      <input type="date" lang="es" value={fecha}
+                        onChange={e => setFecha(e.target.value)}
+                        style={{ ...inputStyle, paddingLeft: 30, border: "2px solid #4F6867", background: "#fff" }} />
                     </div>
-                  ))}
-
-                  {/* Total bar */}
-                  <div style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "12px 14px", marginTop: 8,
-                    background: "linear-gradient(135deg, #E1F2FC, #E1F2FC)",
-                    borderRadius: 12,
-                  }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39" }}>
-                      {totalItems} {totalItems === 1 ? "producto" : "productos"}
-                    </span>
-                    <span style={{
-                      fontSize: 24, fontWeight: 800,
-                      fontFamily: "'Roboto Condensed', sans-serif", color: "#1B1C39",
-                    }}>{totalPedido.toFixed(2)}€</span>
+                    <input type="time" value={hora}
+                      onChange={e => setHora(e.target.value)}
+                      placeholder="Hora"
+                      style={inputStyle} />
                   </div>
-                </div>
-              )}
-            </section>
+                </section>
 
-            {/* ── Notas + Pagado ── */}
-            <section style={{
-              background: "#fff", borderRadius: 14, padding: "16px",
-              border: "1px solid #A2C2D0", marginBottom: 16,
-            }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Notas</label>
-                  <textarea value={notas} onChange={e => setNotas(e.target.value)}
-                    placeholder="Notas del pedido..."
-                    rows={2}
-                    style={{
-                      ...inputStyle, resize: "vertical",
-                      fontFamily: "inherit", marginTop: 8,
-                    }} />
-                </div>
-                <div style={{ textAlign: "center", paddingTop: 4 }}>
-                  <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Pagado</label>
-                  <button title={pagado ? "Desmarcar como pagado" : "Marcar como pagado al reservar"} onClick={() => setPagado(!pagado)}
-                    style={{
-                      width: 52, height: 52, borderRadius: 14,
-                      border: pagado ? "2.5px solid #4F6867" : "2px solid #A2C2D0",
-                      background: pagado ? "#E1F2FC" : "transparent",
-                      cursor: "pointer", display: "flex",
-                      alignItems: "center", justifyContent: "center",
-                      color: pagado ? "#3D5655" : "#A2C2D0",
-                      fontSize: 20, transition: "all 0.2s",
-                    }}>
-                    {pagado ? <I.Check s={22} /> : "€"}
-                  </button>
-                </div>
-              </div>
-            </section>
-            </div>{/* end right column */}
-            </div>{/* end 2-column grid */}
-
-            {/* ── Submit ── */}
+                {/* ── Submit ── */}
             <button title="Crear nuevo pedido en Notion" onClick={crearPedido}
               disabled={!cliente.trim() || !fecha || lineas.length === 0}
               style={{
@@ -2573,21 +2616,22 @@ export default function VyniaApp() {
                 letterSpacing: "-0.01em",
               }}>
               <I.Send s={18} />
-              {lineas.length > 0 
+              {lineas.length > 0
                 ? `Crear pedido — ${totalPedido.toFixed(2)}€`
                 : "Crear pedido"}
             </button>
-            <p style={{
-              textAlign: "center", fontSize: 10, color: "#A2C2D0",
-              marginTop: 8,
-            }}>
-              {apiMode === "demo" 
-                ? "Modo demo: el pedido se añade localmente"
-                : "Se creará pedido + registros + cliente en Notion"}
-            </p>
+                <p style={{
+                  textAlign: "center", fontSize: 10, color: "#A2C2D0",
+                  marginTop: 8,
+                }}>
+                  {apiMode === "demo" 
+                    ? "Modo demo: el pedido se añade localmente"
+                    : "Se creará pedido + registros + cliente en Notion"}
+                </p>
+              </div>
+            )}
           </div>
         )}
-
         {/* ══════════════════════════════════════════
             TAB: PRODUCCION DIARIA
         ══════════════════════════════════════════ */}
@@ -2605,55 +2649,55 @@ export default function VyniaApp() {
               alignItems: "center",
               marginBottom: 14,
             }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined }}>
-              {[
-                { label: "Hoy", val: fmt.todayISO() },
-                { label: "Mañana", val: fmt.tomorrowISO() },
-                { label: "Pasado", val: fmt.dayAfterISO() },
-              ].map(d => (
-                <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); }}
-                  style={{
-                    flex: 1, padding: "10px 0", borderRadius: 10,
-                    border: produccionFecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                    background: produccionFecha === d.val ? "#E1F2FC" : "#EFE9E4",
-                    color: produccionFecha === d.val ? "#1B1C39" : "#4F6867",
-                    fontWeight: produccionFecha === d.val ? 700 : 500,
-                    fontSize: 13, cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}>
-                  {d.label}
-                </button>
-              ))}
-              <div style={{ flex: 0.8, position: "relative", display: "flex", alignItems: "center" }}>
-                <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
-                <input type="date" lang="es" value={produccionFecha}
-                  onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); setExpandAll(false); loadProduccion(e.target.value); }}
-                  style={{
-                    width: "100%", padding: "8px 8px 8px 30px", borderRadius: 10,
-                    border: "2px solid #4F6867", fontSize: 13,
-                    background: "#fff", color: "#1B1C39",
-                    outline: "none",
-                  }} />
+              <div style={{ display: "flex", gap: 8, marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined }}>
+                {[
+                  { label: "Hoy", val: fmt.todayISO() },
+                  { label: "Mañana", val: fmt.tomorrowISO() },
+                  { label: "Pasado", val: fmt.dayAfterISO() },
+                ].map(d => (
+                  <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); }}
+                    style={{
+                      flex: 1, padding: "10px 0", borderRadius: 10,
+                      border: produccionFecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
+                      background: produccionFecha === d.val ? "#E1F2FC" : "#EFE9E4",
+                      color: produccionFecha === d.val ? "#1B1C39" : "#4F6867",
+                      fontWeight: produccionFecha === d.val ? 700 : 500,
+                      fontSize: 13, cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}>
+                    {d.label}
+                  </button>
+                ))}
+                <div style={{ flex: 0.8, position: "relative", display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
+                  <input type="date" lang="es" value={produccionFecha}
+                    onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); setExpandAll(false); loadProduccion(e.target.value); }}
+                    style={{
+                      width: "100%", padding: "8px 8px 8px 30px", borderRadius: 10,
+                      border: "2px solid #4F6867", fontSize: 13,
+                      background: "#fff", color: "#1B1C39",
+                      outline: "none",
+                    }} />
+                </div>
               </div>
-            </div>
 
-            {/* Toggle recogidos */}
-            <div style={{ display: "flex", gap: 8, flex: isDesktop ? "none" : undefined }}>
-              <button title="Ver solo producción pendiente" onClick={() => { setOcultarRecogidos(true); setExpandAll(false); setExpandedProduct(null); }}
-                style={{
-                  flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  border: ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                  background: ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
-                  color: ocultarRecogidos ? "#1B1C39" : "#4F6867",
-                }}>Pendiente</button>
-              <button title="Ver toda la producción del día" onClick={() => { setOcultarRecogidos(false); setExpandAll(false); setExpandedProduct(null); }}
-                style={{
-                  flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  border: !ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                  background: !ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
-                  color: !ocultarRecogidos ? "#1B1C39" : "#4F6867",
-                }}>Todo el día</button>
-            </div>
+              {/* Toggle recogidos */}
+              <div style={{ display: "flex", gap: 8, flex: isDesktop ? "none" : undefined }}>
+                <button title="Ver solo producción pendiente" onClick={() => { setOcultarRecogidos(true); setExpandAll(false); setExpandedProduct(null); }}
+                  style={{
+                    flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    border: ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
+                    background: ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
+                    color: ocultarRecogidos ? "#1B1C39" : "#4F6867",
+                  }}>Pendiente</button>
+                <button title="Ver toda la producción del día" onClick={() => { setOcultarRecogidos(false); setExpandAll(false); setExpandedProduct(null); }}
+                  style={{
+                    flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    border: !ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
+                    background: !ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
+                    color: !ocultarRecogidos ? "#1B1C39" : "#4F6867",
+                  }}>Todo el día</button>
+              </div>
             </div>{/* end date+toggle wrapper */}
 
             {/* Product list */}
@@ -2705,112 +2749,112 @@ export default function VyniaApp() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {prodView.map(prod => {
-                    if (prod.udsFiltradas === 0 && ocultarRecogidos) return null;
-                    return (
-                    <div key={prod.nombre} style={{
-                      background: "#fff", borderRadius: 14, border: "1px solid #A2C2D0",
-                      overflow: "hidden",
-                      boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
-                    }}>
-                      {/* Product row */}
-                      <button title={(expandAll || expandedProduct === prod.nombre) ? "Contraer producto" : "Ver pedidos de este producto"} onClick={() => {
-                        if (expandAll) { setExpandAll(false); setExpandedProduct(prod.nombre); }
-                        else setExpandedProduct(expandedProduct === prod.nombre ? null : prod.nombre);
-                      }}
-                        style={{
-                          width: "100%", padding: "14px 16px",
-                          border: "none", background: "transparent",
-                          cursor: "pointer", display: "flex",
-                          alignItems: "center", justifyContent: "space-between",
-                          textAlign: "left",
+                    {prodView.map(prod => {
+                      if (prod.udsFiltradas === 0 && ocultarRecogidos) return null;
+                      return (
+                        <div key={prod.nombre} style={{
+                          background: "#fff", borderRadius: 14, border: "1px solid #A2C2D0",
+                          overflow: "hidden",
+                          boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
                         }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <I.Box s={18} />
-                          <span style={{ fontSize: 15, fontWeight: 600, color: "#1B1C39" }}>
-                            {prod.nombre}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {prod.udsRecogidas > 0 && (
-                            <span style={{ fontSize: 12, color: "#A2C2D0", textDecoration: "line-through" }}>
-                              {prod.udsRecogidas}
-                            </span>
-                          )}
-                          <span style={{
-                            fontSize: 18, fontWeight: 800, color: "#4F6867",
-                            fontFamily: "'Roboto Condensed', sans-serif",
-                          }}>
-                            {prod.udsFiltradas} uds
-                          </span>
-                          <span style={{
-                            fontSize: 10, color: "#A2C2D0",
-                            transform: (expandAll || expandedProduct === prod.nombre) ? "rotate(90deg)" : "rotate(0deg)",
-                            transition: "transform 0.2s",
-                          }}>▶</span>
-                        </div>
-                      </button>
-
-                      {/* Expanded: pedidos list */}
-                      {(expandAll || expandedProduct === prod.nombre) && (
-                        <div style={{
-                          borderTop: "1px solid #E1F2FC",
-                          padding: "8px 16px 12px",
-                          background: "#FAFAFA",
-                        }}>
-                          <p style={{ fontSize: 10, color: "#A2C2D0", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                            Pedidos con {prod.nombre}:
-                          </p>
-                          {(ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).map((ped, i) => (
-                            <button title="Ver detalle del pedido" key={ped.pedidoId + "-" + i} onClick={() => setSelectedPedido({ ...ped, id: ped.pedidoId, estado: effectiveEstado(ped), tel: ped.telefono || ped.tel })}
-                              style={{
-                                width: "100%", padding: "10px 12px",
-                                border: "none",
-                                borderBottom: i < (ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).length - 1 ? "1px solid #E1F2FC" : "none",
-                                background: "transparent", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "space-between",
-                                textAlign: "left", fontSize: 13,
-                                opacity: (ped.estado === "Recogido" || ped.recogido) ? 0.5 : 1,
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                            >
-                              <div>
-                                <span style={{ fontWeight: 600, color: "#1B1C39", textDecoration: (ped.estado === "Recogido" || ped.recogido) ? "line-through" : "none" }}>
-                                  {ped.cliente || (ped.pedidoTitulo || "").replace(/^Pedido\s+/i, "") || "Sin nombre"}
-                                </span>
-                                {ped.estado && ped.estado !== "Sin empezar" && (
-                                  <span style={{
-                                    fontSize: 9, padding: "1px 5px", borderRadius: 3,
-                                    background: ESTADOS[ped.estado]?.bg || "#F0F0F0",
-                                    color: ESTADOS[ped.estado]?.color || "#8B8B8B",
-                                    fontWeight: 700, marginLeft: 6,
-                                    border: `0.5px solid ${ESTADOS[ped.estado]?.color || "#8B8B8B"}22`,
-                                  }}>{ESTADOS[ped.estado]?.label || ped.estado}</span>
-                                )}
-                                {ped.pagado && ped.estado !== "Recogido" && (
-                                  <span style={{
-                                    fontSize: 9, padding: "1px 5px", borderRadius: 3,
-                                    background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
-                                    marginLeft: 6,
-                                  }}>PAGADO</span>
-                                )}
-                                {ped.notas && (
-                                  <div style={{ fontSize: 11, color: "#A2C2D0", fontStyle: "italic", marginTop: 2 }}>
-                                    {ped.notas}
-                                  </div>
-                                )}
-                              </div>
-                              <span style={{ fontWeight: 700, color: (ped.estado === "Recogido" || ped.recogido) ? "#A2C2D0" : "#4F6867", textDecoration: (ped.estado === "Recogido" || ped.recogido) ? "line-through" : "none" }}>
-                                {ped.unidades} ud{ped.unidades !== 1 ? "s" : ""}
+                          {/* Product row */}
+                          <button title={(expandAll || expandedProduct === prod.nombre) ? "Contraer producto" : "Ver pedidos de este producto"} onClick={() => {
+                            if (expandAll) { setExpandAll(false); setExpandedProduct(prod.nombre); }
+                            else setExpandedProduct(expandedProduct === prod.nombre ? null : prod.nombre);
+                          }}
+                            style={{
+                              width: "100%", padding: "14px 16px",
+                              border: "none", background: "transparent",
+                              cursor: "pointer", display: "flex",
+                              alignItems: "center", justifyContent: "space-between",
+                              textAlign: "left",
+                            }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <I.Box s={18} />
+                              <span style={{ fontSize: 15, fontWeight: 600, color: "#1B1C39" }}>
+                                {prod.nombre}
                               </span>
-                            </button>
-                          ))}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              {prod.udsRecogidas > 0 && (
+                                <span style={{ fontSize: 12, color: "#A2C2D0", textDecoration: "line-through" }}>
+                                  {prod.udsRecogidas}
+                                </span>
+                              )}
+                              <span style={{
+                                fontSize: 18, fontWeight: 800, color: "#4F6867",
+                                fontFamily: "'Roboto Condensed', sans-serif",
+                              }}>
+                                {prod.udsFiltradas} uds
+                              </span>
+                              <span style={{
+                                fontSize: 10, color: "#A2C2D0",
+                                transform: (expandAll || expandedProduct === prod.nombre) ? "rotate(90deg)" : "rotate(0deg)",
+                                transition: "transform 0.2s",
+                              }}>▶</span>
+                            </div>
+                          </button>
+
+                          {/* Expanded: pedidos list */}
+                          {(expandAll || expandedProduct === prod.nombre) && (
+                            <div style={{
+                              borderTop: "1px solid #E1F2FC",
+                              padding: "8px 16px 12px",
+                              background: "#FAFAFA",
+                            }}>
+                              <p style={{ fontSize: 10, color: "#A2C2D0", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Pedidos con {prod.nombre}:
+                              </p>
+                              {(ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).map((ped, i) => (
+                                <button title="Ver detalle del pedido" key={ped.pedidoId + "-" + i} onClick={() => setSelectedPedido({ ...ped, id: ped.pedidoId, estado: effectiveEstado(ped), tel: ped.telefono || ped.tel })}
+                                  style={{
+                                    width: "100%", padding: "10px 12px",
+                                    border: "none",
+                                    borderBottom: i < (ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).length - 1 ? "1px solid #E1F2FC" : "none",
+                                    background: "transparent", cursor: "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    textAlign: "left", fontSize: 13,
+                                    opacity: (ped.estado === "Recogido" || ped.recogido) ? 0.5 : 1,
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                >
+                                  <div>
+                                    <span style={{ fontWeight: 600, color: "#1B1C39", textDecoration: (ped.estado === "Recogido" || ped.recogido) ? "line-through" : "none" }}>
+                                      {ped.cliente || (ped.pedidoTitulo || "").replace(/^Pedido\s+/i, "") || "Sin nombre"}
+                                    </span>
+                                    {ped.estado && ped.estado !== "Sin empezar" && (
+                                      <span style={{
+                                        fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                                        background: ESTADOS[ped.estado]?.bg || "#F0F0F0",
+                                        color: ESTADOS[ped.estado]?.color || "#8B8B8B",
+                                        fontWeight: 700, marginLeft: 6,
+                                        border: `0.5px solid ${ESTADOS[ped.estado]?.color || "#8B8B8B"}22`,
+                                      }}>{ESTADOS[ped.estado]?.label || ped.estado}</span>
+                                    )}
+                                    {ped.pagado && ped.estado !== "Recogido" && (
+                                      <span style={{
+                                        fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                                        background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
+                                        marginLeft: 6,
+                                      }}>PAGADO</span>
+                                    )}
+                                    {ped.notas && (
+                                      <div style={{ fontSize: 11, color: "#A2C2D0", fontStyle: "italic", marginTop: 2 }}>
+                                        {ped.notas}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span style={{ fontWeight: 700, color: (ped.estado === "Recogido" || ped.recogido) ? "#A2C2D0" : "#4F6867", textDecoration: (ped.estado === "Recogido" || ped.recogido) ? "line-through" : "none" }}>
+                                    {ped.unidades} ud{ped.unidades !== 1 ? "s" : ""}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    );
-                  })}
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -3060,8 +3104,8 @@ export default function VyniaApp() {
                       setEditLineas(initial);
                       setEditingProductos(true);
                     }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(162,194,208,0.25)", background: "transparent", color: "#4F6867", fontSize: 12, fontWeight: 600, cursor: "pointer", width: "100%", transition: "background 0.15s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(225,242,252,0.5)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(225,242,252,0.5)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <I.Edit s={13} /> Modificar pedido
                     </button>
                   </>
@@ -3109,23 +3153,23 @@ export default function VyniaApp() {
                         <button className="estado-btn" key={est} onClick={() => {
                           requestEstadoChange(selectedPedido, est);
                         }}
-                        style={isPrimary ? {
-                          padding: "10px 18px", borderRadius: 12,
-                          border: `1.5px solid ${cfg?.color || "#A2C2D0"}50`,
-                          background: `linear-gradient(135deg, ${cfg?.color || "#4F6867"}ee, ${cfg?.color || "#4F6867"}cc)`,
-                          color: "#fff",
-                          fontSize: 13, fontWeight: 700, cursor: "pointer",
-                          display: "flex", alignItems: "center", gap: 6,
-                          boxShadow: `0 3px 12px ${cfg?.color || "#4F6867"}35, 0 1px 3px ${cfg?.color || "#4F6867"}20`,
-                        } : {
-                          padding: "9px 14px", borderRadius: 12,
-                          border: `1.5px solid ${cfg?.color || "#A2C2D0"}30`,
-                          background: `linear-gradient(135deg, ${cfg?.bg || "#F0F0F0"}, ${cfg?.bg || "#F0F0F0"}dd)`,
-                          color: cfg?.color || "#4F6867",
-                          fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          display: "flex", alignItems: "center", gap: 5,
-                          boxShadow: `0 2px 6px ${cfg?.color || "#4F6867"}12`,
-                        }}>
+                          style={isPrimary ? {
+                            padding: "10px 18px", borderRadius: 12,
+                            border: `1.5px solid ${cfg?.color || "#A2C2D0"}50`,
+                            background: `linear-gradient(135deg, ${cfg?.color || "#4F6867"}ee, ${cfg?.color || "#4F6867"}cc)`,
+                            color: "#fff",
+                            fontSize: 13, fontWeight: 700, cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 6,
+                            boxShadow: `0 3px 12px ${cfg?.color || "#4F6867"}35, 0 1px 3px ${cfg?.color || "#4F6867"}20`,
+                          } : {
+                            padding: "9px 14px", borderRadius: 12,
+                            border: `1.5px solid ${cfg?.color || "#A2C2D0"}30`,
+                            background: `linear-gradient(135deg, ${cfg?.bg || "#F0F0F0"}, ${cfg?.bg || "#F0F0F0"}dd)`,
+                            color: cfg?.color || "#4F6867",
+                            fontSize: 12, fontWeight: 600, cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 5,
+                            boxShadow: `0 2px 6px ${cfg?.color || "#4F6867"}12`,
+                          }}>
                           <div className="btn-shimmer" style={!isPrimary ? { background: `linear-gradient(90deg, transparent 0%, ${cfg?.color || "#4F6867"}15 50%, transparent 100%)` } : undefined} />
                           {isPrimary && <div className="btn-glow" style={{ background: `radial-gradient(circle at 50% 50%, ${cfg?.color || "#4F6867"}30, transparent 70%)` }} />}
                           <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
@@ -3240,18 +3284,18 @@ export default function VyniaApp() {
                       const pedido = pedidos.find(p => p.id === estadoPicker.pedidoId) || { id: estadoPicker.pedidoId, fecha: "", tel: "", cliente: "" };
                       requestEstadoChange(pedido, est);
                     }}
-                    style={{
-                      width: "100%", padding: "12px 14px",
-                      border: "none",
-                      borderBottom: i < arr.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
-                      background: "transparent", cursor: "pointer",
-                      textAlign: "left", fontSize: 13, fontWeight: 600,
-                      color: cfg?.color || "#4F6867",
-                      display: "flex", alignItems: "center", gap: 8,
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = cfg?.bg || "#F0F0F0"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      style={{
+                        width: "100%", padding: "12px 14px",
+                        border: "none",
+                        borderBottom: i < arr.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
+                        background: "transparent", cursor: "pointer",
+                        textAlign: "left", fontSize: 13, fontWeight: 600,
+                        color: cfg?.color || "#4F6867",
+                        display: "flex", alignItems: "center", gap: 8,
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = cfg?.bg || "#F0F0F0"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",
                         background: cfg?.color || "#8B8B8B", display: "inline-block", flexShrink: 0,
@@ -3390,8 +3434,8 @@ export default function VyniaApp() {
                   borderRadius: 10, textDecoration: "none", color: "#1B1C39",
                   fontSize: 14, fontWeight: 600, transition: "background 0.15s",
                 }} onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                   onClick={() => setPhoneMenu(null)}>
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  onClick={() => setPhoneMenu(null)}>
                   <I.Phone s={16} /> Llamar
                 </a>
                 <div style={{ height: 1, background: "rgba(162,194,208,0.2)", margin: "2px 12px" }} />
@@ -3400,9 +3444,9 @@ export default function VyniaApp() {
                   borderRadius: 10, textDecoration: "none", color: "#25D366",
                   fontSize: 14, fontWeight: 600, transition: "background 0.15s",
                 }} onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                   onClick={() => setPhoneMenu(null)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  onClick={() => setPhoneMenu(null)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
                   WhatsApp
                 </a>
               </div>
