@@ -196,6 +196,6 @@ export const notion = {
   },
 
   async loadProductos() {
-    return apiCall("/productos");
+    return apiCall("/registros?productos=true");
   },
 };
