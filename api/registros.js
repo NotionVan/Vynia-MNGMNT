@@ -1,4 +1,4 @@
-import { notion, delay, cached } from "./_notion.js";
+import { notion, delay, cached, PROP_UNIDADES } from "./_notion.js";
 
 const DB_PRODUCTOS = "1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2";
 const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
@@ -36,16 +36,18 @@ export default async function handler(req, res) {
       },
     });
 
-    const productoPageId =
-      productSearch.results.length > 0 ? productSearch.results[0].id : null;
+    if (productSearch.results.length === 0) {
+      return res.status(400).json({ error: `Producto no encontrado: ${productoNombre}` });
+    }
+    const productoPageId = productSearch.results[0].id;
 
     // Create line item in Registros
-    // IMPORTANT: "Unidades " has a trailing space in the property name
+    // PROP_UNIDADES = "Unidades " (trailing space — defined in _notion.js)
     const properties = {
       title: {
         title: [{ text: { content: productoNombre } }],
       },
-      "Unidades ": {
+      [PROP_UNIDADES]: {
         number: cantidad,
       },
       Pedidos: {
@@ -53,11 +55,9 @@ export default async function handler(req, res) {
       },
     };
 
-    if (productoPageId) {
-      properties["Productos"] = {
-        relation: [{ id: productoPageId }],
-      };
-    }
+    properties["Productos"] = {
+      relation: [{ id: productoPageId }],
+    };
 
     await notion.pages.create({
       parent: { database_id: DB_REGISTROS },
@@ -115,7 +115,7 @@ async function handleGet(req, res) {
       const auxProd = reg.properties["AUX Producto Texto"];
       const nombre = (auxProd?.formula?.string || "").trim()
         || (reg.properties["Nombre"]?.title || []).map(t => t.plain_text).join("").trim();
-      const unidades = reg.properties["Unidades "]?.number || 0;
+      const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
       return { id: reg.id, nombre, unidades };
     }).filter(p => p.nombre && p.unidades > 0);
 

@@ -42,3 +42,7 @@ export async function cached(key, ttlMs, fn) {
 
 // ─── Delay entre writes secuenciales ───
 export const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ─── Notion property names with quirks ───
+// "Unidades " has a trailing space in Notion — defined here to avoid silent breakage
+export const PROP_UNIDADES = "Unidades ";

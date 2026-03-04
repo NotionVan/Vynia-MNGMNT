@@ -1,4 +1,4 @@
-import { notion, cached } from "./_notion.js";
+import { notion, cached, PROP_UNIDADES } from "./_notion.js";
 
 const DB_CLIENTES = "1c418b3a-38b1-811f-b3ab-ea7a5e513ace";
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
@@ -51,8 +51,18 @@ export default async function handler(req, res) {
         return { pedidos: [], cliente: null };
       }
 
-      const clienteId = clientSearch.results[0].id;
-      const titleProp = Object.values(clientSearch.results[0].properties).find(p => p.type === "title");
+      // Prioritize exact phone match when multiple results (e.g. "612" matching several)
+      let bestMatch = clientSearch.results[0];
+      if (clientSearch.results.length > 1 && searchTel.length >= 9) {
+        const exact = clientSearch.results.find(r => {
+          const phone = (r.properties["Teléfono"]?.phone_number || "").replace(/\D/g, "");
+          return phone === searchTel || phone.endsWith(searchTel);
+        });
+        if (exact) bestMatch = exact;
+      }
+
+      const clienteId = bestMatch.id;
+      const titleProp = Object.values(bestMatch.properties).find(p => p.type === "title");
       const clienteNombre = titleProp
         ? (titleProp.title || []).map(t => t.plain_text).join("")
         : "";
@@ -118,7 +128,7 @@ export default async function handler(req, res) {
         const auxProd = reg.properties["AUX Producto Texto"];
         const nombre = (auxProd?.formula?.string || "").trim()
           || extractTitle(reg.properties["Nombre"]);
-        const unidades = reg.properties["Unidades "]?.number || 0;
+        const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
         if (!nombre || unidades <= 0) continue;
 
         for (const ped of pedidos) {

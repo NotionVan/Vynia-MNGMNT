@@ -123,7 +123,9 @@ const ESTADO_TRANSITIONS = {
   "Incidencia":         ["Sin empezar", "En preparación", "Listo para recoger", "Recogido", "No acude"],
 };
 function effectiveEstado(raw) {
-  if (raw.estado && ESTADOS[raw.estado]) return raw.estado;
+  // Estado status property is source of truth — trust it if present
+  if (raw.estado) return raw.estado;
+  // Legacy fallback: derive from checkboxes for pedidos without Estado
   if (raw.recogido) return "Recogido";
   if (raw.noAcude) return "No acude";
   if (raw.incidencia) return "Incidencia";
@@ -170,7 +172,188 @@ const I = {
   Edit: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>,
   Ext: (p = {}) => <svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
   Broom: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 11 9-9"/><path d="M14.6 12.6c.8.8.8 2 0 2.8l-7.8 7.8H2v-4.8l7.8-7.8c.8-.8 2-.8 2.8 0z"/></svg>,
+  Help: (p = {}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>,
+  Chevron: (p = {}) => <svg width={p.s||12} height={p.s||12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>,
 };
+
+// ─── HELP CONTENT ───
+const HELP_CONTENT = [
+  {
+    id: "pedidos", title: "Pedidos", icon: "📋",
+    sections: [
+      {
+        title: "Filtrar pedidos",
+        content: "Usa las pills de la parte superior para filtrar por estado: Total, Pendientes o Recogidos.",
+        steps: ["Selecciona una fecha con los botones Hoy / Mañana / Pasado o el calendario", "Combina filtros de estado y fecha para encontrar pedidos concretos"],
+        tip: "Las pills muestran el recuento de pedidos en cada estado",
+      },
+      {
+        title: "Buscar clientes",
+        content: "La barra de busqueda permite encontrar clientes por nombre, telefono o email.",
+        steps: ["Escribe al menos 2 caracteres para iniciar la busqueda", "Pulsa en un resultado para abrir la ficha del cliente"],
+      },
+      {
+        title: "Estados de pedidos",
+        content: "Cada pedido pasa por un pipeline de estados con codigo de color.",
+        steps: [
+          "Sin empezar (gris) — pedido recibido",
+          "En preparacion (azul) — en el obrador",
+          "Listo para recoger (naranja) — terminado",
+          "Recogido (verde) — entregado al cliente",
+        ],
+        tip: "Tambien existen los estados No acude (rojo) e Incidencia (marron) para situaciones especiales",
+      },
+      {
+        title: "Avanzar estado (pipeline)",
+        content: "Cada tarjeta tiene un boton de 1-tap que avanza al siguiente estado del pipeline.",
+        steps: ["Pulsa el boton con el nombre del siguiente estado", "Confirma el cambio en el dialogo que aparece"],
+        tip: "El pipeline sigue el orden: Sin empezar → En preparacion → Listo para recoger → Recogido",
+      },
+      {
+        title: "Cambiar estado manualmente",
+        content: "El boton ··· abre un selector con todos los estados posibles.",
+        steps: ["Pulsa ··· en la tarjeta del pedido", "Selecciona el estado deseado", "Confirma el cambio"],
+      },
+      {
+        title: "Seleccion multiple (bulk)",
+        content: "Permite cambiar el estado de varios pedidos a la vez.",
+        steps: ["Pulsa Seleccionar en la barra de filtros", "Marca los pedidos que quieras", "Usa la barra flotante inferior para elegir el nuevo estado"],
+        tip: "Solo se muestran los estados comunes a todos los pedidos seleccionados",
+      },
+      {
+        title: "Detalle del pedido",
+        content: "Pulsa en una tarjeta para abrir el modal de detalle con toda la informacion.",
+        steps: ["Edita las notas pulsando en el area de texto", "Cambia la fecha de entrega pulsando en la fecha", "Modifica los productos con el boton Modificar productos"],
+      },
+      {
+        title: "Ficha de cliente",
+        content: "Al buscar un cliente y seleccionarlo, se abre su ficha con historial de pedidos.",
+        steps: ["Pulsa el icono de edicion para modificar nombre, telefono o email", "Pulsa el enlace externo para abrir la ficha en Notion"],
+      },
+      {
+        title: "Telefono y WhatsApp",
+        content: "Pulsa el numero de telefono de un pedido para ver opciones de contacto.",
+        steps: ["Llamar abre el marcador del telefono", "WhatsApp abre una conversacion directa"],
+        tip: "Al marcar un pedido como Listo para recoger, se ofrece enviar un aviso automatico por WhatsApp",
+      },
+      {
+        title: "Toggle de precios",
+        content: "El boton € ON/OFF junto a la barra de busqueda muestra u oculta los importes en las tarjetas.",
+        tip: "Los precios estan ocultos por defecto",
+      },
+      {
+        title: "Imprimir",
+        content: "El boton de impresora en la cabecera imprime la lista de pedidos filtrada actual.",
+        tip: "La impresion usa un formato optimizado para A4",
+      },
+    ],
+  },
+  {
+    id: "nuevo", title: "Nuevo Pedido", icon: "➕",
+    sections: [
+      {
+        title: "Seleccionar cliente",
+        content: "Escribe el nombre del cliente para buscarlo. Si no existe, se creara automaticamente al crear el pedido.",
+        steps: ["Escribe al menos 2 letras para ver sugerencias", "Selecciona un cliente existente o sigue escribiendo para crear uno nuevo"],
+        tip: "Al seleccionar un cliente existente, el telefono se rellena automaticamente",
+      },
+      {
+        title: "Fecha y hora de entrega",
+        content: "Elige cuando se entregara el pedido.",
+        steps: ["Usa los botones Hoy / Mañana / Pasado para fechas rapidas", "O selecciona una fecha concreta con el calendario", "Opcionalmente, añade una hora de recogida"],
+      },
+      {
+        title: "Agregar productos",
+        content: "Selecciona productos del catalogo y ajusta las cantidades.",
+        steps: ["Busca un producto por nombre o seleccionalo de la lista de frecuentes", "Usa los botones +/- para ajustar la cantidad", "Repite para añadir mas productos"],
+      },
+      {
+        title: "Pagado y notas",
+        content: "Marca si el cliente ya ha pagado y añade notas especiales si es necesario.",
+        tip: "Las notas son utiles para alergias, personalizaciones o instrucciones especiales",
+      },
+      {
+        title: "Crear pedido",
+        content: "Pulsa Crear pedido para guardar. El pedido se crea con estado Sin empezar.",
+        tip: "Necesitas al menos un cliente y un producto para crear el pedido",
+      },
+    ],
+  },
+  {
+    id: "produccion", title: "Produccion", icon: "🏪",
+    sections: [
+      {
+        title: "Seleccionar fecha",
+        content: "Elige el dia para ver la produccion agregada.",
+        steps: ["Usa los botones Hoy / Mañana / Pasado o el calendario"],
+      },
+      {
+        title: "Filtros: Pendiente vs Todo el dia",
+        content: "Controla que pedidos se incluyen en el recuento.",
+        steps: ["Pendiente — resta los pedidos ya Listo para recoger y Recogido", "Todo el dia — muestra la produccion total sin descontar"],
+        tip: "Usa Pendiente para saber cuanto queda por preparar",
+      },
+      {
+        title: "Barra de resumen",
+        content: "Muestra el total de productos distintos y unidades pendientes.",
+        steps: ["Pulsa Desplegar/Contraer para expandir o colapsar todos los productos a la vez"],
+      },
+      {
+        title: "Productos y pedidos",
+        content: "Cada producto muestra la cantidad total y los pedidos que lo contienen.",
+        steps: ["Pulsa un producto para ver los pedidos asociados", "Pulsa un pedido para abrir su detalle completo"],
+        tip: "El badge de cada producto muestra el total de unidades",
+      },
+    ],
+  },
+  {
+    id: "seguimiento", title: "Seguimiento", icon: "📲",
+    sections: [
+      {
+        title: "Pagina publica para clientes",
+        content: "Los clientes pueden consultar el estado de sus pedidos en la pagina de seguimiento.",
+        steps: ["El cliente introduce su numero de telefono", "Se muestran sus pedidos con estado, fecha y productos", "La pagina es accesible en vynia-mngmnt.vercel.app/seguimiento"],
+        tip: "No requiere login ni contrasena — solo el numero de telefono",
+      },
+      {
+        title: "Incrustar en WordPress",
+        content: "La pagina de seguimiento puede incrustarse en tu web de WordPress como iframe.",
+        tip: "En modo iframe se ocultan automaticamente el logo y el fondo para integrarse con tu web",
+      },
+    ],
+  },
+  {
+    id: "general", title: "General", icon: "⚙️",
+    sections: [
+      {
+        title: "Modo Live vs Demo",
+        content: "El boton LIVE/DEMO en la cabecera alterna entre datos reales y datos de prueba.",
+        steps: ["LIVE — conectado a Notion (datos reales)", "DEMO — datos de ejemplo sin conexion"],
+        tip: "El modo Demo se activa automaticamente si no hay conexion con la API",
+      },
+      {
+        title: "Sincronizacion y recarga",
+        content: "La app se sincroniza con Notion de varias formas.",
+        steps: ["Automaticamente al volver a la pestaña del navegador", "Cada 60 segundos mientras la pestaña esta activa", "Manualmente con el boton de recarga en la cabecera"],
+      },
+      {
+        title: "Version y changelog",
+        content: "Pulsa el numero de version bajo el logo para ver las notas de la ultima actualizacion.",
+      },
+      {
+        title: "Tooltips (ayuda rapida)",
+        content: "Todos los botones tienen textos de ayuda.",
+        steps: ["En escritorio: pasa el cursor por encima", "En movil: manten pulsado ~0.4 segundos"],
+        tip: "El tooltip desaparece solo tras 1.5 segundos en movil",
+      },
+      {
+        title: "Banner de actualizacion",
+        content: "Cuando hay una nueva version desplegada, aparece un banner en la parte inferior.",
+        steps: ["Pulsa Actualizar para recargar con la ultima version"],
+      },
+    ],
+  },
+];
 
 // ─── DATE HELPERS ───
 const fmt = {
@@ -191,22 +374,23 @@ const fmt = {
     const d = new Date(iso);
     return `${d.getDate()}/${d.getMonth()+1}`;
   },
+  localISO: (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
   isToday: (iso) => {
     if (!iso) return false;
-    return iso.startsWith(new Date().toISOString().split("T")[0]);
+    return iso.startsWith(fmt.localISO());
   },
   isTomorrow: (iso) => {
     if (!iso) return false;
     const t = new Date(); t.setDate(t.getDate()+1);
-    return iso.startsWith(t.toISOString().split("T")[0]);
+    return iso.startsWith(fmt.localISO(t));
   },
   isPast: (iso) => {
     if (!iso) return false;
-    return new Date(iso) < new Date(new Date().toISOString().split("T")[0]);
+    return new Date(iso) < new Date(fmt.localISO());
   },
-  todayISO: () => new Date().toISOString().split("T")[0],
-  tomorrowISO: () => { const t = new Date(); t.setDate(t.getDate()+1); return t.toISOString().split("T")[0]; },
-  dayAfterISO: () => { const t = new Date(); t.setDate(t.getDate()+2); return t.toISOString().split("T")[0]; },
+  todayISO: () => fmt.localISO(),
+  tomorrowISO: () => { const t = new Date(); t.setDate(t.getDate()+1); return fmt.localISO(t); },
+  dayAfterISO: () => { const t = new Date(); t.setDate(t.getDate()+2); return fmt.localISO(t); },
 };
 
 // ─── MAÑANA / TARDE DETECTION ───
@@ -351,8 +535,13 @@ export default function VyniaApp() {
   const [pedidos, setPedidos] = useState([]);
   const [filtro, setFiltro] = useState("pendientes"); // pendientes | hoy | todos | recogidos
   const [filtroFecha, setFiltroFecha] = useState(fmt.todayISO()); // null = all dates
+  const [renderLimit, setRenderLimit] = useState(30);
+  const sentinelRef = useRef(null);
   const [mostrarPrecios, setMostrarPrecios] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpExpanded, setHelpExpanded] = useState(new Set());
+  const [helpActiveCategory, setHelpActiveCategory] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [searchResults, setSearchResults] = useState([]); // clientes found
@@ -706,19 +895,27 @@ export default function VyniaApp() {
     const selected = pedidos.filter(p => bulkSelected.has(p.id));
     if (selected.length === 0) return;
     setBulkLoading(true);
+    const prevEstados = new Map(selected.map(p => [p.id, p.estado]));
     // Optimistic UI
     setPedidos(ps => ps.map(p => bulkSelected.has(p.id) ? { ...p, estado: nuevoEstado } : p));
 
+    let failCount = 0;
     if (apiMode !== "demo") {
       const results = await Promise.allSettled(
         selected.map(p => notion.cambiarEstado(p.id, nuevoEstado))
       );
-      const failed = results.filter(r => r.status === "rejected").length;
-      if (failed > 0) notify("err", `${failed} pedido${failed > 1 ? "s" : ""} fallaron`);
+      const failedIds = new Set();
+      results.forEach((r, i) => { if (r.status === "rejected") failedIds.add(selected[i].id); });
+      failCount = failedIds.size;
+      if (failCount > 0) {
+        // Rollback failed pedidos to their previous estado
+        setPedidos(ps => ps.map(p => failedIds.has(p.id) ? { ...p, estado: prevEstados.get(p.id) } : p));
+        notify("err", `${failCount} pedido${failCount > 1 ? "s" : ""} fallaron`);
+      }
       invalidateProduccion(); invalidateSearchCache();
     }
 
-    notify("ok", `${selected.length} pedidos → ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
+    if (failCount === 0) notify("ok", `${selected.length} pedidos → ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
     setBulkMode(false);
     setBulkSelected(new Set());
     setBulkLoading(false);
@@ -960,7 +1157,7 @@ export default function VyniaApp() {
       setSelectedPedido({
         ...found,
         pedidoTitulo: found.nombre,
-        telefono: found.tel,
+        tel: found.tel, telefono: found.tel,
         productos: typeof found.productos === "string"
           ? parseProductsStr(found.productos)
           : (Array.isArray(found.productos) ? found.productos : []),
@@ -1036,6 +1233,11 @@ export default function VyniaApp() {
     return pedidos;
   }, [pedidos, filtro]);
 
+  // Reset render limit when filter/data changes
+  useEffect(() => { setRenderLimit(30); }, [pedidosFiltrados]);
+
+  const hasMorePedidos = renderLimit < pedidosFiltrados.length;
+
   // ─── BULK TRANSITIONS (intersection of valid transitions for all selected) ───
   const bulkTransitions = useMemo(() => {
     if (bulkSelected.size === 0) return [];
@@ -1045,16 +1247,28 @@ export default function VyniaApp() {
     return [...sets[0]].filter(est => sets.every(s => s.has(est)));
   }, [bulkSelected, pedidosFiltrados]);
 
-  // Group by date (memoized)
+  // Group by date (memoized) — uses sliced list for progressive rendering
   const { groups, sortedDates } = useMemo(() => {
+    const visible = pedidosFiltrados.slice(0, renderLimit);
     const g = {};
-    pedidosFiltrados.forEach(p => {
+    visible.forEach(p => {
       const dateKey = (p.fecha || "").split("T")[0] || "sin-fecha";
       if (!g[dateKey]) g[dateKey] = [];
       g[dateKey].push(p);
     });
     return { groups: g, sortedDates: Object.keys(g).sort() };
-  }, [pedidosFiltrados]);
+  }, [pedidosFiltrados, renderLimit]);
+
+  // IntersectionObserver: load more pedidos on scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setRenderLimit(l => l + 30);
+    }, { rootMargin: "200px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  });
 
   // Catalog search (memoized)
   const productosFiltrados = useMemo(() => {
@@ -1206,6 +1420,13 @@ export default function VyniaApp() {
               alignItems: "center", justifyContent: "center", color: "#4F6867",
             }}>
               <I.Broom />
+            </button>
+            <button title="Manual de uso" onClick={() => { setHelpActiveCategory(tab === "produccion" ? "produccion" : tab === "nuevo" ? "nuevo" : "pedidos"); setHelpExpanded(new Set()); setShowHelp(true); }} style={{
+              width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
+              background: "#fff", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center", color: "#4F6867",
+            }}>
+              <I.Help />
             </button>
             <button title="Recargar pedidos" onClick={() => { invalidateApiCache(); loadPedidos(); }} style={{
               width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
@@ -1592,7 +1813,7 @@ export default function VyniaApp() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {fichaClientePedidos.map(p => (
-                      <div key={p.id} onClick={() => { setPedidoFromFicha(true); setSelectedPedido({ ...p, pedidoTitulo: p.nombre, telefono: p.tel, productos: typeof p.productos === "string" ? parseProductsStr(p.productos) : (Array.isArray(p.productos) ? p.productos : []) }); }}
+                      <div key={p.id} onClick={() => { setPedidoFromFicha(true); setSelectedPedido({ ...p, pedidoTitulo: p.nombre, tel: p.tel, telefono: p.tel, productos: typeof p.productos === "string" ? parseProductsStr(p.productos) : (Array.isArray(p.productos) ? p.productos : []) }); }}
                         style={{
                           background: "#FDFBF7", borderRadius: 10,
                           border: `1px solid ${ESTADOS[p.estado]?.group === "complete" ? (ESTADOS[p.estado]?.color + "40") : "#A2C2D0"}`,
@@ -1744,7 +1965,7 @@ export default function VyniaApp() {
                       <div onClick={bulkMode ? undefined : () => setSelectedPedido({
                         ...p,
                         pedidoTitulo: p.nombre,
-                        telefono: p.tel,
+                        tel: p.tel, telefono: p.tel,
                         productos: typeof p.productos === "string" ? parseProductsStr(p.productos) : (Array.isArray(p.productos) ? p.productos : []),
                       })} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", cursor: bulkMode ? "default" : "pointer" }}>
                         <div style={{ flex: 1 }}>
@@ -1917,6 +2138,13 @@ export default function VyniaApp() {
                   })()}
                 </div>
               ))
+            )}
+            {hasMorePedidos && (
+              <div ref={sentinelRef} style={{
+                textAlign: "center", padding: "16px 0 8px", color: "#A2C2D0", fontSize: 12,
+              }}>
+                Mostrando {Math.min(renderLimit, pedidosFiltrados.length)} de {pedidosFiltrados.length} pedidos…
+              </div>
             )}
             </>
             )}
@@ -2534,7 +2762,7 @@ export default function VyniaApp() {
                             Pedidos con {prod.nombre}:
                           </p>
                           {(ocultarRecogidos ? prod.pedidosFiltrados : prod.pedidos).map((ped, i) => (
-                            <button title="Ver detalle del pedido" key={ped.pedidoId + "-" + i} onClick={() => setSelectedPedido({ ...ped, id: ped.pedidoId, estado: effectiveEstado(ped) })}
+                            <button title="Ver detalle del pedido" key={ped.pedidoId + "-" + i} onClick={() => setSelectedPedido({ ...ped, id: ped.pedidoId, estado: effectiveEstado(ped), tel: ped.telefono || ped.tel })}
                               style={{
                                 width: "100%", padding: "10px 12px",
                                 border: "none",
@@ -3181,6 +3409,219 @@ export default function VyniaApp() {
             </div>
           </div>
         )}
+        {/* ══════════════════════════════════════════
+            HELP OVERLAY — Bento Grid + Animated List
+        ══════════════════════════════════════════ */}
+        {showHelp && (() => {
+          const activeCat = HELP_CONTENT.find(c => c.id === helpActiveCategory);
+          const toggleSection = (key) => {
+            setHelpExpanded(prev => {
+              const next = new Set(prev);
+              next.has(key) ? next.delete(key) : next.add(key);
+              return next;
+            });
+          };
+          const BENTO_COLORS = {
+            pedidos: { bg: "linear-gradient(135deg, #E1F2FC 0%, #d0e8f7 100%)", accent: "#1565C0", border: "rgba(21,101,192,0.15)" },
+            nuevo: { bg: "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)", accent: "#2E7D32", border: "rgba(46,125,50,0.15)" },
+            produccion: { bg: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)", accent: "#E65100", border: "rgba(230,81,0,0.15)" },
+            seguimiento: { bg: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)", accent: "#7B1FA2", border: "rgba(123,31,162,0.15)" },
+            general: { bg: "linear-gradient(135deg, #EFE9E4 0%, #E0D6CC 100%)", accent: "#4F6867", border: "rgba(79,104,103,0.15)" },
+          };
+          return (
+            <div data-help-overlay style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(27,28,57,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+              onClick={() => setShowHelp(false)}>
+              <div style={{
+                background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 540,
+                maxHeight: "92vh", display: "flex", flexDirection: "column",
+                boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+                animation: "helpSlideUp 0.28s ease-out",
+              }} onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div style={{
+                  padding: "18px 20px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  flexShrink: 0, borderBottom: "1px solid rgba(162,194,208,0.15)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {activeCat && (
+                      <button onClick={() => { setHelpActiveCategory(null); setHelpExpanded(new Set()); }} style={{
+                        width: 30, height: 30, borderRadius: 8, border: "none",
+                        background: "rgba(162,194,208,0.15)", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#4F6867",
+                      }}><I.Back s={16} /></button>
+                    )}
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>
+                      {activeCat ? `${activeCat.icon} ${activeCat.title}` : "Manual de uso"}
+                    </h2>
+                  </div>
+                  <button onClick={() => setShowHelp(false)} style={{
+                    width: 32, height: 32, borderRadius: 8, border: "none",
+                    background: "rgba(162,194,208,0.2)", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, color: "#4F6867", fontWeight: 700,
+                  }}>✕</button>
+                </div>
+
+                {/* Scrollable content */}
+                <div style={{
+                  overflowY: "auto", flex: 1, padding: "16px 16px 24px",
+                  paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))",
+                }}>
+                  {!activeCat ? (
+                    /* ─── BENTO GRID: Category cards ─── */
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gridTemplateRows: "auto",
+                      gap: 10,
+                    }}>
+                      {HELP_CONTENT.map((cat, ci) => {
+                        const colors = BENTO_COLORS[cat.id] || BENTO_COLORS.general;
+                        const isWide = ci === 0;
+                        return (
+                          <button key={cat.id} onClick={() => { setHelpActiveCategory(cat.id); setHelpExpanded(new Set()); }}
+                            className="help-bento-card"
+                            style={{
+                              gridColumn: isWide ? "1 / -1" : "auto",
+                              position: "relative", overflow: "hidden",
+                              background: colors.bg,
+                              border: `1px solid ${colors.border}`,
+                              borderRadius: 16, padding: isWide ? "20px 18px" : "16px 14px",
+                              cursor: "pointer", textAlign: "left",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02)",
+                              transition: "all 0.2s ease",
+                              animation: `helpItemIn 0.35s ease-out ${ci * 0.06}s both`,
+                            }}>
+                            <div style={{
+                              width: isWide ? 40 : 34, height: isWide ? 40 : 34,
+                              borderRadius: 10, background: `${colors.accent}18`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: isWide ? 20 : 17, marginBottom: isWide ? 12 : 8,
+                            }}>
+                              {cat.icon}
+                            </div>
+                            <div style={{
+                              fontSize: isWide ? 15 : 13, fontWeight: 700, color: "#1B1C39",
+                              fontFamily: "'Roboto Condensed', sans-serif", marginBottom: 4,
+                            }}>
+                              {cat.title}
+                            </div>
+                            <div style={{
+                              fontSize: 11, color: "#4F6867", lineHeight: 1.4,
+                              opacity: 0.8,
+                            }}>
+                              {cat.sections.length} temas
+                            </div>
+                            {/* Decorative gradient orb */}
+                            <div style={{
+                              position: "absolute", top: -20, right: -20,
+                              width: isWide ? 80 : 60, height: isWide ? 80 : 60,
+                              borderRadius: "50%", background: `${colors.accent}12`,
+                              pointerEvents: "none",
+                            }} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* ─── ANIMATED LIST: Section items ─── */
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {activeCat.sections.map((sec, si) => {
+                        const key = `${activeCat.id}-${si}`;
+                        const isOpen = helpExpanded.has(key);
+                        const colors = BENTO_COLORS[activeCat.id] || BENTO_COLORS.general;
+                        return (
+                          <div key={si}
+                            className="help-list-item"
+                            style={{
+                              background: "#fff",
+                              borderRadius: 14,
+                              border: "1px solid rgba(0,0,0,0.04)",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 12px 24px rgba(0,0,0,0.03)",
+                              overflow: "hidden",
+                              transition: "all 0.2s ease",
+                              animation: `helpItemIn 0.35s ease-out ${si * 0.05}s both`,
+                            }}>
+                            <button onClick={() => toggleSection(key)} style={{
+                              width: "100%", padding: "12px 14px", border: "none",
+                              background: "transparent", cursor: "pointer",
+                              display: "flex", alignItems: "center", gap: 12,
+                              textAlign: "left",
+                            }}>
+                              <div style={{
+                                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                                background: `${colors.accent}12`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 15, color: colors.accent, fontWeight: 700,
+                                fontFamily: "'Roboto Condensed', sans-serif",
+                              }}>
+                                {si + 1}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39" }}>
+                                  {sec.title}
+                                </div>
+                                {!isOpen && (
+                                  <div style={{
+                                    fontSize: 11, color: "#4F6867", opacity: 0.7,
+                                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                    marginTop: 2,
+                                  }}>
+                                    {sec.content}
+                                  </div>
+                                )}
+                              </div>
+                              <span style={{
+                                transition: "transform 0.2s ease",
+                                transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+                                color: "#A2C2D0", flexShrink: 0,
+                              }}>
+                                <I.Chevron />
+                              </span>
+                            </button>
+
+                            {isOpen && (
+                              <div style={{
+                                padding: "0 14px 14px 62px", fontSize: 13,
+                                color: "#4F6867", lineHeight: 1.6,
+                                animation: "popoverIn 0.15s ease-out",
+                              }}>
+                                <p style={{ margin: "0 0 8px" }}>{sec.content}</p>
+
+                                {sec.steps && (
+                                  <ol style={{ margin: "0 0 8px", paddingLeft: 18 }}>
+                                    {sec.steps.map((step, i) => (
+                                      <li key={i} style={{ marginBottom: 3 }}>{step}</li>
+                                    ))}
+                                  </ol>
+                                )}
+
+                                {sec.tip && (
+                                  <div style={{
+                                    background: `${colors.accent}12`, borderLeft: `3px solid ${colors.accent}`,
+                                    borderRadius: "0 10px 10px 0", padding: "8px 12px",
+                                    fontSize: 12, color: "#1B1C39", lineHeight: 1.5,
+                                    marginTop: 6,
+                                  }}>
+                                    <strong>Tip:</strong> {sec.tip}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
       </main>
 
       {/* ════ BULK ACTION BAR ════ */}
@@ -3368,6 +3809,22 @@ export default function VyniaApp() {
           from { opacity: 0; transform: scale(0.96) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes helpSlideUp {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes helpItemIn {
+          from { opacity: 0; transform: translateY(12px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .help-bento-card:hover {
+          transform: scale(1.03) !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03) !important;
+        }
+        .help-bento-card:active { transform: scale(0.98) !important; }
+        .help-list-item:hover {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03) !important;
+        }
         @keyframes bulkBarIn {
           from { opacity: 0; transform: translateX(-50%) translateY(12px); }
           to { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -3473,6 +3930,7 @@ export default function VyniaApp() {
           .order-card::before { display: none !important; }
           * { box-shadow: none !important; animation: none !important; }
           a[href^="tel:"] { color: #1B1C39 !important; text-decoration: none !important; }
+          [data-help-overlay] { display: none !important; }
         }
       `}</style>
     </div>

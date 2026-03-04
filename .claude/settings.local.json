@@ -5,7 +5,27 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "mcp__notion__API-retrieve-a-database",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(node -e:*)",
+      "Bash(npx vitest:*)",
+      "Bash(node ./node_modules/vitest/vitest.mjs run:*)",
+      "Bash(git ls-tree:*)",
+      "Read(//Users/javicollado/Library/CloudStorage/GoogleDrive-javi@notionvan.com/Mi unidad/02. Áreas/BZ_Herramientas/DEV/Vynia-MNGMNT/**)",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:community.vercel.com)",
+      "Bash(npm install:*)",
+      "mcp__claude_ai_Vercel__list_deployments",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_projects",
+      "Bash(git rm:*)",
+      "mcp__claude_ai_Vercel__get_deployment",
+      "mcp__claude_ai_Vercel__search_vercel_documentation",
+      "Bash(npx vite build)",
+      "Bash(gh api:*)",
+      "Bash(grep:*)",
+      "Bash(node_modules/.bin/vite build:*)",
+      "Bash(rsync:*)"
     ]
   }
 }

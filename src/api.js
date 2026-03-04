@@ -118,7 +118,8 @@ export const notion = {
 
   async crearPedido(clienteNombre, clientePageId, fecha, hora, pagado, notas, lineas) {
     const fechaStr = hora ? `${fecha}T${hora}:00` : fecha;
-    const today = new Date().toISOString().split("T")[0];
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     const properties = {
       Pedido: {
@@ -154,16 +155,24 @@ export const notion = {
 
     if (!pedidoRes?.id) throw new Error("No se pudo crear el pedido");
 
-    // Create line items
+    // Create line items (track partial failures — Notion has no transactions)
+    const failed = [];
     for (const linea of lineas) {
-      await apiCall("/registros", {
-        method: "POST",
-        body: JSON.stringify({
-          pedidoPageId: pedidoRes.id,
-          productoNombre: linea.nombre,
-          cantidad: linea.cantidad,
-        }),
-      });
+      try {
+        await apiCall("/registros", {
+          method: "POST",
+          body: JSON.stringify({
+            pedidoPageId: pedidoRes.id,
+            productoNombre: linea.nombre,
+            cantidad: linea.cantidad,
+          }),
+        });
+      } catch {
+        failed.push(linea.nombre);
+      }
+    }
+    if (failed.length > 0) {
+      throw new Error(`Pedido creado pero faltan productos: ${failed.join(", ")}`);
     }
 
     return pedidoRes;

@@ -1,4 +1,4 @@
-import { notion, cached, delay } from "./_notion.js";
+import { notion, cached, delay, PROP_UNIDADES } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
@@ -31,22 +31,27 @@ export default async function handler(req, res) {
   try {
     const productos = await cached(`produccion:${fecha}`, 30000, async () => {
     const BATCH_SIZE = 5; // Limit concurrent Notion API calls
-    // 1. Get pedidos for the given date (include recogido for frontend discrimination)
-    const pedidosRes = await notion.databases.query({
-      database_id: DB_PEDIDOS,
-      filter: {
-        and: [
-          { property: "Fecha entrega", date: { on_or_after: fecha } },
-          { property: "Fecha entrega", date: { before: nextDay(fecha) } },
-          { property: "No acude", checkbox: { equals: false } },
-        ],
-      },
-      page_size: 100,
-    });
-
-    const pedidos = pedidosRes.results;
+    // 1. Get pedidos for the given date (paginated — handles >100 pedidos)
+    let pedidos = [];
+    let pedidosCursor = undefined;
+    do {
+      const pedidosRes = await notion.databases.query({
+        database_id: DB_PEDIDOS,
+        filter: {
+          and: [
+            { property: "Fecha entrega", date: { on_or_after: fecha } },
+            { property: "Fecha entrega", date: { before: nextDay(fecha) } },
+            { property: "No acude", checkbox: { equals: false } },
+          ],
+        },
+        start_cursor: pedidosCursor,
+        page_size: 100,
+      });
+      pedidos = pedidos.concat(pedidosRes.results);
+      pedidosCursor = pedidosRes.has_more ? pedidosRes.next_cursor : undefined;
+    } while (pedidosCursor);
     if (pedidos.length === 0) {
-      return res.status(200).json({ productos: [] });
+      return [];
     }
 
     // Build pedido info map (client name from rollup — no extra API calls)
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
           const auxProd = reg.properties["AUX Producto Texto"];
           const nombre = (auxProd?.formula?.string || "").trim()
             || extractTitle(reg.properties["Nombre"]);
-          const unidades = reg.properties["Unidades "]?.number || 0;
+          const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
 
           if (!nombre || unidades === 0) continue;
 

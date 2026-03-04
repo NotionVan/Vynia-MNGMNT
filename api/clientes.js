@@ -20,18 +20,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Search for existing client by title
+    // Search for existing client by title (case-insensitive)
+    const trimmed = nombre.trim();
     const search = await notion.databases.query({
       database_id: DB_CLIENTES,
       filter: {
         property: "title",
-        title: { equals: nombre.trim() },
+        title: { contains: trimmed },
       },
+      page_size: 20,
     });
 
-    if (search.results.length > 0) {
+    // Filter client-side for exact case-insensitive match
+    const exactMatch = search.results.find(page => {
+      const titleProp = Object.values(page.properties).find(p => p.type === "title");
+      const name = titleProp ? (titleProp.title || []).map(t => t.plain_text).join("") : "";
+      return name.trim().toLowerCase() === trimmed.toLowerCase();
+    });
+
+    if (exactMatch) {
       return res.status(200).json({
-        id: search.results[0].id,
+        id: exactMatch.id,
         created: false,
       });
     }
@@ -44,8 +53,10 @@ export default async function handler(req, res) {
     };
 
     if (telefono) {
-      // Try phone_number first; if the property type is rich_text, this will
-      // need adjustment after testing against the live DB
+      const cleanTel = telefono.replace(/\D/g, "");
+      if (cleanTel.length < 6) {
+        return res.status(400).json({ error: "Teléfono inválido (mínimo 6 dígitos)" });
+      }
       properties["Teléfono"] = {
         phone_number: telefono,
       };

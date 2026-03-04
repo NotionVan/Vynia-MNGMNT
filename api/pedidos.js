@@ -58,6 +58,7 @@ async function handleGet(req, res) {
     if (filter === "pendientes") {
       conditions.push({ property: "Recogido", checkbox: { equals: false } });
       conditions.push({ property: "No acude", checkbox: { equals: false } });
+      conditions.push({ property: "Incidencia", checkbox: { equals: false } });
     } else if (filter === "recogidos") {
       conditions.push({ property: "Recogido", checkbox: { equals: true } });
     }
