@@ -243,9 +243,9 @@ const HELP_CONTENT = [
       },
       {
         title: "Marcar como pagado",
-        content: "El badge € / PAGADO aparece en cada tarjeta de pedido y en el modal de detalle. Puedes pulsarlo en cualquier momento para marcar o desmarcar el pago.",
-        steps: ["Pulsa € en la tarjeta o en el modal para marcar como pagado", "Pulsa PAGADO para desmarcar", "El cambio se guarda en Notion automaticamente"],
-        tip: "Tambien puedes cambiar el estado de pago desde la vista de Produccion",
+        content: "Cada tarjeta tiene un boton € Pago / Pagado en la zona de acciones (junto al pipeline y al picker de estado). Tambien puedes cambiarlo desde el modal de detalle y la vista de Produccion.",
+        steps: ["Pulsa el boton € Pago para marcar como pagado, o Pagado para desmarcar", "Confirma el cambio en el dialogo que aparece", "El cambio se guarda en Notion automaticamente"],
+        tip: "El badge PAGADO en el nombre del pedido es solo informativo — usa el boton de la zona de acciones para cambiar el estado de pago",
       },
       {
         title: "Imprimir",
