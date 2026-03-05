@@ -873,6 +873,7 @@ export default function VyniaApp() {
   // ─── CAMBIAR ESTADO ───
   const [estadoPicker, setEstadoPicker] = useState(null);
   const [pendingEstadoChange, setPendingEstadoChange] = useState(null); // { pedido, nuevoEstado, isBulk }
+  const [pendingPagadoChange, setPendingPagadoChange] = useState(null); // { pedido }
 
   const requestEstadoChange = (pedido, nuevoEstado, opts = {}) => {
     setPendingEstadoChange({ pedido, nuevoEstado, ...opts });
@@ -1042,7 +1043,14 @@ export default function VyniaApp() {
     }
   };
 
-  const togglePagado = async (pedido) => {
+  const requestPagadoChange = (pedido) => {
+    setPendingPagadoChange({ pedido });
+  };
+
+  const confirmarPagadoChange = async () => {
+    if (!pendingPagadoChange) return;
+    const { pedido } = pendingPagadoChange;
+    setPendingPagadoChange(null);
     const newVal = !pedido.pagado;
     const updateLocal = () => {
       setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, pagado: newVal } : p));
@@ -1890,10 +1898,7 @@ export default function VyniaApp() {
                                 {p.numPedido > 0 ? `#${p.numPedido}` : "Pedido"}
                               </span>
                               {p.estado !== "Sin empezar" && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: ESTADOS[p.estado]?.bg || "#F0F0F0", color: ESTADOS[p.estado]?.color || "#8B8B8B", fontWeight: 700, border: `0.5px solid ${ESTADOS[p.estado]?.color || "#8B8B8B"}22` }}>{ESTADOS[p.estado]?.label || p.estado}</span>}
-                              <button title={p.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado(p); }}
-                                style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 700, cursor: "pointer", border: "none", transition: "all 0.2s",
-                                  background: p.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)", color: p.pagado ? "#3D5655" : "#A2C2D0",
-                                }}>{p.pagado ? "PAGADO" : "€"}</button>
+                              {p.pagado && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#E1F2FC", color: "#3D5655", fontWeight: 700 }}>PAGADO</span>}
                             </div>
                             <div style={{ fontSize: 12, color: "#4F6867", marginTop: 3 }}>
                               {fmt.date(p.fecha?.split("T")[0] || "")}
@@ -2048,13 +2053,12 @@ export default function VyniaApp() {
                                     }}>
                                       {p.cliente || p.nombre}
                                     </span>
-                                    <button title={p.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado(p); }}
-                                      style={{
+                                    {p.pagado && (
+                                      <span style={{
                                         fontSize: 9, padding: "2px 6px", borderRadius: 4, fontWeight: 700,
-                                        cursor: "pointer", border: "none", transition: "all 0.2s",
-                                        background: p.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)",
-                                        color: p.pagado ? "#3D5655" : "#A2C2D0",
-                                      }}>{p.pagado ? "PAGADO" : "€"}</button>
+                                        background: "#E1F2FC", color: "#3D5655",
+                                      }}>PAGADO</span>
+                                    )}
                                     {tardeSet.has(p.id) && (
                                       <span style={{
                                         fontSize: 9, padding: "2px 6px", borderRadius: 4,
@@ -2165,6 +2169,20 @@ export default function VyniaApp() {
                                   <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
                                     ···
                                   </span>
+                                </button>
+
+                                {/* Pagado toggle */}
+                                <button title={p.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={() => requestPagadoChange(p)}
+                                  style={{
+                                    padding: "7px 12px", borderRadius: 8,
+                                    border: p.pagado ? "1.5px solid #4F686735" : "1.5px solid rgba(162,194,208,0.35)",
+                                    background: p.pagado ? "linear-gradient(135deg, #E1F2FC, #E1F2FCdd)" : "transparent",
+                                    color: p.pagado ? "#3D5655" : "#A2C2D0",
+                                    fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                    display: "flex", alignItems: "center", gap: 5,
+                                    transition: "all 0.2s",
+                                  }}>
+                                  {p.pagado ? <><I.Check s={13} /> Pagado</> : "€ Pago"}
                                 </button>
                               </div>}
                             </div>
@@ -2891,7 +2909,7 @@ export default function VyniaApp() {
                                       }}>{ESTADOS[ped.estado]?.label || ped.estado}</span>
                                     )}
                                     {ped.estado !== "Recogido" && (
-                                      <button title={ped.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado({ id: ped.pedidoId, pagado: ped.pagado }); }}
+                                      <button title={ped.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); requestPagadoChange({ id: ped.pedidoId, pagado: ped.pagado }); }}
                                         style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 700, cursor: "pointer", border: "none", marginLeft: 6, transition: "all 0.2s",
                                           background: ped.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)", color: ped.pagado ? "#3D5655" : "#A2C2D0",
                                         }}>{ped.pagado ? "PAGADO" : "€"}</button>
@@ -2972,7 +2990,7 @@ export default function VyniaApp() {
                         border: `0.5px solid ${ESTADOS[selectedPedido.estado]?.color || "#8B8B8B"}22`,
                       }}>{ESTADOS[selectedPedido.estado]?.icon} {ESTADOS[selectedPedido.estado]?.label || selectedPedido.estado}</span>
                     )}
-                    <button title={selectedPedido.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={() => togglePagado(selectedPedido)}
+                    <button title={selectedPedido.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={() => requestPagadoChange(selectedPedido)}
                       style={{ fontSize: 9, padding: "1px 6px", borderRadius: 10, fontWeight: 700, cursor: "pointer", border: "none", transition: "all 0.2s",
                         background: selectedPedido.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)",
                         color: selectedPedido.pagado ? "#3D5655" : "#A2C2D0",
@@ -3418,6 +3436,61 @@ export default function VyniaApp() {
                       color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
                       fontFamily: "'Roboto Condensed', sans-serif",
                       boxShadow: `0 3px 12px ${cfg?.color || "#4F6867"}35`,
+                    }}>
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ══════════════════════════════════════════
+            CONFIRM PAGADO CHANGE
+        ══════════════════════════════════════════ */}
+        {pendingPagadoChange && (() => {
+          const willPay = !pendingPagadoChange.pedido?.pagado;
+          return (
+            <div style={{ position: "fixed", inset: 0, zIndex: 350, background: "rgba(27,28,57,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => setPendingPagadoChange(null)}>
+              <div style={{
+                background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 20, padding: "28px 24px 20px", maxWidth: 320, width: "90%",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.18)", textAlign: "center",
+                animation: "popoverIn 0.18s ease-out",
+              }} onClick={e => e.stopPropagation()}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: "50%",
+                  background: willPay ? "#E1F2FC" : "rgba(162,194,208,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 14px", fontSize: 22, color: willPay ? "#3D5655" : "#A2C2D0",
+                }}>
+                  €
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1B1C39", margin: "0 0 6px", fontFamily: "'Roboto Condensed', sans-serif" }}>
+                  {willPay ? "¿Marcar como pagado?" : "¿Desmarcar como pagado?"}
+                </p>
+                <p style={{ fontSize: 13, color: "#4F6867", margin: "0 0 20px" }}>
+                  {pendingPagadoChange.pedido?.cliente || pendingPagadoChange.pedido?.nombre || "Pedido"} → <strong style={{ color: willPay ? "#2E7D32" : "#C62828" }}>{willPay ? "Pagado" : "No pagado"}</strong>
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setPendingPagadoChange(null)}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12,
+                      border: "1.5px solid rgba(162,194,208,0.3)", background: "transparent",
+                      color: "#4F6867", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                    }}>
+                    Cancelar
+                  </button>
+                  <button onClick={confirmarPagadoChange}
+                    style={{
+                      flex: 1, padding: "11px 0", borderRadius: 12,
+                      border: "none",
+                      background: willPay ? "linear-gradient(135deg, #2E7D32ee, #2E7D32cc)" : "linear-gradient(135deg, #C62828ee, #C62828cc)",
+                      color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                      boxShadow: willPay ? "0 3px 12px #2E7D3235" : "0 3px 12px #C6282835",
                     }}>
                     Confirmar
                   </button>

@@ -348,3 +348,9 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-01**: Toggle "Pagado" interactivo — el badge €/PAGADO es clickable en cards de pedidos, ficha de cliente, modal de detalle y vista de produccion. Permite marcar/desmarcar pago en cualquier momento del ciclo de vida del pedido via `togglePagado()` → `updatePage()` → Notion API. Actualiza estado local (pedidos, selectedPedido, produccionData) de forma optimista
+
+## Changelog v1.4.2
+
+### Mejoras
+- **FEAT-02**: Boton "€ Pago / Pagado" grande en la zona de acciones de cada card de pedido (junto a pipeline y picker), siempre visible. Confirmacion obligatoria via popup glass-morphism antes de cambiar el estado de pago (patron identico a `pendingEstadoChange`). Los badges pequeños en la fila del nombre quedan como indicadores informativos (solo lectura)
+- **FIX-01**: Corregido `vercel.json` — patron `/*` invalido en headers reemplazado por `/(.*)`; rewrite SPA normalizado al formato oficial de Vercel
