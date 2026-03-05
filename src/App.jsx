@@ -1065,14 +1065,25 @@ export default function VyniaApp() {
       notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
       return;
     }
+    // Optimistic UI — instant feedback, rollback on failure
+    updateLocal();
     try {
       await notion.updatePage(pedido.id, {
         "Pagado al reservar": { checkbox: newVal }
       });
-      updateLocal();
       invalidateSearchCache();
       notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
     } catch (err) {
+      // Rollback
+      const rollback = () => {
+        setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, pagado: !newVal } : p));
+        if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, pagado: !newVal } : prev);
+        setProduccionData(prev => prev.map(prod => ({
+          ...prod,
+          pedidos: prod.pedidos.map(ped => ped.pedidoId === pedido.id ? { ...ped, pagado: !newVal } : ped),
+        })));
+      };
+      rollback();
       notify("err", err.message);
     }
   };
