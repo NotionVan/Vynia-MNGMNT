@@ -64,7 +64,11 @@
   ],
   "rewrites": [
     {
-      "source": "((?!api/|seguimiento).*)",
+      "source": "/seguimiento",
+      "destination": "/seguimiento.html"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
