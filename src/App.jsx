@@ -223,7 +223,7 @@ const HELP_CONTENT = [
       {
         title: "Detalle del pedido",
         content: "Pulsa en una tarjeta para abrir el modal de detalle con toda la informacion.",
-        steps: ["Edita las notas pulsando en el area de texto", "Cambia la fecha de entrega pulsando en la fecha", "Modifica los productos con el boton Modificar productos"],
+        steps: ["Edita las notas pulsando en el area de texto", "Cambia la fecha de entrega pulsando en la fecha", "Modifica los productos con el boton Modificar productos", "Marca o desmarca como pagado pulsando el badge €/PAGADO"],
       },
       {
         title: "Ficha de cliente",
@@ -240,6 +240,12 @@ const HELP_CONTENT = [
         title: "Toggle de precios",
         content: "El boton € ON/OFF junto a la barra de busqueda muestra u oculta los importes en las tarjetas.",
         tip: "Los precios estan ocultos por defecto",
+      },
+      {
+        title: "Marcar como pagado",
+        content: "El badge € / PAGADO aparece en cada tarjeta de pedido y en el modal de detalle. Puedes pulsarlo en cualquier momento para marcar o desmarcar el pago.",
+        steps: ["Pulsa € en la tarjeta o en el modal para marcar como pagado", "Pulsa PAGADO para desmarcar", "El cambio se guarda en Notion automaticamente"],
+        tip: "Tambien puedes cambiar el estado de pago desde la vista de Produccion",
       },
       {
         title: "Imprimir",
@@ -1033,6 +1039,33 @@ export default function VyniaApp() {
       notify("err", err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const togglePagado = async (pedido) => {
+    const newVal = !pedido.pagado;
+    const updateLocal = () => {
+      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, pagado: newVal } : p));
+      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, pagado: newVal } : prev);
+      setProduccionData(prev => prev.map(prod => ({
+        ...prod,
+        pedidos: prod.pedidos.map(ped => ped.pedidoId === pedido.id ? { ...ped, pagado: newVal } : ped),
+      })));
+    };
+    if (apiMode === "demo") {
+      updateLocal();
+      notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
+      return;
+    }
+    try {
+      await notion.updatePage(pedido.id, {
+        "Pagado al reservar": { checkbox: newVal }
+      });
+      updateLocal();
+      invalidateSearchCache();
+      notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
+    } catch (err) {
+      notify("err", err.message);
     }
   };
 
@@ -1857,7 +1890,10 @@ export default function VyniaApp() {
                                 {p.numPedido > 0 ? `#${p.numPedido}` : "Pedido"}
                               </span>
                               {p.estado !== "Sin empezar" && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: ESTADOS[p.estado]?.bg || "#F0F0F0", color: ESTADOS[p.estado]?.color || "#8B8B8B", fontWeight: 700, border: `0.5px solid ${ESTADOS[p.estado]?.color || "#8B8B8B"}22` }}>{ESTADOS[p.estado]?.label || p.estado}</span>}
-                              {p.pagado && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#E1F2FC", color: "#3D5655", fontWeight: 700 }}>PAGADO</span>}
+                              <button title={p.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado(p); }}
+                                style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 700, cursor: "pointer", border: "none", transition: "all 0.2s",
+                                  background: p.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)", color: p.pagado ? "#3D5655" : "#A2C2D0",
+                                }}>{p.pagado ? "PAGADO" : "€"}</button>
                             </div>
                             <div style={{ fontSize: 12, color: "#4F6867", marginTop: 3 }}>
                               {fmt.date(p.fecha?.split("T")[0] || "")}
@@ -2012,12 +2048,13 @@ export default function VyniaApp() {
                                     }}>
                                       {p.cliente || p.nombre}
                                     </span>
-                                    {p.pagado && (
-                                      <span style={{
-                                        fontSize: 9, padding: "2px 6px", borderRadius: 4,
-                                        background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
-                                      }}>PAGADO</span>
-                                    )}
+                                    <button title={p.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado(p); }}
+                                      style={{
+                                        fontSize: 9, padding: "2px 6px", borderRadius: 4, fontWeight: 700,
+                                        cursor: "pointer", border: "none", transition: "all 0.2s",
+                                        background: p.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)",
+                                        color: p.pagado ? "#3D5655" : "#A2C2D0",
+                                      }}>{p.pagado ? "PAGADO" : "€"}</button>
                                     {tardeSet.has(p.id) && (
                                       <span style={{
                                         fontSize: 9, padding: "2px 6px", borderRadius: 4,
@@ -2853,12 +2890,11 @@ export default function VyniaApp() {
                                         border: `0.5px solid ${ESTADOS[ped.estado]?.color || "#8B8B8B"}22`,
                                       }}>{ESTADOS[ped.estado]?.label || ped.estado}</span>
                                     )}
-                                    {ped.pagado && ped.estado !== "Recogido" && (
-                                      <span style={{
-                                        fontSize: 9, padding: "1px 5px", borderRadius: 3,
-                                        background: "#E1F2FC", color: "#3D5655", fontWeight: 700,
-                                        marginLeft: 6,
-                                      }}>PAGADO</span>
+                                    {ped.estado !== "Recogido" && (
+                                      <button title={ped.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={(e) => { e.stopPropagation(); togglePagado({ id: ped.pedidoId, pagado: ped.pagado }); }}
+                                        style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 700, cursor: "pointer", border: "none", marginLeft: 6, transition: "all 0.2s",
+                                          background: ped.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)", color: ped.pagado ? "#3D5655" : "#A2C2D0",
+                                        }}>{ped.pagado ? "PAGADO" : "€"}</button>
                                     )}
                                     {ped.notas && (
                                       <div style={{ fontSize: 11, color: "#A2C2D0", fontStyle: "italic", marginTop: 2 }}>
@@ -2936,9 +2972,12 @@ export default function VyniaApp() {
                         border: `0.5px solid ${ESTADOS[selectedPedido.estado]?.color || "#8B8B8B"}22`,
                       }}>{ESTADOS[selectedPedido.estado]?.icon} {ESTADOS[selectedPedido.estado]?.label || selectedPedido.estado}</span>
                     )}
-                    {selectedPedido.pagado && (
-                      <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 10, background: "#E1F2FC", color: "#3D5655", fontWeight: 700, border: "0.5px solid rgba(79,104,103,0.15)" }}>PAGADO</span>
-                    )}
+                    <button title={selectedPedido.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={() => togglePagado(selectedPedido)}
+                      style={{ fontSize: 9, padding: "1px 6px", borderRadius: 10, fontWeight: 700, cursor: "pointer", border: "none", transition: "all 0.2s",
+                        background: selectedPedido.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)",
+                        color: selectedPedido.pagado ? "#3D5655" : "#A2C2D0",
+                        outline: selectedPedido.pagado ? "1.5px solid rgba(79,104,103,0.25)" : "1px solid rgba(162,194,208,0.3)",
+                      }}>{selectedPedido.pagado ? "PAGADO" : "€"}</button>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>

@@ -343,3 +343,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ### Mejoras
 - **CHAOS-01**: Fechas locales — nuevo helper `fmt.localISO()` reemplaza todos los `toISOString().split("T")[0]`
 - **CHAOS-08**: Renderizado progresivo — IntersectionObserver con lotes de 30 cards para listas largas de pedidos
+
+## Changelog v1.4.1
+
+### Mejoras
+- **FEAT-01**: Toggle "Pagado" interactivo — el badge €/PAGADO es clickable en cards de pedidos, ficha de cliente, modal de detalle y vista de produccion. Permite marcar/desmarcar pago en cualquier momento del ciclo de vida del pedido via `togglePagado()` → `updatePage()` → Notion API. Actualiza estado local (pedidos, selectedPedido, produccionData) de forma optimista
