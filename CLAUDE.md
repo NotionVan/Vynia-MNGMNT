@@ -354,3 +354,11 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ### Mejoras
 - **FEAT-02**: Boton "€ Pago / Pagado" grande en la zona de acciones de cada card de pedido (junto a pipeline y picker), siempre visible. Confirmacion obligatoria via popup glass-morphism antes de cambiar el estado de pago (patron identico a `pendingEstadoChange`). Los badges pequeños en la fila del nombre quedan como indicadores informativos (solo lectura)
 - **FIX-01**: Corregido `vercel.json` — patron `/*` invalido en headers reemplazado por `/(.*)`; rewrite SPA normalizado al formato oficial de Vercel
+
+## Changelog v1.4.3
+
+### Bug fixes
+- **FIX-02**: Ruta dinamica `/api/pedidos/[id]` devuelve 404 en produccion — el rewrite SPA `/(.*) → /index.html` interceptaba rutas dinamicas de la API. Restaurado negative lookahead `/((?!api/).*) → /index.html` para excluir `/api/*` del SPA fallback. Afectaba a todas las operaciones PATCH: pagado, cambio de estado, notas, archivar
+
+### Mejoras
+- **PERF-01**: Optimistic UI para toggle de pagado — la UI se actualiza al instante al confirmar, sin esperar respuesta de Notion (~1-2s). Rollback automatico si la API falla (mismo patron que `cambiarEstadoBulk`)
