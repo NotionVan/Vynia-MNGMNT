@@ -384,3 +384,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-04**: Pagina de seguimiento bloqueada en iframe (vynia.es/mi-pedido/) — `X-Frame-Options: DENY` del catch-all `/(.*)`  en `vercel.json` sobreescribia los headers de `/seguimiento`. Fix: mover bloque `/seguimiento` DESPUES del catch-all para que sus headers ganen. CSP combinado con `frame-ancestors 'self' https://vynia.es https://www.vynia.es` + permisos para Google Fonts. `X-Frame-Options: SAMEORIGIN` (ignorado por browsers modernos cuando CSP frame-ancestors esta presente)
+
+## Changelog v1.5.2
+
+### Mejoras
+- **PERF-03**: "Ver pedido" instantaneo tras crear — en lugar de esperar a que `loadPedidos()` termine el roundtrip a Notion, construye el pedido inmediatamente con los datos de creacion (cliente, productos, fecha, estado "Sin empezar") y abre el modal al instante. Se actualiza silenciosamente cuando llegan los datos completos (numPedido, etc.)

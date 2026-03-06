@@ -1212,7 +1212,7 @@ export default function VyniaApp() {
       const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
       notify("ok", `✓ Pedido creado en Notion: ${cliente} — €${total.toFixed(2)}`);
       const savedCliente = cliente.trim();
-      setCreateResult({ status: "ok", cliente: savedCliente, total, pedidoId: pedidoRes.id });
+      setCreateResult({ status: "ok", cliente: savedCliente, total, pedidoId: pedidoRes.id, telefono, fecha, hora, pagado, notas, lineas });
       resetForm();
       loadPedidos();
       invalidateProduccion(fecha); invalidateSearchCache();
@@ -1225,6 +1225,7 @@ export default function VyniaApp() {
   };
 
   const verPedidoCreado = (pedidoId) => {
+    const cr = createResult;
     setCreateResult(null);
     setTab("pedidos");
     const found = pedidos.find(p => p.id === pedidoId);
@@ -1237,6 +1238,24 @@ export default function VyniaApp() {
           ? parseProductsStr(found.productos)
           : (Array.isArray(found.productos) ? found.productos : []),
       });
+    } else if (cr) {
+      const fechaFull = cr.hora ? `${cr.fecha}T${cr.hora}:00` : cr.fecha;
+      setSelectedPedido({
+        id: pedidoId,
+        nombre: `Pedido ${cr.cliente}`,
+        pedidoTitulo: `Pedido ${cr.cliente}`,
+        cliente: cr.cliente,
+        tel: cr.telefono || "", telefono: cr.telefono || "",
+        fecha: fechaFull,
+        hora: cr.hora || "",
+        estado: "Sin empezar",
+        pagado: !!cr.pagado,
+        notas: cr.notas || "",
+        productos: (cr.lineas || []).map(l => ({ nombre: l.nombre, unidades: l.cantidad })),
+        importe: cr.total || 0,
+        numPedido: 0,
+      });
+      pendingViewPedidoId.current = pedidoId;
     } else {
       pendingViewPedidoId.current = pedidoId;
     }
