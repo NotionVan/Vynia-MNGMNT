@@ -143,6 +143,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Resuelve nombres de clientes via rollup `"AUX Nombre Cliente"` en Pedidos
 - Lee nombre de producto de formula `"AUX Producto Texto"`, no del titulo
 - Incluye lista completa de productos de cada pedido en `pedido.productos`
+- Usa OR query unico para traer todos los registros de todos los pedidos de golpe (mismo patron que tracking.js). Para >100 pedidos, divide en chunks de 100 (limite de compound filter de Notion)
 
 ### GET /api/tracking
 - Query params: `tel=612345678` (numero de telefono, minimo 6 digitos)
@@ -362,3 +363,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **PERF-01**: Optimistic UI para toggle de pagado — la UI se actualiza al instante al confirmar, sin esperar respuesta de Notion (~1-2s). Rollback automatico si la API falla (mismo patron que `cambiarEstadoBulk`)
+
+## Changelog v1.4.4
+
+### Mejoras
+- **PERF-02**: Eliminar N+1 queries en `/api/produccion` — reemplazado loop de 1 query por pedido (batches de 5, con 200ms delay) por OR query unico que trae todos los registros de golpe. Mismo patron que ya usa `tracking.js`. Para >100 pedidos, divide en chunks de 100 (limite de compound filter de Notion). Reduce latencia de ~12s a ~600ms con 100 pedidos, eliminando riesgo de timeout en Vercel

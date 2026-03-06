@@ -1,4 +1,4 @@
-import { notion, cached, delay, PROP_UNIDADES } from "./_notion.js";
+import { notion, cached, PROP_UNIDADES } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
@@ -30,7 +30,6 @@ export default async function handler(req, res) {
 
   try {
     const productos = await cached(`produccion:${fecha}`, 60000, async () => {
-    const BATCH_SIZE = 5; // Limit concurrent Notion API calls
     // 1. Get pedidos for the given date (paginated — handles >100 pedidos)
     let pedidos = [];
     let pedidosCursor = undefined;
@@ -85,53 +84,57 @@ export default async function handler(req, res) {
       };
     }
 
-    // 2. Query registros for ALL pedidos in parallel
-    const productosAgg = {}; // nombre -> { totalUnidades, pedidos: [] }
-    const pedidoProductos = {}; // pedidoId -> [{ nombre, unidades }]
+    // 2. Single OR query for ALL registros (same pattern as tracking.js)
     const pedidoIds = Object.keys(pedidoMap);
+    const OR_BATCH = 100; // Notion compound filter limit
+    let allRegistros = [];
 
-    for (const pid of pedidoIds) pedidoProductos[pid] = [];
+    for (let i = 0; i < pedidoIds.length; i += OR_BATCH) {
+      const chunk = pedidoIds.slice(i, i + OR_BATCH);
+      const orConditions = chunk.map(id => ({
+        property: "Pedidos",
+        relation: { contains: id },
+      }));
 
-    // Process registros in batches to avoid Notion rate limits
-    const fetchRegistros = async (pedidoId) => {
-      let cursor = undefined;
+      let cursor;
       do {
         const regRes = await notion.databases.query({
           database_id: DB_REGISTROS,
-          filter: {
-            property: "Pedidos",
-            relation: { contains: pedidoId },
-          },
+          filter: orConditions.length === 1 ? orConditions[0] : { or: orConditions },
           start_cursor: cursor,
           page_size: 100,
         });
-
-        for (const reg of regRes.results) {
-          const auxProd = reg.properties["AUX Producto Texto"];
-          const nombre = (auxProd?.formula?.string || "").trim()
-            || extractTitle(reg.properties["Nombre"]);
-          const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
-
-          if (!nombre || unidades === 0) continue;
-
-          pedidoProductos[pedidoId].push({ nombre, unidades });
-
-          if (!productosAgg[nombre]) {
-            productosAgg[nombre] = { nombre, totalUnidades: 0, pedidos: [] };
-          }
-          productosAgg[nombre].totalUnidades += unidades;
-          productosAgg[nombre].pedidos.push({
-            ...pedidoMap[pedidoId],
-            unidades,
-          });
-        }
-
+        allRegistros = allRegistros.concat(regRes.results);
         cursor = regRes.has_more ? regRes.next_cursor : undefined;
       } while (cursor);
-    };
-    for (let i = 0; i < pedidoIds.length; i += BATCH_SIZE) {
-      await Promise.all(pedidoIds.slice(i, i + BATCH_SIZE).map(fetchRegistros));
-      if (i + BATCH_SIZE < pedidoIds.length) await delay(200);
+    }
+
+    // 3. Build aggregation from bulk registros
+    const productosAgg = {};
+    const pedidoProductos = {};
+    for (const pid of pedidoIds) pedidoProductos[pid] = [];
+
+    for (const reg of allRegistros) {
+      const regPedidoIds = (reg.properties["Pedidos"]?.relation || []).map(r => r.id);
+      const auxProd = reg.properties["AUX Producto Texto"];
+      const nombre = (auxProd?.formula?.string || "").trim()
+        || extractTitle(reg.properties["Nombre"]);
+      const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
+      if (!nombre || unidades === 0) continue;
+
+      for (const pid of regPedidoIds) {
+        if (!pedidoMap[pid]) continue;
+        pedidoProductos[pid].push({ nombre, unidades });
+
+        if (!productosAgg[nombre]) {
+          productosAgg[nombre] = { nombre, totalUnidades: 0, pedidos: [] };
+        }
+        productosAgg[nombre].totalUnidades += unidades;
+        productosAgg[nombre].pedidos.push({
+          ...pedidoMap[pid],
+          unidades,
+        });
+      }
     }
 
     // Attach full product list to each pedido entry in productosAgg
