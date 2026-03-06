@@ -174,12 +174,17 @@ const I = {
   Broom: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 11 9-9" /><path d="M14.6 12.6c.8.8.8 2 0 2.8l-7.8 7.8H2v-4.8l7.8-7.8c.8-.8 2-.8 2.8 0z" /></svg>,
   Help: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>,
   Chevron: (p = {}) => <svg width={p.s || 12} height={p.s || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6" /></svg>,
+  Clipboard: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /></svg>,
+  Img: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>,
+  AlertTri: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+  Mail: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 7l-10 7L2 7" /></svg>,
+  Gear: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /></svg>,
 };
 
 // ─── HELP CONTENT ───
 const HELP_CONTENT = [
   {
-    id: "pedidos", title: "Pedidos", icon: "📋",
+    id: "pedidos", title: "Pedidos", icon: <I.Clipboard s={20} />,
     sections: [
       {
         title: "Filtrar pedidos",
@@ -255,7 +260,7 @@ const HELP_CONTENT = [
     ],
   },
   {
-    id: "nuevo", title: "Nuevo Pedido", icon: "➕",
+    id: "nuevo", title: "Nuevo Pedido", icon: <I.Plus s={20} />,
     sections: [
       {
         title: "Paso 1: Datos del Pedido",
@@ -281,7 +286,7 @@ const HELP_CONTENT = [
     ],
   },
   {
-    id: "produccion", title: "Produccion", icon: "🏪",
+    id: "produccion", title: "Produccion", icon: <I.Store s={20} />,
     sections: [
       {
         title: "Seleccionar fecha",
@@ -308,7 +313,7 @@ const HELP_CONTENT = [
     ],
   },
   {
-    id: "seguimiento", title: "Seguimiento", icon: "📲",
+    id: "seguimiento", title: "Seguimiento", icon: <I.Phone s={20} />,
     sections: [
       {
         title: "Pagina publica para clientes",
@@ -324,7 +329,7 @@ const HELP_CONTENT = [
     ],
   },
   {
-    id: "general", title: "General", icon: "⚙️",
+    id: "general", title: "General", icon: <I.Gear s={20} />,
     sections: [
       {
         title: "Modo Live vs Demo",
@@ -1962,7 +1967,7 @@ export default function VyniaApp() {
                     {[
                       { label: "Nombre", key: "nombre", type: "text", icon: null },
                       { label: "Telefono", key: "telefono", type: "tel", icon: <I.Phone s={14} /> },
-                      { label: "Email", key: "email", type: "email", icon: <span style={{ fontSize: 14 }}>✉</span> },
+                      { label: "Email", key: "email", type: "email", icon: <I.Mail s={14} /> },
                     ].map(f => (
                       <div key={f.key}>
                         <label style={{ fontSize: 11, fontWeight: 700, color: "#4F6867", textTransform: "uppercase", letterSpacing: "0.06em" }}>{f.label}</label>
@@ -2009,7 +2014,7 @@ export default function VyniaApp() {
                       )}
                       {fichaCliente.email && (
                         <span style={{ fontSize: 13, color: "#4F6867", display: "flex", alignItems: "center", gap: 4 }}>
-                          ✉ {fichaCliente.email}
+                          <I.Mail s={13} /> {fichaCliente.email}
                         </span>
                       )}
                       {!fichaCliente.telefono && !fichaCliente.email && (
@@ -2114,7 +2119,7 @@ export default function VyniaApp() {
                         </span>
                         {fmt.isPast(dateKey) && !fmt.isToday(dateKey) && (
                           <span style={{ fontSize: 10, color: "#C4402F", fontWeight: 600 }}>
-                            ⚠ PASADO
+                            <I.AlertTri s={10} c="#C4402F" /> PASADO
                           </span>
                         )}
                       </div>
@@ -2474,16 +2479,36 @@ export default function VyniaApp() {
                 margin: 0, color: "#1B1C39",
               }}>Nuevo Pedido</h2>
               {nuevoPaso === 1 && (
-                <button title="Pegar mensaje de WhatsApp" onClick={() => { setParseText(""); setParseImage(null); setParseResult(null); setParseError(null); setShowParseModal(true); }} style={{
-                  padding: "7px 14px", borderRadius: 20, border: "1.5px solid #A2C2D0",
-                  background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                  color: "#4F6867", display: "flex", alignItems: "center", gap: 6,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#A2C2D0"; }}
-                >
-                  <span style={{ fontSize: 15 }}>📋</span> Pegar pedido
+                <button title="Pegar mensaje de WhatsApp" className="parse-btn"
+                  onClick={() => { setParseText(""); setParseImage(null); setParseResult(null); setParseError(null); setShowParseModal(true); }}
+                  style={{
+                    position: "relative", overflow: "hidden",
+                    padding: "10px 16px", borderRadius: 14,
+                    border: "1.5px solid rgba(79,104,103,0.35)",
+                    background: "linear-gradient(135deg, rgba(79,104,103,0.12), rgba(27,28,57,0.08))",
+                    cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                    transition: "all 0.3s ease-out",
+                    boxShadow: "0 3px 12px rgba(79,104,103,0.12)",
+                  }}>
+                  <div className="parse-btn-shine" />
+                  <div style={{
+                    padding: 7, borderRadius: 9,
+                    background: "linear-gradient(135deg, rgba(79,104,103,0.5), rgba(79,104,103,0.3))",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.3s",
+                  }}>
+                    <I.Clipboard s={16} c="#fff" />
+                  </div>
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif", lineHeight: 1.2 }}>Pegar pedido</div>
+                    <div style={{ fontSize: 10, color: "#4F6867", opacity: 0.75 }}>Texto o captura de WhatsApp</div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4F6867"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="parse-btn-arrow"
+                    style={{ opacity: 0.35, transition: "all 0.3s" }}>
+                    <path d="M9 5l7 7-7 7"/>
+                  </svg>
                 </button>
               )}
             </div>
@@ -3758,8 +3783,16 @@ export default function VyniaApp() {
             }} onClick={e => e.stopPropagation()}>
 
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 24 }}>📋</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: "linear-gradient(135deg, #4F6867, #1B1C39)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 3px 10px rgba(79,104,103,0.3)",
+                  flexShrink: 0,
+                }}>
+                  <I.Clipboard s={20} c="#fff" />
+                </div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>Pegar pedido</div>
                   <div style={{ fontSize: 12, color: "#888" }}>Pega texto, imagen o captura de WhatsApp</div>
@@ -3806,7 +3839,7 @@ export default function VyniaApp() {
                         background: "#F8F6F3", transition: "border-color 0.15s",
                       }}
                     >
-                      <div style={{ fontSize: 28, marginBottom: 4 }}>📸</div>
+                      <div style={{ marginBottom: 4, color: "#4F6867" }}><I.Img s={32} /></div>
                       <div style={{ fontSize: 13, color: "#4F6867", fontWeight: 600 }}>Arrastra una captura o pulsa para seleccionar</div>
                       <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>Tambien puedes pegar con Cmd+V / Ctrl+V</div>
                       <input ref={parseFileRef} type="file" accept="image/*" style={{ display: "none" }}
@@ -3923,7 +3956,10 @@ export default function VyniaApp() {
                   {parseResult.warnings?.length > 0 && (
                     <div style={{ background: "#FFF8E1", border: "1px solid #FFD54F", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#F57F17" }}>
                       {parseResult.warnings.map((w, i) => (
-                        <div key={i} style={{ marginBottom: i < parseResult.warnings.length - 1 ? 4 : 0 }}>⚠️ {w}</div>
+                        <div key={i} style={{ marginBottom: i < parseResult.warnings.length - 1 ? 4 : 0, display: "flex", alignItems: "center", gap: 6 }}>
+                          <I.AlertTri s={13} c="#F57F17" />
+                          <span>{w}</span>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -3964,7 +4000,7 @@ export default function VyniaApp() {
               boxShadow: "0 12px 40px rgba(0,0,0,0.18)", textAlign: "center",
               animation: "popoverIn 0.2s ease-out",
             }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>📲</div>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #25D366, #128C7E)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: "0 3px 10px rgba(37,211,102,0.3)" }}><I.Phone s={24} c="#fff" /></div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#1B1C39", marginBottom: 6 }}>¿Avisar al cliente?</div>
               <div style={{ fontSize: 13, color: "#666", marginBottom: 20, lineHeight: 1.4 }}>
                 Se abrirá WhatsApp para enviar un mensaje a <strong>{whatsappPrompt.nombre}</strong>
@@ -4083,7 +4119,7 @@ export default function VyniaApp() {
                       }}><I.Back s={16} /></button>
                     )}
                     <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>
-                      {activeCat ? `${activeCat.icon} ${activeCat.title}` : "Manual de uso"}
+                      {activeCat ? <><span style={{ display: "inline-flex", verticalAlign: "middle", marginRight: 6 }}>{activeCat.icon}</span>{activeCat.title}</> : "Manual de uso"}
                     </h2>
                   </div>
                   <button onClick={() => setShowHelp(false)} style={{
@@ -4471,6 +4507,25 @@ export default function VyniaApp() {
           from { transform: translateX(-100%); }
           to { transform: translateX(100%); }
         }
+        .parse-btn:hover {
+          box-shadow: 0 6px 20px rgba(79,104,103,0.25) !important;
+          transform: translateY(-1px) scale(1.01);
+          border-color: rgba(79,104,103,0.55) !important;
+        }
+        .parse-btn:active { transform: scale(0.97); }
+        .parse-btn:hover .parse-btn-arrow {
+          opacity: 0.9 !important;
+          transform: translateX(2px);
+        }
+        .parse-btn-shine {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(162,194,208,0.3), transparent);
+          transform: translateX(-100%);
+          transition: transform 0.6s ease-out;
+          pointer-events: none;
+        }
+        .parse-btn:hover .parse-btn-shine { transform: translateX(100%); }
         .estado-btn {
           position: relative;
           overflow: hidden;

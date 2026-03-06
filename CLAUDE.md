@@ -437,3 +437,9 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-09**: Identificacion de cliente por telefono en parseo de pedidos. Tras extraer el telefono del mensaje/captura, el backend busca en BD Clientes por numero (formato XXXXXXXXX, sin codigo de pais). Si existe: devuelve `clienteId` + nombre verificado de la BD, el frontend lo selecciona directamente sin autocomplete. Si no existe: badge "NUEVO" en preview, pre-rellena nombre + telefono para crear nuevo cliente al submit. Prompt actualizado para priorizar extraccion de telefono en formato limpio
+
+## Changelog v1.7.3
+
+### Mejoras
+- **FEAT-10**: Rediseno visual del boton "Pegar pedido" — estilo premium card con gradiente, contenedor de icono con backdrop-blur, titulo+subtitulo, flecha chevron, efecto shine sweep en hover (CSS animation). Modal header con icono SVG en contenedor gradiente (#4F6867→#1B1C39). Drop zone con icono SVG imagen. Prompt WhatsApp con icono en contenedor gradiente verde
+- **FEAT-11**: Eliminacion total de emojis Unicode del sistema — reemplazados por iconos SVG inline via objeto `I` (nuevos: Clipboard, Img, AlertTri, Mail, Gear). Afecta: boton pegar, modal parse (header, drop zone, warnings, prompt WhatsApp), ficha cliente (email), badge PASADO, y las 5 categorias de HELP_CONTENT (bento cards)
