@@ -691,6 +691,7 @@ export default function VyniaApp() {
   const [parseError, setParseError] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [listenText, setListenText] = useState(""); // live transcript shown in popup
+  const [listenError, setListenError] = useState(""); // error shown inside listening popup
   const parseFileRef = useRef(null);
   const speechRecRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -698,6 +699,7 @@ export default function VyniaApp() {
   const animFrameRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
+  const isListeningRef = useRef(false); // ref mirror of isListening for closures
 
   // Produccion diaria
   const [produccionData, setProduccionData] = useState([]);
@@ -1504,6 +1506,7 @@ export default function VyniaApp() {
   };
 
   const stopListening = () => {
+    isListeningRef.current = false;
     speechRecRef.current?.stop();
     cancelAnimationFrame(animFrameRef.current);
     if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
@@ -1521,6 +1524,7 @@ export default function VyniaApp() {
     const bufLen = analyser.frequencyBinCount;
     const data = new Uint8Array(bufLen);
     const draw = () => {
+      if (!isListeningRef.current) return;
       animFrameRef.current = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(data);
       const w = canvas.width, h = canvas.height;
@@ -1535,7 +1539,7 @@ export default function VyniaApp() {
         const x = i * (barW + gap);
         const y = (h - barH) / 2;
         const alpha = 0.4 + val * 0.6;
-        ctx.fillStyle = `rgba(79, 104, 103, ${alpha})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.beginPath();
         ctx.roundRect(x, y, barW, barH, barW / 2);
         ctx.fill();
@@ -1552,39 +1556,10 @@ export default function VyniaApp() {
     }
     if (isListening) { stopListening(); return; }
 
-    // Check mediaDevices support (requires HTTPS)
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setParseError("El microfono requiere conexion segura (HTTPS). Accede desde la URL de produccion.");
-      return;
-    }
+    setListenError("");
+    setParseError(null);
 
-    // Request mic permission — triggers browser prompt
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err) {
-      if (err.name === "NotAllowedError") {
-        setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
-      } else {
-        setParseError("No se pudo acceder al microfono: " + err.message);
-      }
-      return;
-    }
-    streamRef.current = stream;
-
-    // Set up Web Audio API for visualization
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtxRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.75;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-    } catch { /* visualization won't work but dictation still will */ }
-
-    // Start speech recognition
+    // Step 1: Start SpeechRecognition FIRST (it handles its own mic access)
     const rec = new SR();
     rec.lang = "es-ES";
     rec.continuous = true;
@@ -1592,6 +1567,7 @@ export default function VyniaApp() {
     speechRecRef.current = rec;
     let finalTranscript = parseText;
     setListenText(parseText);
+
     rec.onresult = (event) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1606,18 +1582,55 @@ export default function VyniaApp() {
       setParseText(full);
       setListenText(full);
     };
+
     rec.onerror = (event) => {
-      if (event.error === "aborted") { /* ignore */ }
-      else if (event.error === "not-allowed") setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
-      else if (event.error === "no-speech") setParseError("No se detecto voz. Asegurate de que el audio se reproduce cerca del microfono.");
-      else setParseError("Error de microfono: " + event.error);
-      stopListening();
+      if (event.error === "aborted") return;
+      if (event.error === "not-allowed") {
+        setListenError("Microfono bloqueado. Pulsa el candado en la barra de direcciones, permite el microfono y recarga la pagina.");
+      } else if (event.error === "no-speech") {
+        // no-speech is normal — Chrome fires this after silence, just let it auto-restart via onend
+        return;
+      } else {
+        setListenError("Error de microfono: " + event.error);
+      }
     };
-    rec.onend = () => stopListening();
-    rec.start();
+
+    // Auto-restart on end (Chrome stops after ~10s silence with continuous=true)
+    rec.onend = () => {
+      if (isListeningRef.current) {
+        try { rec.start(); } catch { stopListening(); }
+      }
+    };
+
+    try {
+      rec.start();
+    } catch (err) {
+      setParseError("No se pudo iniciar el dictado: " + err.message);
+      return;
+    }
+
+    isListeningRef.current = true;
     setIsListening(true);
-    // Start waveform drawing after next render paints the canvas
-    requestAnimationFrame(() => drawWaveform());
+
+    // Step 2: Start getUserMedia separately for audio visualization (non-blocking)
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!isListeningRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = 0.75;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        requestAnimationFrame(() => drawWaveform());
+      } catch {
+        // Visualization won't work but speech recognition still runs
+      }
+    }
   };
 
   const aplicarParseo = (result) => {
@@ -4597,7 +4610,7 @@ export default function VyniaApp() {
         {isListening && (
           <div className="listen-overlay" style={{
             position: "fixed", inset: 0, zIndex: 500,
-            background: "rgba(27,28,57,0.65)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+            background: "rgba(27,28,57,0.75)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             padding: 24, animation: "popoverIn 0.25s ease-out",
           }}>
@@ -4618,16 +4631,28 @@ export default function VyniaApp() {
             <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif", marginBottom: 6, textAlign: "center" }}>
               Escuchando...
             </div>
-            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 20, textAlign: "center" }}>
               Reproduce el audio de WhatsApp cerca del microfono
             </div>
+
+            {/* Error shown inside popup (not behind it) */}
+            {listenError && (
+              <div style={{
+                background: "rgba(198,40,40,0.25)", border: "1px solid rgba(198,40,40,0.5)",
+                borderRadius: 12, padding: "10px 16px", maxWidth: 340, width: "100%",
+                color: "#ffcccc", fontSize: 13, lineHeight: 1.5,
+                marginBottom: 16, textAlign: "center",
+              }}>
+                {listenError}
+              </div>
+            )}
 
             {/* Canvas waveform */}
             <canvas
               ref={canvasRef}
               width={280}
               height={64}
-              style={{ width: 280, height: 64, marginBottom: 20, borderRadius: 12 }}
+              style={{ width: 280, height: 64, marginBottom: 16, borderRadius: 12 }}
             />
 
             {/* Live transcript preview */}
@@ -4636,9 +4661,9 @@ export default function VyniaApp() {
                 background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: "10px 16px",
                 maxWidth: 340, width: "100%", maxHeight: 100, overflowY: "auto",
                 color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 1.5,
-                marginBottom: 20, textAlign: "center",
+                marginBottom: 16, textAlign: "center",
               }}>
-                {listenText.length > 120 ? "..." + listenText.slice(-120) : listenText}
+                {listenText.length > 150 ? "..." + listenText.slice(-150) : listenText}
               </div>
             )}
 

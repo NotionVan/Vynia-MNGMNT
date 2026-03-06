@@ -490,3 +490,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-17**: Popup fullscreen de escucha con visualizador de audio — al pulsar "Dictar", se abre overlay fullscreen (z-index 500) con: icono de microfono con anillo pulsante (`listenRingPulse`, `micBreath`), 32 barras de frecuencia reactivas en canvas via Web Audio API (`AnalyserNode.getByteFrequencyData`, `requestAnimationFrame`), preview del texto transcrito en tiempo real, y boton "Parar" rojo. El stream de `getUserMedia` se mantiene vivo para alimentar el `AudioContext` (visualizacion) mientras `SpeechRecognition` gestiona su propio stream (transcripcion). Cleanup completo al parar: cierra AudioContext, detiene stream, cancela animationFrame. Mejor deteccion de errores: HTTP sin mediaDevices muestra mensaje de HTTPS requerido, `NotAllowedError` muestra instrucciones del candado
+
+## Changelog v1.8.9
+
+### Bug fixes
+- **FIX-09**: Dictado por voz no funcionaba — reescrito el flujo de inicio: (1) `SpeechRecognition.start()` se ejecuta PRIMERO y gestiona sus propios permisos de micro (antes `getUserMedia` bloqueaba el micro y `SpeechRecognition` no podia acceder), (2) `getUserMedia` se lanza DESPUES de forma asincrona y no-bloqueante solo para la visualizacion del canvas, (3) `rec.start()` envuelto en try-catch para capturar errores sincronos, (4) `rec.onend` auto-reinicia el reconocimiento en vez de parar (Chrome corta tras ~10s de silencio con `continuous=true`), (5) `no-speech` ya no se trata como error fatal (silencio normal), (6) errores visibles dentro del popup fullscreen via `listenError` (antes se mostraban detras del overlay), (7) `isListeningRef` ref para closures fiables en `onend`/`drawWaveform`
