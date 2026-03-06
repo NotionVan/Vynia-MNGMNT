@@ -5111,7 +5111,17 @@ export default function VyniaApp() {
               }}>
                 {t.icon}
               </div>
-            ) : t.icon}
+            ) : (
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: tab === t.key ? "#E1F2FC" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: tab === t.key ? "#4F6867" : "#A2C2D0",
+                transition: "all 0.25s",
+              }}>
+                {t.icon}
+              </div>
+            )}
             <span style={{
               fontSize: 10, fontWeight: tab === t.key ? 700 : 500,
             }}>{t.label}</span>

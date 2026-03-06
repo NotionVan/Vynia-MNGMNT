@@ -535,3 +535,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-23**: Toggle "Ver/Ocultar importes" estilo switch — reemplazado el boton "€ ON/OFF" por un toggle switch deslizante (44x24px) con knob circular que contiene icono €, animacion cubic-bezier suave (0.3s), track verde Vynia (#4F6867) cuando activo. Etiqueta textual "Ver importes"/"Ocultar importes" junto al switch. Help content actualizado
+
+## Changelog v1.9.6
+
+### Mejoras
+- **FEAT-24**: Iconos de bottom nav con fondo activo — los tabs Pedidos y Produccion ahora tienen un contenedor (36x36px, borderRadius 10) con fondo `#E1F2FC` cuando estan activos, igual que el tab Nuevo. Transicion suave de 0.25s. Inactivos: fondo transparente, color `#A2C2D0`
