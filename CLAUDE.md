@@ -630,4 +630,9 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 ## Changelog v2.3.0
 
 ### Mejoras
-- **FEAT-34**: Rediseno de secciones del formulario "Nuevo Pedido" — inspirado en profile-card premium. Secciones (Cliente, Notas+Pagado, Productos, Sugerencias, Entrega) con fondo radial-gradient claro, borderRadius 20px, sombra por capas (4px+1px), borde semi-transparente. Barra de acento gradiente (3px) en la parte superior de cada seccion: verde Vynia (Cliente), azul muted (Notas), oscuro (Productos/Entrega), accent (Sugerencias). Inputs con fondo translucido `rgba(239,233,228,0.35)`, borderRadius 14px, padding ampliado, transicion a fondo blanco en focus con glow verde. Labels con fontSize 11px y spacing mejorado. Pills de productos frecuentes con sombra sutil y hover elevado. Estilo compartido via constante `formSectionStyle`
+- **FEAT-34**: Rediseno de secciones del formulario "Nuevo Pedido"
+
+## Changelog v2.3.1
+
+### Mejoras
+- **FEAT-35**: Logo loader animado — los 3 loaders (principal 56px, ficha cliente 32px, boton Analizar 16px) ahora usan la imagen del logo de la manga pastelera (`Logo loader.png`) con rotacion continua (`logoSpin`, 360deg, 2s linear infinite). El logo circular con su arco incompleto crea un efecto de spinner natural al girar. Boton Analizar usa `filter: brightness(2.5)` para visibilidad sobre fondo oscuro. Eliminados icono `I.Whisk` de los loaders y keyframe `whiskRock`. Imagen copiada a `public/logo-loader.png` — inspirado en profile-card premium. Secciones (Cliente, Notas+Pagado, Productos, Sugerencias, Entrega) con fondo radial-gradient claro, borderRadius 20px, sombra por capas (4px+1px), borde semi-transparente. Barra de acento gradiente (3px) en la parte superior de cada seccion: verde Vynia (Cliente), azul muted (Notas), oscuro (Productos/Entrega), accent (Sugerencias). Inputs con fondo translucido `rgba(239,233,228,0.35)`, borderRadius 14px, padding ampliado, transicion a fondo blanco en focus con glow verde. Labels con fontSize 11px y spacing mejorado. Pills de productos frecuentes con sombra sutil y hover elevado. Estilo compartido via constante `formSectionStyle`

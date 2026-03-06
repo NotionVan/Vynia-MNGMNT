@@ -2162,7 +2162,7 @@ export default function VyniaApp() {
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 150, backdropFilter: "blur(4px)",
         }}>
-          <div style={{ animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%" }}><I.Whisk s={44} /></div>
+          <img src="/logo-loader.png" alt="" style={{ width: 56, height: 56, borderRadius: "50%", animation: "logoSpin 2s linear infinite", }} />
         </div>
       )}
 
@@ -2508,7 +2508,7 @@ export default function VyniaApp() {
                 }}>Pedidos</div>
                 {fichaClienteLoading ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0" }}>
-                    <div style={{ margin: "0 auto", width: 28, animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%" }}><I.Whisk s={28} /></div>
+                    <img src="/logo-loader.png" alt="" style={{ display: "block", margin: "0 auto", width: 32, height: 32, borderRadius: "50%", animation: "logoSpin 2s linear infinite", }} />
                   </div>
                 ) : fichaClientePedidos.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0", fontSize: 13 }}>
@@ -4719,7 +4719,7 @@ export default function VyniaApp() {
                         transition: "all 0.2s",
                       }}>
                       {parseLoading ? (
-                        <><span style={{ display: "inline-block", animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%", verticalAlign: "middle" }}><I.Whisk s={14} c="#fff" /></span> Analizando...</>
+                        <><img src="/logo-loader.png" alt="" style={{ display: "inline-block", width: 16, height: 16, borderRadius: "50%", verticalAlign: "middle", animation: "logoSpin 2s linear infinite", filter: "brightness(2.5)" }} /> Analizando...</>
                       ) : "Analizar"}
                     </button>
                   </div>
@@ -5401,9 +5401,9 @@ export default function VyniaApp() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
-        @keyframes whiskRock {
-          0%, 100% { transform: rotate(-12deg); }
-          50% { transform: rotate(12deg); }
+        @keyframes logoSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         @keyframes slideIn {
           from { opacity: 0; transform: translate(-50%, -12px); }
