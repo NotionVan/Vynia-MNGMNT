@@ -690,8 +690,14 @@ export default function VyniaApp() {
   const [parseResult, setParseResult] = useState(null);
   const [parseError, setParseError] = useState(null);
   const [isListening, setIsListening] = useState(false);
+  const [listenText, setListenText] = useState(""); // live transcript shown in popup
   const parseFileRef = useRef(null);
   const speechRecRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
 
   // Produccion diaria
   const [produccionData, setProduccionData] = useState([]);
@@ -1497,29 +1503,95 @@ export default function VyniaApp() {
     }
   };
 
+  const stopListening = () => {
+    speechRecRef.current?.stop();
+    cancelAnimationFrame(animFrameRef.current);
+    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    analyserRef.current = null;
+    setIsListening(false);
+  };
+
+  // Draw waveform bars on canvas using AnalyserNode frequency data
+  const drawWaveform = () => {
+    const canvas = canvasRef.current;
+    const analyser = analyserRef.current;
+    if (!canvas || !analyser) return;
+    const ctx = canvas.getContext("2d");
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    const draw = () => {
+      animFrameRef.current = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(data);
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      const bars = 32;
+      const barW = Math.max(2, (w / bars) - 2);
+      const gap = (w - bars * barW) / (bars - 1);
+      for (let i = 0; i < bars; i++) {
+        const idx = Math.floor(i * bufLen / bars);
+        const val = data[idx] / 255;
+        const barH = Math.max(3, val * h * 0.85);
+        const x = i * (barW + gap);
+        const y = (h - barH) / 2;
+        const alpha = 0.4 + val * 0.6;
+        ctx.fillStyle = `rgba(79, 104, 103, ${alpha})`;
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, barH, barW / 2);
+        ctx.fill();
+      }
+    };
+    draw();
+  };
+
   const toggleListening = async () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setParseError("Tu navegador no soporta dictado por voz. Usa Chrome o Safari.");
       return;
     }
-    if (isListening) { speechRecRef.current?.stop(); return; }
+    if (isListening) { stopListening(); return; }
 
-    // Request mic permission explicitly — triggers browser prompt
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop()); // release immediately, SpeechRecognition manages its own stream
-    } catch (err) {
-      setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
+    // Check mediaDevices support (requires HTTPS)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setParseError("El microfono requiere conexion segura (HTTPS). Accede desde la URL de produccion.");
       return;
     }
 
+    // Request mic permission — triggers browser prompt
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      if (err.name === "NotAllowedError") {
+        setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
+      } else {
+        setParseError("No se pudo acceder al microfono: " + err.message);
+      }
+      return;
+    }
+    streamRef.current = stream;
+
+    // Set up Web Audio API for visualization
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.75;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+    } catch { /* visualization won't work but dictation still will */ }
+
+    // Start speech recognition
     const rec = new SR();
     rec.lang = "es-ES";
     rec.continuous = true;
     rec.interimResults = true;
     speechRecRef.current = rec;
     let finalTranscript = parseText;
+    setListenText(parseText);
     rec.onresult = (event) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1530,18 +1602,22 @@ export default function VyniaApp() {
           interim += t;
         }
       }
-      setParseText(finalTranscript + (interim ? " " + interim : ""));
+      const full = finalTranscript + (interim ? " " + interim : "");
+      setParseText(full);
+      setListenText(full);
     };
     rec.onerror = (event) => {
       if (event.error === "aborted") { /* ignore */ }
       else if (event.error === "not-allowed") setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
       else if (event.error === "no-speech") setParseError("No se detecto voz. Asegurate de que el audio se reproduce cerca del microfono.");
       else setParseError("Error de microfono: " + event.error);
-      setIsListening(false);
+      stopListening();
     };
-    rec.onend = () => setIsListening(false);
+    rec.onend = () => stopListening();
     rec.start();
     setIsListening(true);
+    // Start waveform drawing after next render paints the canvas
+    requestAnimationFrame(() => drawWaveform());
   };
 
   const aplicarParseo = (result) => {
@@ -4282,7 +4358,7 @@ export default function VyniaApp() {
         ══════════════════════════════════════════ */}
         {showParseModal && (
           <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(27,28,57,0.45)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-            onClick={() => { if (!parseLoading) { speechRecRef.current?.stop(); setShowParseModal(false); } }}>
+            onClick={() => { if (!parseLoading) { stopListening(); setShowParseModal(false); } }}>
             <div style={{
               background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               borderRadius: 20, padding: "24px 20px 20px", maxWidth: 480, width: "100%",
@@ -4359,23 +4435,19 @@ export default function VyniaApp() {
                   <button
                     onClick={toggleListening}
                     disabled={parseLoading}
-                    title={isListening ? "Parar dictado" : "Dictar con microfono"}
+                    title="Dictar con microfono"
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
                       padding: "8px 14px", borderRadius: 10,
-                      border: isListening ? "1.5px solid #C62828" : "1.5px solid #A2C2D0",
-                      background: isListening ? "rgba(198,40,40,0.08)" : "transparent",
-                      color: isListening ? "#C62828" : "#4F6867",
+                      border: "1.5px solid #A2C2D0",
+                      background: "transparent",
+                      color: "#4F6867",
                       fontSize: 13, fontWeight: 600, cursor: "pointer",
                       transition: "all 0.2s", marginBottom: 8, width: "100%",
                       justifyContent: "center",
                     }}
                   >
-                    {isListening ? (
-                      <><span className="mic-pulse" style={{ display: "inline-flex" }}><I.Mic s={16} c="#C62828" /></span> Escuchando... pulsa para parar</>
-                    ) : (
-                      <><I.Mic s={16} c="#4F6867" /> Dictar (reproduce el audio y escucha)</>
-                    )}
+                    <I.Mic s={16} c="#4F6867" /> Dictar (reproduce el audio y escucha)
                   </button>
 
                   {/* Textarea (always visible — optional context when image present) */}
@@ -4396,7 +4468,7 @@ export default function VyniaApp() {
                     autoFocus={!parseImage}
                   />
                   <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
-                    <button onClick={() => { speechRecRef.current?.stop(); setShowParseModal(false); }} disabled={parseLoading}
+                    <button onClick={() => { stopListening(); setShowParseModal(false); }} disabled={parseLoading}
                       style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid #ccc", background: "transparent", color: "#666", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                       Cancelar
                     </button>
@@ -4516,6 +4588,72 @@ export default function VyniaApp() {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            LISTENING POPUP (fullscreen overlay with waveform)
+        ══════════════════════════════════════════ */}
+        {isListening && (
+          <div className="listen-overlay" style={{
+            position: "fixed", inset: 0, zIndex: 500,
+            background: "rgba(27,28,57,0.65)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: 24, animation: "popoverIn 0.25s ease-out",
+          }}>
+            {/* Mic icon with animated ring */}
+            <div className="listen-ring" style={{
+              width: 80, height: 80, borderRadius: "50%",
+              background: "rgba(255,255,255,0.12)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: 20, position: "relative",
+            }}>
+              <div className="listen-ring-pulse" style={{
+                position: "absolute", inset: -8, borderRadius: "50%",
+                border: "2.5px solid rgba(255,255,255,0.25)",
+              }} />
+              <I.Mic s={36} c="#fff" />
+            </div>
+
+            <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif", marginBottom: 6, textAlign: "center" }}>
+              Escuchando...
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>
+              Reproduce el audio de WhatsApp cerca del microfono
+            </div>
+
+            {/* Canvas waveform */}
+            <canvas
+              ref={canvasRef}
+              width={280}
+              height={64}
+              style={{ width: 280, height: 64, marginBottom: 20, borderRadius: 12 }}
+            />
+
+            {/* Live transcript preview */}
+            {listenText && (
+              <div style={{
+                background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: "10px 16px",
+                maxWidth: 340, width: "100%", maxHeight: 100, overflowY: "auto",
+                color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 1.5,
+                marginBottom: 20, textAlign: "center",
+              }}>
+                {listenText.length > 120 ? "..." + listenText.slice(-120) : listenText}
+              </div>
+            )}
+
+            {/* Stop button */}
+            <button onClick={stopListening} style={{
+              padding: "12px 32px", borderRadius: 14, border: "2px solid rgba(255,255,255,0.3)",
+              background: "rgba(198,40,40,0.85)", color: "#fff",
+              fontSize: 15, fontWeight: 700, cursor: "pointer",
+              fontFamily: "'Roboto Condensed', sans-serif",
+              boxShadow: "0 4px 20px rgba(198,40,40,0.4)",
+              display: "flex", alignItems: "center", gap: 8,
+              transition: "all 0.2s",
+            }}>
+              <I.Mic s={18} c="#fff" /> Parar
+            </button>
           </div>
         )}
 
@@ -5057,11 +5195,17 @@ export default function VyniaApp() {
           pointer-events: none;
         }
         .parse-btn:hover .parse-btn-shine { transform: translateX(100%); }
-        @keyframes micPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.2); }
+        @keyframes listenRingPulse {
+          0% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.35); opacity: 0; }
+          100% { transform: scale(1); opacity: 0; }
         }
-        .mic-pulse { animation: micPulse 1.2s ease-in-out infinite; }
+        .listen-ring-pulse { animation: listenRingPulse 1.8s ease-out infinite; }
+        .listen-ring { animation: micBreath 2s ease-in-out infinite; }
+        @keyframes micBreath {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+        }
         .estado-btn {
           position: relative;
           overflow: hidden;

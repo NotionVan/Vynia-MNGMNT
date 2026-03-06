@@ -485,3 +485,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-16**: Seccion de ayuda de planificacion ampliada — la entrada unica "Planificar produccion" se divide en 6 secciones detalladas: (1) como abrir/cerrar el desplegable y el chevron, (2) anadir productos via buscador y pills frecuentes, (3) ajustar cantidades con steppers e info "X en pedidos", (4) interpretar badges de excedente (verde/rojo/gris con ejemplos), (5) resumen compacto visible con desplegable cerrado, (6) persistencia de datos en localStorage por dia con retencion de 7 dias y advertencia sobre cambio de dispositivo
+
+## Changelog v1.8.8
+
+### Mejoras
+- **FEAT-17**: Popup fullscreen de escucha con visualizador de audio — al pulsar "Dictar", se abre overlay fullscreen (z-index 500) con: icono de microfono con anillo pulsante (`listenRingPulse`, `micBreath`), 32 barras de frecuencia reactivas en canvas via Web Audio API (`AnalyserNode.getByteFrequencyData`, `requestAnimationFrame`), preview del texto transcrito en tiempo real, y boton "Parar" rojo. El stream de `getUserMedia` se mantiene vivo para alimentar el `AudioContext` (visualizacion) mientras `SpeechRecognition` gestiona su propio stream (transcripcion). Cleanup completo al parar: cierra AudioContext, detiene stream, cancela animationFrame. Mejor deteccion de errores: HTTP sin mediaDevices muestra mensaje de HTTPS requerido, `NotAllowedError` muestra instrucciones del candado
