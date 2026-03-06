@@ -1909,13 +1909,13 @@ export default function VyniaApp() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: isDesktop ? 16 : 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 42, height: 42,
+              width: 48, height: 48,
               background: "#ffffff",
               borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden",
               border: "1px solid #A2C2D0",
             }}>
-              <img src="/logo-vynia-redondo.png" alt="Vynia" style={{ width: 42, height: 42, objectFit: "cover" }} />
+              <img src="/logo-vynia-redondo.png" alt="Vynia" style={{ width: 48, height: 48, objectFit: "cover" }} />
             </div>
             <div style={{ position: "relative" }}>
               <h1 style={{
@@ -5405,11 +5405,6 @@ export default function VyniaApp() {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.7; }
         }
-        @keyframes shine-pulse {
-          0% { background-position: 0% 0%; }
-          50% { background-position: 100% 100%; }
-          to { background-position: 0% 0%; }
-        }
         @keyframes btnShimmer {
           from { transform: translateX(-100%); }
           to { transform: translateX(100%); }
@@ -5481,33 +5476,36 @@ export default function VyniaApp() {
         .estado-btn:hover .btn-glow {
           opacity: 1;
         }
-        /* Shine border effect on order cards */
+        /* Hover shadow + lift effect on order cards */
         .order-card {
           position: relative;
+          transition: transform 0.3s ease, border-color 0.3s ease;
         }
         .order-card::before {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          padding: 1.5px;
-          background-image: radial-gradient(transparent, transparent, #4F6867, #E1F2FC, #A2C2D0, transparent, transparent);
-          background-size: 300% 300%;
-          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask-composite: exclude;
-          animation: shine-pulse 14s infinite linear;
-          will-change: background-position;
+          box-shadow: 0 10px 30px -8px rgba(79,104,103,0.15), 0 4px 12px -4px rgba(79,104,103,0.1);
+          opacity: 0;
+          transition: opacity 0.3s ease;
           pointer-events: none;
           z-index: 0;
+        }
+        .order-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(79,104,103,0.35) !important;
+        }
+        .order-card:hover::before {
+          opacity: 1;
         }
         .order-card > div {
           position: relative;
           z-index: 1;
         }
         @media (prefers-reduced-motion: reduce) {
-          .order-card::before { animation: none; }
+          .order-card, .order-card::before { transition: none; }
+          .order-card:hover { transform: none; }
         }
         /* Tooltips are now JS-driven for both desktop and mobile */
         @media (hover: none) {
