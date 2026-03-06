@@ -4031,12 +4031,12 @@ export default function VyniaApp() {
                         border: `0.5px solid ${ESTADOS[selectedPedido.estado]?.color || "#8B8B8B"}22`,
                       }}>{ESTADOS[selectedPedido.estado]?.icon} {ESTADOS[selectedPedido.estado]?.label || selectedPedido.estado}</span>
                     )}
-                    <button title={selectedPedido.pagado ? "Desmarcar como pagado" : "Marcar como pagado"} onClick={() => requestPagadoChange(selectedPedido)}
-                      style={{ fontSize: 9, padding: "1px 6px", borderRadius: 10, fontWeight: 700, cursor: "pointer", border: "none", transition: "all 0.2s",
-                        background: selectedPedido.pagado ? "#E1F2FC" : "rgba(162,194,208,0.15)",
-                        color: selectedPedido.pagado ? "#3D5655" : "#A2C2D0",
-                        outline: selectedPedido.pagado ? "1.5px solid rgba(79,104,103,0.25)" : "1px solid rgba(162,194,208,0.3)",
-                      }}>{selectedPedido.pagado ? "PAGADO" : "€"}</button>
+                    {selectedPedido.pagado && (
+                      <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, fontWeight: 700,
+                        background: "#E1F2FC", color: "#3D5655",
+                        border: "0.5px solid rgba(79,104,103,0.2)",
+                      }}>PAGADO</span>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
@@ -4082,6 +4082,29 @@ export default function VyniaApp() {
                   )}
                 </div>
               </div>
+
+              {/* ═══ PAGADO BUTTON ═══ */}
+              <button title={selectedPedido.pagado ? "Desmarcar como pagado" : "Marcar como pagado"}
+                onClick={() => requestPagadoChange(selectedPedido)}
+                style={{
+                  width: "100%", padding: "12px 16px", borderRadius: 14, cursor: "pointer",
+                  fontFamily: "'Roboto Condensed', sans-serif", fontSize: 14, fontWeight: 700,
+                  letterSpacing: "0.03em", border: "none", transition: "all 0.25s",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  marginBottom: 12,
+                  background: selectedPedido.pagado
+                    ? "linear-gradient(135deg, #4F6867 0%, #3D5655 100%)"
+                    : "rgba(162,194,208,0.12)",
+                  color: selectedPedido.pagado ? "#fff" : "#4F6867",
+                  boxShadow: selectedPedido.pagado
+                    ? "0 2px 12px rgba(79,104,103,0.25)"
+                    : "inset 0 0 0 1.5px rgba(162,194,208,0.35)",
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                {selectedPedido.pagado ? "Pagado" : "Marcar como pagado"}
+              </button>
 
               {/* ═══ PRODUCTS SECTION ═══ */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

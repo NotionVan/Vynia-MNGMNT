@@ -596,3 +596,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FIX-15**: Logo del header un 25% mas grande — contenedor e imagen de 48px a 60px
+
+## Changelog v2.1.3
+
+### Mejoras
+- **FEAT-31**: Boton "Pagado" prominente en modal de detalle de pedido — el badge minusculo (9px) reemplazado por un boton full-width entre la seccion de info y productos. Estilo: gradiente Vynia (#4F6867→#3D5655) con sombra cuando pagado, borde semitransparente cuando no pagado. Icono SVG de moneda, texto "Pagado"/"Marcar como pagado", font 14px Roboto Condensed. El badge informativo "PAGADO" se mantiene en la fila de estado (solo lectura). Funcionalidad sin cambios (requestPagadoChange)
