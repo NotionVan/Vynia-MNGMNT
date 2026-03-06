@@ -515,3 +515,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-19**: Menu hamburguesa en header — los 5 botones del header (LIVE/DEMO, Imprimir, Escoba, Ayuda, Recargar) agrupados en un unico boton hamburguesa con dropdown glass-morphism. Cada opcion con icono + texto descriptivo. Toggle LIVE/DEMO al final con separador visual. Click fuera cierra el menu. Nuevo icono `I.Menu`. Estado: `showMenu`, ref: `menuRef`
+
+## Changelog v1.9.2
+
+### Mejoras
+- **FEAT-20**: Efecto tubelight en pills de filtro — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendientes/Recogidos/Todos) envueltos en contenedores glass-morphism con fondo sutil y backdrop-blur. El pill activo muestra una barra luminosa ("tubelight") de 24x3px con glow via box-shadow en la parte superior, animada con pulso sutil (`tubelightGlow`). Pills sin borde propio, fondo transparente cuando inactivos. Boton "Seleccionar" queda fuera del contenedor. Nueva keyframe `tubelightGlow`

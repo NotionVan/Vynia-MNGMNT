@@ -2024,7 +2024,7 @@ export default function VyniaApp() {
           <div style={{ paddingTop: 12 }}>
             {/* ── Date selector row ── */}
             <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14 }}>
                 {[
                   { label: "Hoy", val: fmt.todayISO() },
                   { label: "Mañana", val: fmt.tomorrowISO() },
@@ -2035,14 +2035,16 @@ export default function VyniaApp() {
                     <button key={d.label} title={`Ver pedidos de ${d.label.toLowerCase()}`}
                       onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); }}
                       style={{
-                        padding: "9px 16px", borderRadius: 10,
-                        border: sel ? "2px solid #4F6867" : "1.5px solid #d4cec6",
-                        background: sel ? "#E1F2FC" : "#fff",
+                        position: "relative", padding: "7px 14px", borderRadius: 10,
+                        border: "none",
+                        background: sel ? "#E1F2FC" : "transparent",
                         color: sel ? "#1B1C39" : "#4F6867",
                         fontWeight: sel ? 700 : 500,
-                        fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+                        fontSize: 13, cursor: "pointer", transition: "all 0.25s",
                         fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: sel ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
                       }}>
+                      {sel && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
                       {d.label}
                     </button>
                   );
@@ -2068,7 +2070,7 @@ export default function VyniaApp() {
 
             {/* ── Status filter pills + search ── */}
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-              <div id="filter-pills" style={{ display: "flex", gap: 6 }}>
+              <div id="filter-pills" style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 24 }}>
                 {[
                   { key: "pendientes", label: "Pendientes" },
                   { key: "recogidos", label: "Recogidos" },
@@ -2078,35 +2080,37 @@ export default function VyniaApp() {
                   return (
                     <button key={f.key} title={`Filtrar: ${f.label}`} onClick={() => setFiltro(f.key)}
                       style={{
-                        padding: "7px 16px", borderRadius: 20, fontSize: 12,
-                        border: sel ? "1.5px solid #4F6867" : "1.5px solid #d4cec6",
-                        background: sel ? "#E1F2FC" : "#fff",
+                        position: "relative", padding: "7px 14px", borderRadius: 18, fontSize: 12,
+                        border: "none",
+                        background: sel ? "#E1F2FC" : "transparent",
                         color: sel ? "#1B1C39" : "#4F6867",
                         fontWeight: sel ? 700 : 500,
-                        cursor: "pointer", transition: "all 0.15s",
+                        cursor: "pointer", transition: "all 0.25s",
                         fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: sel ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
                       }}>
+                      {sel && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
                       {f.label}
                     </button>
                   );
                 })}
-                <button title={bulkMode ? "Cancelar selección" : "Seleccionar pedidos"} onClick={() => {
-                  if (bulkMode) { setBulkMode(false); setBulkSelected(new Set()); }
-                  else { setBulkMode(true); setBulkSelected(new Set()); }
-                }}
-                  style={{
-                    padding: "7px 14px", borderRadius: 20, fontSize: 12,
-                    border: bulkMode ? "1.5px solid #C62828" : "1.5px solid #d4cec6",
-                    background: bulkMode ? "#FFEBEE" : "#fff",
-                    color: bulkMode ? "#C62828" : "#4F6867",
-                    fontWeight: bulkMode ? 700 : 500,
-                    cursor: "pointer", transition: "all 0.15s",
-                    fontFamily: "'Roboto Condensed', sans-serif",
-                    display: "flex", alignItems: "center", gap: 5,
-                  }}>
-                  {bulkMode ? "✕ Cancelar" : "☐ Seleccionar"}
-                </button>
               </div>
+              <button title={bulkMode ? "Cancelar selección" : "Seleccionar pedidos"} onClick={() => {
+                if (bulkMode) { setBulkMode(false); setBulkSelected(new Set()); }
+                else { setBulkMode(true); setBulkSelected(new Set()); }
+              }}
+                style={{
+                  padding: "7px 14px", borderRadius: 20, fontSize: 12,
+                  border: bulkMode ? "1.5px solid #C62828" : "1.5px solid #d4cec6",
+                  background: bulkMode ? "#FFEBEE" : "#fff",
+                  color: bulkMode ? "#C62828" : "#4F6867",
+                  fontWeight: bulkMode ? 700 : 500,
+                  cursor: "pointer", transition: "all 0.15s",
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  display: "flex", alignItems: "center", gap: 5,
+                }}>
+                {bulkMode ? "✕ Cancelar" : "☐ Seleccionar"}
+              </button>
               <div ref={clienteWrapperRef} style={{ position: "relative", flex: 1, minWidth: 180 }}>
                 <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#A2C2D0", pointerEvents: "none" }}>
                   <I.Search s={16} />
@@ -5117,6 +5121,10 @@ export default function VyniaApp() {
         }
         .grid-cards {
           transition: grid-template-columns 0.3s ease;
+        }
+        @keyframes tubelightGlow {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideIn {
