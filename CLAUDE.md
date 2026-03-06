@@ -530,3 +530,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-22**: Efecto tubelight en filtros de tab Produccion — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendiente/Todo el dia) envueltos en contenedores glass-morphism con backdrop-blur, identico patron visual que los filtros de tab Pedidos. Barra tubelight con glow en pill activo. Pills sin borde propio, fondo transparente cuando inactivos
+
+## Changelog v1.9.5
+
+### Mejoras
+- **FEAT-23**: Toggle "Ver/Ocultar importes" estilo switch — reemplazado el boton "€ ON/OFF" por un toggle switch deslizante (44x24px) con knob circular que contiene icono €, animacion cubic-bezier suave (0.3s), track verde Vynia (#4F6867) cuando activo. Etiqueta textual "Ver importes"/"Ocultar importes" junto al switch. Help content actualizado

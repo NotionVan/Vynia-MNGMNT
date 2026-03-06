@@ -246,7 +246,7 @@ const HELP_CONTENT = [
       },
       {
         title: "Toggle de precios",
-        content: "El boton € ON/OFF junto a la barra de busqueda muestra u oculta los importes en las tarjetas.",
+        content: "El toggle 'Ver/Ocultar importes' junto a la barra de busqueda muestra u oculta los importes en las tarjetas.",
         tip: "Los precios estan ocultos por defecto",
       },
       {
@@ -2174,19 +2174,35 @@ export default function VyniaApp() {
                   </div>
                 )}
               </div>
-              <button title={mostrarPrecios ? "Ocultar precios" : "Mostrar precios"} onClick={() => setMostrarPrecios(v => !v)}
+              <div title={mostrarPrecios ? "Ocultar importes" : "Ver importes"} onClick={() => setMostrarPrecios(v => !v)}
+                role="button" tabIndex={0}
                 style={{
-                  padding: "7px 12px", borderRadius: 20, fontSize: 12,
-                  border: mostrarPrecios ? "1.5px solid #4F6867" : "1.5px solid #d4cec6",
-                  background: mostrarPrecios ? "#E1F2FC" : "#fff",
-                  color: mostrarPrecios ? "#1B1C39" : "#4F6867",
-                  fontWeight: mostrarPrecios ? 700 : 500,
-                  cursor: "pointer", transition: "all 0.15s",
-                  fontFamily: "'Roboto Condensed', sans-serif",
-                  display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+                  display: "flex", alignItems: "center", gap: 8, flexShrink: 0, cursor: "pointer",
                 }}>
-                € {mostrarPrecios ? "ON" : "OFF"}
-              </button>
+                <span style={{
+                  fontSize: 11, fontWeight: 500, color: "#4F6867",
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  whiteSpace: "nowrap",
+                }}>{mostrarPrecios ? "Ocultar importes" : "Ver importes"}</span>
+                <div style={{
+                  width: 44, height: 24, padding: 2, borderRadius: 12,
+                  background: mostrarPrecios ? "#4F6867" : "rgba(162,194,208,0.35)",
+                  border: `1px solid ${mostrarPrecios ? "#4F6867" : "rgba(162,194,208,0.5)"}`,
+                  transition: "all 0.3s cubic-bezier(0.23,1,0.32,1)",
+                  display: "flex", alignItems: "center",
+                }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 9,
+                    background: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transform: mostrarPrecios ? "translateX(20px)" : "translateX(0)",
+                    transition: "transform 0.3s cubic-bezier(0.23,1,0.32,1)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                  }}>
+                    <I.Euro />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* ── Ficha cliente ── */}
