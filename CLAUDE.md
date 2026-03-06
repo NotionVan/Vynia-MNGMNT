@@ -379,3 +379,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-03**: Boton CTA de resena Google en pagina de seguimiento (`seguimiento.html`) — aparece debajo de las cards de pedido tras consultar por telefono. Estilo gradient Vynia (#4F6867) con efecto shine sweep en hover, glow radial, scale transitions y animacion de entrada staggered. Estrella dorada SVG (Google brand), titulo "Dejanos tu opinion", subtitulo "Tu resena nos ayuda a crecer". Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print. Compatible con modo iframe (vynia.es/mi-pedido/)
+
+## Changelog v1.5.1
+
+### Bug fixes
+- **FIX-04**: Pagina de seguimiento bloqueada en iframe (vynia.es/mi-pedido/) — `X-Frame-Options: DENY` del catch-all `/(.*)`  en `vercel.json` sobreescribia los headers de `/seguimiento`. Fix: mover bloque `/seguimiento` DESPUES del catch-all para que sus headers ganen. CSP combinado con `frame-ancestors 'self' https://vynia.es https://www.vynia.es` + permisos para Google Fonts. `X-Frame-Options: SAMEORIGIN` (ignorado por browsers modernos cuando CSP frame-ancestors esta presente)
