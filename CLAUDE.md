@@ -572,6 +572,11 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 - **Seleccionar**: Estilo flow-button con circulo expandible en hover y estado activo
 - **Importes**: Toggle switch deslizante con icono euro (reemplaza boton "€ ON/OFF")
 - **Bottom nav**: Iconos dock-style (ClipboardList, ChefHat), fondo activo con dot indicator
-- **Calendario**: Glass calendar horizontal (fondo oscuro translucido, blur, strip scrollable, gradient pill, dot "hoy", navegacion de meses)
+- **Calendario**: Glass calendar horizontal (paleta Vynia, blur, strip scrollable, gradient pill, dot "hoy", navegacion de meses, domingos en rojo)
 - **Loaders**: Efecto luma-spin (rectangulos metamorficos) en los 3 spinners
 - **Produccion**: Titulo "Produccion Diaria" centrado
+
+## Changelog v2.0.1
+
+### Mejoras
+- **FIX-13**: Glass calendar refinado — (1) Boton "Fecha" integrado dentro del contenedor tubelight como un pill mas (mismos estilos, tubelight glow cuando activo), en vez de ser un boton separado con borde propio. (2) Fondo del calendario cambiado de oscuro translucido (`rgba(27,28,57,0.88)`) a paleta Vynia clara (`rgba(239,233,228,0.95)`) con `backdrop-filter: blur(16px)`, borde `rgba(162,194,208,0.3)`, textos en `#1B1C39`, botones nav en `#4F6867`. (3) Domingos en rojo (`#C62828`): letra del dia de la semana en rojo semi-transparente, numero en rojo, margen izquierdo extra (6px) para separar visualmente las semanas. Seleccionar un preset (Hoy/Manana/Pasado) cierra el calendario si estaba abierto

@@ -1024,22 +1024,22 @@ export default function VyniaApp() {
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(y, m - 1, d);
       const val = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      days.push({ val, day: d, weekday: date.toLocaleDateString("es-ES", { weekday: "narrow" }).toUpperCase(), isToday: val === today });
+      days.push({ val, day: d, weekday: date.toLocaleDateString("es-ES", { weekday: "narrow" }).toUpperCase(), isToday: val === today, isSunday: date.getDay() === 0 });
     }
     return (
       <div ref={glassCalRef} style={{
-        background: "rgba(27,28,57,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        borderRadius: 16, padding: "14px 0", border: "1px solid rgba(255,255,255,0.1)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.25)", animation: "popoverIn 0.18s ease-out",
-        marginTop: 8, overflow: "hidden",
+        background: "rgba(239,233,228,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+        borderRadius: 16, padding: "14px 0", border: "1px solid rgba(162,194,208,0.3)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06)",
+        animation: "popoverIn 0.18s ease-out", marginTop: 8, overflow: "hidden",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 14px" }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#fff", textTransform: "capitalize", fontFamily: "'Roboto Condensed', sans-serif", letterSpacing: "-0.02em" }}>{monthName}</span>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "#1B1C39", textTransform: "capitalize", fontFamily: "'Roboto Condensed', sans-serif", letterSpacing: "-0.02em" }}>{monthName}</span>
           <div style={{ display: "flex", gap: 4 }}>
-            <button onClick={() => glassCalNav(-1)} style={{ border: "none", background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.7)" }}>
+            <button onClick={() => glassCalNav(-1)} style={{ border: "none", background: "rgba(79,104,103,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#4F6867" }}>
               <span style={{ transform: "rotate(180deg)", display: "flex" }}><I.Chevron s={12} /></span>
             </button>
-            <button onClick={() => glassCalNav(1)} style={{ border: "none", background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.7)" }}>
+            <button onClick={() => glassCalNav(1)} style={{ border: "none", background: "rgba(79,104,103,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#4F6867" }}>
               <I.Chevron s={12} />
             </button>
           </div>
@@ -1048,21 +1048,22 @@ export default function VyniaApp() {
           <div style={{ display: "flex", gap: 10 }}>
             {days.map(d => {
               const sel = selectedVal === d.val;
+              const sundayColor = d.isSunday ? "#C62828" : undefined;
               return (
-                <div key={d.val} id={sel ? `gcal-sel-${target}` : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)" }}>{d.weekday}</span>
+                <div key={d.val} id={sel ? `gcal-sel-${target}` : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0, marginLeft: d.isSunday ? 6 : 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: d.isSunday ? "rgba(198,40,40,0.5)" : "#A2C2D0" }}>{d.weekday}</span>
                   <button onClick={() => { onChange(d.val); setGlassCalTarget(null); }}
                     style={{
                       width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 13, fontWeight: 600, position: "relative",
                       fontFamily: "'Roboto Condensed', sans-serif",
-                      background: sel ? "linear-gradient(135deg, #4F6867, #A2C2D0)" : "transparent",
-                      color: "#fff",
-                      boxShadow: sel ? "0 2px 12px rgba(79,104,103,0.5)" : "none",
+                      background: sel ? "linear-gradient(135deg, #4F6867, #1B1C39)" : "transparent",
+                      color: sel ? "#fff" : (sundayColor || "#1B1C39"),
+                      boxShadow: sel ? "0 2px 12px rgba(79,104,103,0.4)" : "none",
                       transition: "all 0.2s",
                     }}>
-                    {d.isToday && !sel && <span style={{ position: "absolute", bottom: 1, width: 4, height: 4, borderRadius: "50%", background: "#A2C2D0" }} />}
+                    {d.isToday && !sel && <span style={{ position: "absolute", bottom: 1, width: 4, height: 4, borderRadius: "50%", background: "#4F6867" }} />}
                     {d.day}
                   </button>
                 </div>
@@ -2135,7 +2136,7 @@ export default function VyniaApp() {
         {tab === "pedidos" && (
           <div style={{ paddingTop: 12 }}>
             {/* ── Date selector row ── */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
+            <div style={{ marginBottom: 8 }}>
               <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14 }}>
                 {[
                   { label: "Hoy", val: fmt.todayISO() },
@@ -2145,7 +2146,7 @@ export default function VyniaApp() {
                   const sel = filtroFecha === d.val;
                   return (
                     <button key={d.label} title={`Ver pedidos de ${d.label.toLowerCase()}`}
-                      onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); }}
+                      onClick={() => { setFiltroFecha(d.val); loadPedidos(d.val); setGlassCalTarget(null); }}
                       style={{
                         position: "relative", padding: "7px 14px", borderRadius: 10,
                         border: "none",
@@ -2161,25 +2162,29 @@ export default function VyniaApp() {
                     </button>
                   );
                 })}
+                {(() => {
+                  const isCustomDate = filtroFecha && ![fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()].includes(filtroFecha);
+                  const calOpen = glassCalTarget === "pedidos";
+                  const active = isCustomDate || calOpen;
+                  return (
+                    <button title="Seleccionar fecha" onClick={() => openGlassCal("pedidos", filtroFecha)}
+                      style={{
+                        position: "relative", display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10,
+                        border: "none",
+                        background: active ? "#E1F2FC" : "transparent",
+                        color: active ? "#1B1C39" : "#4F6867",
+                        fontWeight: active ? 700 : 500,
+                        fontSize: 13, cursor: "pointer", transition: "all 0.25s",
+                        fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: active ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
+                      }}>
+                      {active && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
+                      <I.Cal s={13} />
+                      {isCustomDate ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
+                    </button>
+                  );
+                })()}
               </div>
-              <div style={{ flex: 1 }} />
-              {(() => {
-                const isCustomDate = filtroFecha && ![fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()].includes(filtroFecha);
-                return (
-                  <button title="Seleccionar fecha" onClick={() => openGlassCal("pedidos", filtroFecha)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
-                      border: isCustomDate ? "2px solid #4F6867" : "1.5px solid #d4cec6",
-                      background: isCustomDate ? "#E1F2FC" : "#fff",
-                      cursor: "pointer", fontSize: 13, color: "#1B1C39",
-                      fontFamily: "'Roboto Condensed', sans-serif", fontWeight: isCustomDate ? 700 : 500,
-                      transition: "all 0.2s",
-                    }}>
-                    <I.Cal s={14} c="#4F6867" />
-                    {isCustomDate ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
-                  </button>
-                );
-              })()}
             </div>
             {renderGlassCal("pedidos", filtroFecha, (v) => { setFiltroFecha(v); loadPedidos(v); })}
 
@@ -3427,8 +3432,8 @@ export default function VyniaApp() {
               alignItems: "center",
               marginBottom: 14,
             }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined, alignItems: "center" }}>
-                <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14, flex: 1 }}>
+              <div style={{ marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined }}>
+                <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14 }}>
                 {[
                   { label: "Hoy", val: fmt.todayISO() },
                   { label: "Mañana", val: fmt.tomorrowISO() },
@@ -3436,9 +3441,9 @@ export default function VyniaApp() {
                 ].map(d => {
                   const sel = produccionFecha === d.val;
                   return (
-                  <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); }}
+                  <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); setGlassCalTarget(null); }}
                     style={{
-                      position: "relative", flex: 1, padding: "8px 0", borderRadius: 10,
+                      position: "relative", flex: 1, padding: "8px 12px", borderRadius: 10,
                       border: "none",
                       background: sel ? "#E1F2FC" : "transparent",
                       color: sel ? "#1B1C39" : "#4F6867",
@@ -3452,24 +3457,29 @@ export default function VyniaApp() {
                   </button>
                   );
                 })}
-                </div>
                 {(() => {
                   const isPreset = [fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()].includes(produccionFecha);
+                  const calOpen = glassCalTarget === "produccion";
+                  const active = !isPreset || calOpen;
                   return (
                     <button title="Seleccionar fecha" onClick={() => openGlassCal("produccion", produccionFecha)}
                       style={{
-                        display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
-                        border: !isPreset ? "2px solid #4F6867" : "1px solid rgba(162,194,208,0.3)",
-                        background: !isPreset ? "#E1F2FC" : "#fff",
-                        cursor: "pointer", fontSize: 13, color: "#1B1C39",
-                        fontFamily: "'Roboto Condensed', sans-serif", fontWeight: !isPreset ? 700 : 500,
-                        transition: "all 0.2s",
+                        position: "relative", display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10,
+                        border: "none",
+                        background: active ? "#E1F2FC" : "transparent",
+                        color: active ? "#1B1C39" : "#4F6867",
+                        fontWeight: active ? 700 : 500,
+                        fontSize: 13, cursor: "pointer", transition: "all 0.25s",
+                        fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: active ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
                       }}>
-                      <I.Cal s={14} c="#4F6867" />
+                      {active && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
+                      <I.Cal s={13} />
                       {!isPreset ? new Date(produccionFecha + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
                     </button>
                   );
                 })()}
+                </div>
               </div>
               {renderGlassCal("produccion", produccionFecha, (v) => { setProduccionFecha(v); setExpandedProduct(null); setExpandAll(false); loadProduccion(v); })}
 
