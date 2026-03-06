@@ -600,7 +600,12 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 ## Changelog v2.2.0
 
 ### Mejoras
-- **FEAT-31**: Loader de panaderia — reemplazado el luma-spin geometrico (dos rectangulos con `inset` morph) por un efecto de masa de pan que sube (`doughRise`). Un unico elemento que muta su `border-radius` entre formas organicas asimetricas mientras rota y cambia de escala, simulando masa siendo amasada. CSS puro, sin SVG. Aplicado a los 3 loaders: principal (44px, color Vynia), ficha cliente (28px), y boton Analizar (14px, blanco). Animacion 2.5s `ease-in-out` infinita con 3 keyframes (aplanado→subido→intermedio)
+- **FEAT-31**: Loader de panaderia — reemplazado el luma-spin geometrico (dos rectangulos con `inset` morph) por un circulo que pulsa suavemente (`doughRise`). Un unico elemento circular que alterna entre `scale(1) opacity(0.6)` y `scale(1.15) opacity(1)`. CSS puro, sin SVG. Aplicado a los 3 loaders: principal (44px, color Vynia), ficha cliente (28px), y boton Analizar (14px, blanco). Animacion 2.5s `ease-in-out` infinita
+
+## Changelog v2.2.1
+
+### Mejoras
+- **FIX-16**: Loader simplificado — eliminada rotacion, deformacion de escala y morph de border-radius. Ahora solo pulso circular minimalista (scale + opacity)
 
 ## Changelog v2.1.3
 

@@ -5363,23 +5363,21 @@ export default function VyniaApp() {
           background: #4F6867 !important;
         }
         .flow-btn:active { transform: scale(0.95); }
+        @keyframes moveDot {
+          0%, 100% { top: 10%; right: 10%; }
+          25% { top: 10%; right: calc(100% - 12px); }
+          50% { top: calc(100% - 12px); right: calc(100% - 12px); }
+          75% { top: calc(100% - 12px); right: 10%; }
+        }
+        .dot-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,104,103,0.12) !important; }
+        .dot-card:active { transform: scale(0.97); }
         @keyframes tubelightGlow {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
         @keyframes doughRise {
-          0%, 100% {
-            border-radius: 42% 58% 62% 38% / 38% 42% 58% 62%;
-            transform: scaleY(0.75) scaleX(1.15) rotate(0deg);
-          }
-          33% {
-            border-radius: 58% 42% 38% 62% / 62% 58% 42% 38%;
-            transform: scaleY(1.05) scaleX(0.92) rotate(120deg);
-          }
-          66% {
-            border-radius: 45% 55% 52% 48% / 55% 45% 48% 52%;
-            transform: scaleY(0.95) scaleX(1.05) rotate(240deg);
-          }
+          0%, 100% { border-radius: 50%; transform: scale(1); opacity: 0.6; }
+          50% { border-radius: 50%; transform: scale(1.15); opacity: 1; }
         }
         @keyframes slideIn {
           from { opacity: 0; transform: translate(-50%, -12px); }
