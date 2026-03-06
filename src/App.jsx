@@ -180,6 +180,7 @@ const I = {
   Mail: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 7l-10 7L2 7" /></svg>,
   Mic: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>,
   Gear: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /></svg>,
+  Info: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 12v4" /><path d="M12 8h.01" /></svg>,
 };
 
 // ─── HELP CONTENT ───
@@ -652,6 +653,7 @@ export default function VyniaApp() {
   const [surplusPlan, setSurplusPlan] = useState({});
   const [surplusSearch, setSurplusSearch] = useState("");
   const [surplusEditing, setSurplusEditing] = useState(false);
+  const [surplusInfoOpen, setSurplusInfoOpen] = useState(false);
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [phoneMenu, setPhoneMenu] = useState(null); // { tel, x, y }
   const [confirmCancel, setConfirmCancel] = useState(null); // pedidoId
@@ -874,6 +876,7 @@ export default function VyniaApp() {
   useEffect(() => {
     setSurplusPlan(loadSurplusPlan(produccionFecha));
     setSurplusSearch("");
+    setSurplusInfoOpen(false);
   }, [produccionFecha]);
 
   // ─── Load product catalog from Notion (source of truth) ───
@@ -3182,268 +3185,310 @@ export default function VyniaApp() {
               </div>
             </div>{/* end date+toggle wrapper */}
 
-            {/* ═══ SURPLUS: Planificación de producción ═══ */}
+            {/* ═══ SURPLUS: Planificación de producción (desplegable) ═══ */}
             {(() => {
               const hasPlan = Object.keys(surplusPlan).length > 0;
+              const isOpen = surplusEditing;
+              const hasContent = isOpen || surplusInfoOpen || (!isOpen && hasPlan);
 
-              // ── Vista SIN PLAN: botón CTA ──
-              if (!hasPlan && !surplusEditing) return (
-                <button data-surplus-section title="Planificar la produccion del dia" onClick={() => setSurplusEditing(true)}
-                  style={{
-                    width: "100%", padding: "14px 16px", marginBottom: 14,
-                    borderRadius: 14, border: "none", cursor: "pointer",
-                    background: "linear-gradient(135deg, #4F6867, #3D5655)",
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    color: "#fff", transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = "0.92"}
-                  onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <I.Store s={20} />
-                    <div style={{ textAlign: "left" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif" }}>Planificar produccion</div>
-                      <div style={{ fontSize: 11, opacity: 0.75, marginTop: 1 }}>Introduce lo que vas a producir</div>
-                    </div>
-                  </div>
-                  <I.Chevron s={14} />
-                </button>
-              );
-
-              // ── Vista EDITANDO: entrada de cantidades ──
-              if (surplusEditing) return (
+              return (
                 <div data-surplus-section style={{
-                  marginBottom: 14, background: "#fff", borderRadius: 14,
-                  border: "1px solid #A2C2D0", overflow: "hidden",
-                  boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
+                  marginBottom: 14, borderRadius: 14, overflow: "hidden",
+                  background: hasContent ? "#fff" : "transparent",
+                  border: hasContent ? "1px solid #A2C2D0" : "none",
+                  boxShadow: hasContent ? "0 1px 4px rgba(60,50,30,0.04)" : "none",
                 }}>
-                  <div style={{
-                    padding: "12px 16px", background: "linear-gradient(135deg, #4F6867, #3D5655)",
-                    display: "flex", alignItems: "center", justifyContent: "space-between", color: "#fff",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <I.Store s={18} />
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif" }}>
-                        Planificacion del dia
-                      </span>
-                    </div>
-                    <button title="Terminar planificacion" onClick={() => setSurplusEditing(false)}
-                      style={{
-                        padding: "5px 14px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.5)",
-                        background: "rgba(255,255,255,0.15)", color: "#fff",
-                        fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: 4,
-                      }}>
-                      <I.Check s={13} /> Listo
-                    </button>
-                  </div>
-
-                  <div style={{ padding: "12px 16px 16px" }}>
-                    {/* Search */}
-                    <div style={{ position: "relative", marginBottom: 8 }}>
-                      <div style={{
-                        position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                        color: "#A2C2D0", pointerEvents: "none",
-                      }}><I.Search s={14} /></div>
-                      <input
-                        placeholder="Buscar producto para anadir..."
-                        value={surplusSearch}
-                        onChange={e => setSurplusSearch(e.target.value)}
-                        style={{
-                          width: "100%", padding: "9px 12px 9px 32px", borderRadius: 10,
-                          border: "1.5px solid #E8E0D4", fontSize: 12,
-                          background: "#EFE9E4", outline: "none", fontFamily: "inherit",
-                        }} />
-                    </div>
-
-                    {/* Search results dropdown */}
-                    {surplusSearch && surplusSearchResults.length > 0 && (
-                      <div style={{
-                        marginBottom: 8, maxHeight: 180, overflowY: "auto",
-                        borderRadius: 14, padding: 3,
-                        background: "rgba(239,233,228,0.88)",
-                        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                        boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
-                        animation: "popoverIn 0.15s ease-out",
-                      }}>
-                        <div style={{
-                          background: "rgba(255,255,255,0.95)", borderRadius: 12,
-                          overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
-                        }}>
-                          {surplusSearchResults.slice(0, 6).map((p, i) => (
-                            <button key={p.nombre} onClick={() => { updateSurplus(p.nombre, 1); setSurplusSearch(""); }}
-                              style={{
-                                width: "100%", padding: "9px 14px", border: "none",
-                                borderBottom: i < surplusSearchResults.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
-                                background: "transparent", cursor: "pointer",
-                                display: "flex", alignItems: "center", gap: 6,
-                                fontSize: 12, textAlign: "left", transition: "background 0.15s",
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
-                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                            >
-                              <span style={{ color: "#4F6867", fontWeight: 700, fontSize: 14 }}>+</span>
-                              <span style={{ fontWeight: 500 }}>{p.nombre}</span>
-                              <span style={{
-                                fontSize: 9, padding: "1px 5px", borderRadius: 3,
-                                background: "#E1F2FC",
-                                color: p.cat === "Panaderia" ? "#4F6867" : "#1B1C39",
-                                fontWeight: 600,
-                              }}>{p.cat === "Panaderia" ? "PAN" : "PAST"}</span>
-                            </button>
-                          ))}
+                  {/* ── Header: siempre visible, toggle del desplegable ── */}
+                  <div
+                    title={isOpen ? "Cerrar planificacion" : "Abrir planificacion"}
+                    onClick={() => setSurplusEditing(!surplusEditing)}
+                    style={{
+                      padding: isOpen ? "12px 16px" : "14px 16px",
+                      background: "linear-gradient(135deg, #4F6867, #3D5655)",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      color: "#fff", cursor: "pointer",
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = "0.92"}
+                    onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                      <I.Store s={isOpen ? 18 : 20} />
+                      <div style={{ textAlign: "left", overflow: "hidden" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif" }}>
+                          {isOpen ? "Planificacion del dia" : hasPlan ? "Produccion planificada" : "Planificar produccion"}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Quick add pills */}
-                    {!surplusSearch && surplusView.length === 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-                        {FRECUENTES.map(name => {
-                          const existing = surplusView.find(p => p.nombre.toLowerCase().trim() === name.toLowerCase().trim());
-                          if (existing) return null;
-                          return (
-                            <button key={name} title={`Anadir ${name}`} onClick={() => updateSurplus(name, 1)}
-                              style={{
-                                padding: "4px 10px", borderRadius: 8,
-                                border: "1px solid #E8E0D4", background: "#EFE9E4",
-                                fontSize: 11, cursor: "pointer", color: "#4F6867",
-                                fontWeight: 500, transition: "all 0.15s",
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#E8E0D4"; }}
-                            >+ {name.length > 20 ? name.slice(0, 18) + "..." : name}</button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Product rows with steppers */}
-                    {surplusView.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {surplusView.map(item => (
-                          <div key={item.nombre} style={{
-                            padding: "10px 12px", borderRadius: 10,
-                            background: "#FAFAFA", border: "1px solid #E8E0D4",
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                          }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                              <I.Box s={14} />
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.nombre}</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 0, flexShrink: 0 }}>
-                              <button title="Reducir cantidad" onClick={() => updateSurplus(item.nombre, item.plan - 1)}
-                                style={{
-                                  width: 30, height: 30, borderRadius: "8px 0 0 8px",
-                                  border: "1.5px solid #A2C2D0", borderRight: "none",
-                                  background: "#EFE9E4", cursor: "pointer",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "#4F6867", opacity: item.plan === 0 ? 0.3 : 1,
-                                }} disabled={item.plan === 0}>
-                                <I.Minus s={12} />
-                              </button>
-                              <div style={{
-                                width: 42, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
-                                borderTop: "1.5px solid #A2C2D0", borderBottom: "1.5px solid #A2C2D0",
-                                background: "#fff", fontSize: 15, fontWeight: 700,
-                                color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif",
-                              }}>
-                                <NumberFlow value={item.plan} />
-                              </div>
-                              <button title="Aumentar cantidad" onClick={() => updateSurplus(item.nombre, item.plan + 1)}
-                                style={{
-                                  width: 30, height: 30, borderRadius: "0 8px 8px 0",
-                                  border: "1.5px solid #A2C2D0", borderLeft: "none",
-                                  background: "#EFE9E4", cursor: "pointer",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  color: "#4F6867",
-                                }}>
-                                <I.Plus s={12} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {/* Inline add more */}
-                        {!surplusSearch && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
-                            {FRECUENTES.map(name => {
-                              const existing = surplusView.find(p => p.nombre.toLowerCase().trim() === name.toLowerCase().trim());
-                              if (existing) return null;
-                              return (
-                                <button key={name} title={`Anadir ${name}`} onClick={() => updateSurplus(name, 1)}
-                                  style={{
-                                    padding: "3px 8px", borderRadius: 6,
-                                    border: "1px solid #E8E0D4", background: "#EFE9E4",
-                                    fontSize: 10, cursor: "pointer", color: "#4F6867",
-                                    fontWeight: 500, transition: "all 0.15s",
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#E8E0D4"; }}
-                                >+ {name.length > 20 ? name.slice(0, 18) + "..." : name}</button>
-                              );
-                            })}
+                        {!isOpen && (
+                          <div style={{ fontSize: 11, opacity: 0.75, marginTop: 1 }}>
+                            {hasPlan
+                              ? `${surplusTotals.totalPlan} plan · ${surplusTotals.totalPedidos} pedidos · ${surplusTotals.totalDisp} disp.`
+                              : "Introduce lo que vas a producir"}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-
-              // ── Vista PLAN ACTIVO: resumen compacto ──
-              return (
-                <div data-surplus-section style={{
-                  marginBottom: 14, background: "#fff", borderRadius: 14,
-                  border: "1px solid #A2C2D0", overflow: "hidden",
-                  boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
-                  cursor: "pointer",
-                }} onClick={() => setSurplusEditing(true)}>
-                  <div style={{
-                    padding: "10px 16px", background: "linear-gradient(135deg, #4F6867, #3D5655)",
-                    display: "flex", alignItems: "center", justifyContent: "space-between", color: "#fff",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <I.Store s={16} />
-                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif" }}>
-                        Produccion planificada
-                      </span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.9 }}>
-                        {surplusTotals.totalPlan} plan · {surplusTotals.totalPedidos} pedidos · {surplusTotals.totalDisp} disp.
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      {/* Info button */}
+                      <button
+                        title="Como funciona la planificacion"
+                        onClick={e => { e.stopPropagation(); setSurplusInfoOpen(v => !v); }}
+                        style={{
+                          width: 24, height: 24, borderRadius: "50%",
+                          border: "1.5px solid rgba(255,255,255,0.4)",
+                          background: surplusInfoOpen ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)",
+                          color: "#fff", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "background 0.15s",
+                        }}
+                      >
+                        <I.Info s={13} />
+                      </button>
+                      {/* Chevron toggle */}
+                      <span style={{
+                        display: "flex", alignItems: "center",
+                        transform: `rotate(${isOpen ? -90 : 90}deg)`,
+                        transition: "transform 0.2s ease",
+                        opacity: 0.8,
+                      }}>
+                        <I.Chevron s={14} />
                       </span>
-                      <I.Edit s={12} />
                     </div>
                   </div>
 
-                  <div style={{ padding: "8px 16px 10px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {surplusView.map(item => (
-                        <div key={item.nombre} style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "6px 0",
-                          borderBottom: "1px solid #F0EDE8",
+                  {/* ── Info panel (inline, toggle con boton ℹ) ── */}
+                  {surplusInfoOpen && (
+                    <div style={{
+                      padding: "12px 16px",
+                      background: "#E1F2FC",
+                      borderBottom: (isOpen || hasPlan) ? "1px solid #A2C2D0" : "none",
+                      fontSize: 12, lineHeight: 1.6, color: "#1B1C39",
+                      animation: "popoverIn 0.15s ease-out",
+                    }}>
+                      <div style={{ fontWeight: 700, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                        <I.Info s={14} /> Como funciona
+                      </div>
+                      <p style={{ margin: "0 0 8px" }}>
+                        Introduce las unidades que vas a producir hoy. El sistema compara tu plan con los pedidos existentes y calcula cuantos productos quedan disponibles para venta directa.
+                      </p>
+                      <p style={{ margin: "0 0 8px" }}>
+                        Busca productos en el catalogo o usa los accesos rapidos frecuentes. Ajusta las cantidades con los botones +/−. Si reduces a 0, el producto se elimina del plan.
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "0 0 8px", alignItems: "center" }}>
+                        <span>Badges:</span>
+                        <span style={{ display: "inline-block", padding: "0 5px", borderRadius: 3, background: "#E8F5E9", color: "#2E7D32", fontWeight: 700, fontSize: 11 }}>+3</span>
+                        <span>sobra para venta</span>
+                        <span style={{ display: "inline-block", padding: "0 5px", borderRadius: 3, background: "#FFEBEE", color: "#C62828", fontWeight: 700, fontSize: 11 }}>-2</span>
+                        <span>faltan unidades</span>
+                        <span style={{ display: "inline-block", padding: "0 5px", borderRadius: 3, background: "#F5F5F5", color: "#8B8B8B", fontWeight: 700, fontSize: 11 }}>0</span>
+                        <span>cantidad justa</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 11, opacity: 0.6 }}>
+                        Los datos se guardan en tu navegador para cada dia y se mantienen hasta 7 dias.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ── Contenido desplegable: editor de cantidades ── */}
+                  {isOpen && (
+                    <div style={{ padding: "12px 16px 16px", animation: "popoverIn 0.15s ease-out" }}>
+                      {/* Search */}
+                      <div style={{ position: "relative", marginBottom: 8 }}>
+                        <div style={{
+                          position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                          color: "#A2C2D0", pointerEvents: "none",
+                        }}><I.Search s={14} /></div>
+                        <input
+                          placeholder="Buscar producto para anadir..."
+                          value={surplusSearch}
+                          onChange={e => setSurplusSearch(e.target.value)}
+                          style={{
+                            width: "100%", padding: "9px 12px 9px 32px", borderRadius: 10,
+                            border: "1.5px solid #E8E0D4", fontSize: 12,
+                            background: "#EFE9E4", outline: "none", fontFamily: "inherit",
+                          }} />
+                      </div>
+
+                      {/* Search results dropdown */}
+                      {surplusSearch && surplusSearchResults.length > 0 && (
+                        <div style={{
+                          marginBottom: 8, maxHeight: 180, overflowY: "auto",
+                          borderRadius: 14, padding: 3,
+                          background: "rgba(239,233,228,0.88)",
+                          backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                          boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
+                          animation: "popoverIn 0.15s ease-out",
                         }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-                            <I.Box s={12} />
-                            <span style={{ fontSize: 12, fontWeight: 500, color: "#1B1C39", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.nombre}</span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                            <span style={{ fontSize: 11, color: "#A2C2D0" }}>Plan: {item.plan}</span>
-                            <span style={{ fontSize: 11, color: "#A2C2D0" }}>Ped: {item.pedidos}</span>
-                            <span style={{
-                              fontSize: 11, fontWeight: 800, padding: "1px 6px", borderRadius: 4,
-                              fontFamily: "'Roboto Condensed', sans-serif",
-                              background: item.excedente > 0 ? "#E8F5E9" : item.excedente < 0 ? "#FFEBEE" : "#F5F5F5",
-                              color: item.excedente > 0 ? "#2E7D32" : item.excedente < 0 ? "#C62828" : "#8B8B8B",
-                            }}>
-                              {(item.excedente > 0 ? "+" : "") + item.excedente}
-                            </span>
+                          <div style={{
+                            background: "rgba(255,255,255,0.95)", borderRadius: 12,
+                            overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
+                          }}>
+                            {surplusSearchResults.slice(0, 6).map((p, i) => (
+                              <button key={p.nombre} onClick={() => { updateSurplus(p.nombre, 1); setSurplusSearch(""); }}
+                                style={{
+                                  width: "100%", padding: "9px 14px", border: "none",
+                                  borderBottom: i < surplusSearchResults.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
+                                  background: "transparent", cursor: "pointer",
+                                  display: "flex", alignItems: "center", gap: 6,
+                                  fontSize: 12, textAlign: "left", transition: "background 0.15s",
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                              >
+                                <span style={{ color: "#4F6867", fontWeight: 700, fontSize: 14 }}>+</span>
+                                <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                                <span style={{
+                                  fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                                  background: "#E1F2FC",
+                                  color: p.cat === "Panaderia" ? "#4F6867" : "#1B1C39",
+                                  fontWeight: 600,
+                                }}>{p.cat === "Panaderia" ? "PAN" : "PAST"}</span>
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Quick add pills */}
+                      {!surplusSearch && surplusView.length === 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                          {FRECUENTES.map(name => {
+                            const existing = surplusView.find(p => p.nombre.toLowerCase().trim() === name.toLowerCase().trim());
+                            if (existing) return null;
+                            return (
+                              <button key={name} title={`Anadir ${name}`} onClick={() => updateSurplus(name, 1)}
+                                style={{
+                                  padding: "4px 10px", borderRadius: 8,
+                                  border: "1px solid #E8E0D4", background: "#EFE9E4",
+                                  fontSize: 11, cursor: "pointer", color: "#4F6867",
+                                  fontWeight: 500, transition: "all 0.15s",
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#E8E0D4"; }}
+                              >+ {name.length > 20 ? name.slice(0, 18) + "..." : name}</button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Product rows with steppers + excedente */}
+                      {surplusView.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {surplusView.map(item => (
+                            <div key={item.nombre} style={{
+                              padding: "10px 12px", borderRadius: 10,
+                              background: "#FAFAFA", border: "1px solid #E8E0D4",
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                                <I.Box s={14} />
+                                <div style={{ overflow: "hidden", minWidth: 0 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{item.nombre}</span>
+                                  {item.pedidos > 0 && (
+                                    <span style={{ fontSize: 10, color: "#A2C2D0" }}>{item.pedidos} en pedidos</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                                  <button title="Reducir cantidad" onClick={() => updateSurplus(item.nombre, item.plan - 1)}
+                                    style={{
+                                      width: 30, height: 30, borderRadius: "8px 0 0 8px",
+                                      border: "1.5px solid #A2C2D0", borderRight: "none",
+                                      background: "#EFE9E4", cursor: "pointer",
+                                      display: "flex", alignItems: "center", justifyContent: "center",
+                                      color: "#4F6867", opacity: item.plan === 0 ? 0.3 : 1,
+                                    }} disabled={item.plan === 0}>
+                                    <I.Minus s={12} />
+                                  </button>
+                                  <div style={{
+                                    width: 42, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+                                    borderTop: "1.5px solid #A2C2D0", borderBottom: "1.5px solid #A2C2D0",
+                                    background: "#fff", fontSize: 15, fontWeight: 700,
+                                    color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif",
+                                  }}>
+                                    <NumberFlow value={item.plan} />
+                                  </div>
+                                  <button title="Aumentar cantidad" onClick={() => updateSurplus(item.nombre, item.plan + 1)}
+                                    style={{
+                                      width: 30, height: 30, borderRadius: "0 8px 8px 0",
+                                      border: "1.5px solid #A2C2D0", borderLeft: "none",
+                                      background: "#EFE9E4", cursor: "pointer",
+                                      display: "flex", alignItems: "center", justifyContent: "center",
+                                      color: "#4F6867",
+                                    }}>
+                                    <I.Plus s={12} />
+                                  </button>
+                                </div>
+                                {item.pedidos > 0 && (
+                                  <span style={{
+                                    fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 4,
+                                    fontFamily: "'Roboto Condensed', sans-serif", minWidth: 24, textAlign: "center",
+                                    background: item.excedente > 0 ? "#E8F5E9" : item.excedente < 0 ? "#FFEBEE" : "#F5F5F5",
+                                    color: item.excedente > 0 ? "#2E7D32" : item.excedente < 0 ? "#C62828" : "#8B8B8B",
+                                  }}>
+                                    {(item.excedente > 0 ? "+" : "") + item.excedente}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {/* Inline add more pills */}
+                          {!surplusSearch && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
+                              {FRECUENTES.map(name => {
+                                const existing = surplusView.find(p => p.nombre.toLowerCase().trim() === name.toLowerCase().trim());
+                                if (existing) return null;
+                                return (
+                                  <button key={name} title={`Anadir ${name}`} onClick={() => updateSurplus(name, 1)}
+                                    style={{
+                                      padding: "3px 8px", borderRadius: 6,
+                                      border: "1px solid #E8E0D4", background: "#EFE9E4",
+                                      fontSize: 10, cursor: "pointer", color: "#4F6867",
+                                      fontWeight: 500, transition: "all 0.15s",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#E8E0D4"; }}
+                                  >+ {name.length > 20 ? name.slice(0, 18) + "..." : name}</button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {/* ── Resumen compacto: visible cuando cerrado con plan ── */}
+                  {!isOpen && hasPlan && (
+                    <div style={{ padding: "8px 16px 10px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {surplusView.map(item => (
+                          <div key={item.nombre} style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "6px 0",
+                            borderBottom: "1px solid #F0EDE8",
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                              <I.Box s={12} />
+                              <span style={{ fontSize: 12, fontWeight: 500, color: "#1B1C39", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.nombre}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                              <span style={{ fontSize: 11, color: "#A2C2D0" }}>Plan: {item.plan}</span>
+                              <span style={{ fontSize: 11, color: "#A2C2D0" }}>Ped: {item.pedidos}</span>
+                              <span style={{
+                                fontSize: 11, fontWeight: 800, padding: "1px 6px", borderRadius: 4,
+                                fontFamily: "'Roboto Condensed', sans-serif",
+                                background: item.excedente > 0 ? "#E8F5E9" : item.excedente < 0 ? "#FFEBEE" : "#F5F5F5",
+                                color: item.excedente > 0 ? "#2E7D32" : item.excedente < 0 ? "#C62828" : "#8B8B8B",
+                              }}>
+                                {(item.excedente > 0 ? "+" : "") + item.excedente}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

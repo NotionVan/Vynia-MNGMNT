@@ -470,3 +470,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-07**: Mensajes de error de microfono accionables — `not-allowed` ahora indica al usuario que vaya a Ajustes del navegador > Permisos > Microfono. `no-speech` indica que acerque el audio al microfono. Errores genericos siguen mostrando el codigo de error
+
+## Changelog v1.8.5
+
+### Mejoras
+- **FEAT-15**: Seccion de planificacion convertida en desplegable — el header con gradiente Vynia actua como toggle (chevron animado arriba/abajo). Unifica las 3 vistas (CTA, edicion, resumen) en una sola card con header consistente. Nuevo icono `I.Info` y boton circular en el header que despliega un panel informativo inline (fondo `#E1F2FC`, animacion `popoverIn`) con instrucciones detalladas: como funciona, como usar busqueda/steppers, significado de badges (verde/rojo/gris) y persistencia en localStorage. Las filas del editor ahora muestran badge de excedente junto al stepper y texto "X en pedidos" para contexto inmediato. Estado `surplusInfoOpen` se resetea al cambiar de fecha
