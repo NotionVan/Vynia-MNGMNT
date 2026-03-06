@@ -394,3 +394,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-05**: Seguimiento no encuentra pedidos cuando hay clientes duplicados con mismo telefono — `tracking.js` solo buscaba pedidos del primer cliente encontrado. Fix: recopilar TODOS los client IDs que coinciden con el telefono y usar OR filter para buscar pedidos de todos ellos (mismo patron que ya usa registros). El nombre mostrado sigue siendo el del mejor match
+
+## Changelog v1.5.4
+
+### Mejoras
+- **FEAT-04**: CTA de resena Google movido encima de la lista de pedidos (debajo de la barra de busqueda) en lugar de al final, para mayor visibilidad
