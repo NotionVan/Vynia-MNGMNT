@@ -148,7 +148,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 ### GET /api/tracking
 - Query params: `tel=612345678` (numero de telefono, minimo 6 digitos)
 - **Endpoint publico** — usado por la pagina de seguimiento para clientes
-- Flujo: 1) Busca cliente en BD Clientes por `Telefono` (phone_number contains), 2) Query Pedidos por relacion Clientes, 3) Fetch registros (productos) por cada pedido
+- Flujo: 1) Busca cliente en BD Clientes por `Telefono` (phone_number contains), 2) Query Pedidos por relacion Clientes de TODOS los clientes encontrados (OR filter, soporta entradas duplicadas de cliente con mismo telefono), 3) Fetch registros (productos) por cada pedido
 - Devuelve `{ cliente: "Maria Garcia", pedidos: [...] }` con estructura:
   ```json
   {
@@ -186,6 +186,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Fondo de pagina con gradientes radiales sutiles para dar profundidad al efecto glass
 - Vynia-branded: misma paleta de colores y fuentes que la app principal
 - Mobile-first, responsive
+- CTA de resena Google: boton gradient Vynia (#4F6867) con estrella dorada SVG, efecto shine sweep en hover, texto "Dejanos tu opinion". Aparece encima de la lista de pedidos (tras el header "Pedidos de X"). Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print
 - Modo iframe: detecta `window !== window.top`, añade clase `.embedded` (oculta logo y footer, fondo transparente, sin gradientes de fondo)
 - Iframe embed code para WordPress:
   ```html
