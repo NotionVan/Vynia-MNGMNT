@@ -405,6 +405,24 @@ function esTarde(p) {
   return false;
 }
 
+// ─── DATE SUGGESTIONS (scoring for delivery date optimization) ───
+function computeDateSuggestions(produccionRango, lineas) {
+  if (!produccionRango || !lineas || lineas.length === 0) return [];
+  const selected = new Set(lineas.map(l => l.nombre.toLowerCase().trim()));
+  return Object.entries(produccionRango)
+    .map(([date, productos]) => {
+      const overlapping = productos.filter(p => selected.has(p.nombre.toLowerCase().trim()));
+      const overlapCount = overlapping.length;
+      const overlapUnits = overlapping.reduce((s, p) => s + p.totalUnidades, 0);
+      const score = overlapCount * 3 + overlapUnits;
+      return { date, score, overlapCount, overlapUnits, overlapping };
+    })
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score || a.date.localeCompare(b.date));
+}
+
+const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+
 // ─── RESPONSIVE BREAKPOINTS ───
 function useBreakpoint() {
   const get = () => {
@@ -568,7 +586,14 @@ export default function VyniaApp() {
   const [lineas, setLineas] = useState([]);
   const [searchProd, setSearchProd] = useState("");
   const [showCatFull, setShowCatFull] = useState(false);
+  const [dateSuggestions, setDateSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [createResult, setCreateResult] = useState(null); // { status: "ok"|"err", cliente?, total?, pedidoId?, message? }
+  const [showParseModal, setShowParseModal] = useState(false);
+  const [parseText, setParseText] = useState("");
+  const [parseLoading, setParseLoading] = useState(false);
+  const [parseResult, setParseResult] = useState(null);
+  const [parseError, setParseError] = useState(null);
 
   // Produccion diaria
   const [produccionData, setProduccionData] = useState([]);
@@ -1283,6 +1308,7 @@ export default function VyniaApp() {
     setHora(""); setNotas(""); setPagado(false); setLineas([]);
     setSearchProd(""); setShowCatFull(false);
     setClienteSuggestions([]); setSelectedClienteId(null);
+    setDateSuggestions([]); setSuggestionsLoading(false);
   };
 
   // ─── CLIENT AUTOCOMPLETE ───
@@ -1306,6 +1332,57 @@ export default function VyniaApp() {
     setSelectedClienteId(c.id);
     if (c.telefono) setTelefono(c.telefono);
     setClienteSuggestions([]);
+  };
+
+  // ─── PARSE WHATSAPP ORDER ───
+  const handleParseOrder = async () => {
+    if (!parseText.trim() || parseLoading) return;
+    setParseLoading(true);
+    setParseError(null);
+    setParseResult(null);
+    try {
+      const result = await notion.parseWhatsApp(parseText.trim());
+      if (result?.ok) setParseResult(result);
+      else setParseError(result?.error || "Error desconocido");
+    } catch (err) {
+      setParseError(err.message || "Error al analizar el mensaje");
+    } finally {
+      setParseLoading(false);
+    }
+  };
+
+  const aplicarParseo = (result) => {
+    if (result.cliente) {
+      setCliente(result.cliente);
+      setSelectedClienteId(null);
+      // Trigger autocomplete to try to match existing client
+      if (apiMode !== "demo" && result.cliente.trim().length >= 2) {
+        clearTimeout(clienteSearchTimer.current);
+        clienteSearchTimer.current = setTimeout(async () => {
+          try {
+            const results = await notion.searchClientes(result.cliente.trim());
+            setClienteSuggestions(Array.isArray(results) ? results : []);
+          } catch { setClienteSuggestions([]); }
+        }, 100);
+      }
+    }
+    if (result.telefono) setTelefono(result.telefono);
+    if (result.fecha) setFecha(result.fecha);
+    if (result.hora) setHora(result.hora);
+    if (result.notas) setNotas(result.notas);
+    if (result.pagado != null) setPagado(result.pagado);
+
+    // Map matched products to lineas with precio/cat from catalogo
+    const newLineas = (result.lineas || [])
+      .filter(l => l.matched)
+      .map(l => {
+        const catItem = catalogo.find(c => c.nombre === l.nombre);
+        return { nombre: l.nombre, cantidad: l.cantidad, precio: catItem?.precio || 0, cat: catItem?.cat || "" };
+      });
+    setLineas(newLineas);
+
+    setShowParseModal(false);
+    setCreateResult(null);
   };
 
   // ─── PRODUCT MANAGEMENT ───
@@ -2355,10 +2432,25 @@ export default function VyniaApp() {
           </div>
         ) : tab === "nuevo" && (
           <div style={{ paddingTop: 16 }}>
-            <h2 style={{
-              fontFamily: "'Roboto Condensed', sans-serif", fontSize: 22, fontWeight: 700,
-              margin: "0 0 16px", color: "#1B1C39",
-            }}>Nuevo Pedido</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 16px" }}>
+              <h2 style={{
+                fontFamily: "'Roboto Condensed', sans-serif", fontSize: 22, fontWeight: 700,
+                margin: 0, color: "#1B1C39",
+              }}>Nuevo Pedido</h2>
+              {nuevoPaso === 1 && (
+                <button title="Pegar mensaje de WhatsApp" onClick={() => { setParseText(""); setParseResult(null); setParseError(null); setShowParseModal(true); }} style={{
+                  padding: "7px 14px", borderRadius: 20, border: "1.5px solid #A2C2D0",
+                  background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                  color: "#4F6867", display: "flex", alignItems: "center", gap: 6,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#A2C2D0"; }}
+                >
+                  <span style={{ fontSize: 15 }}>📋</span> Pegar pedido
+                </button>
+              )}
+            </div>
 
             {nuevoPaso === 1 && (
             <>
@@ -2645,7 +2737,16 @@ export default function VyniaApp() {
               </div>{/* end 2-column grid */}
 
               {/* ── Submit Paso 1 ── */}
-              <button title="Siguiente paso: elegir fecha" onClick={() => setNuevoPaso(2)}
+              <button title="Siguiente paso: elegir fecha" onClick={() => {
+                setNuevoPaso(2);
+                if (apiMode !== "demo" && lineas.length > 0) {
+                  setSuggestionsLoading(true);
+                  notion.loadProduccionRango(fmt.todayISO(), 7)
+                    .then(data => setDateSuggestions(computeDateSuggestions(data.produccion || {}, lineas)))
+                    .catch(() => setDateSuggestions([]))
+                    .finally(() => setSuggestionsLoading(false));
+                }
+              }}
                 disabled={!cliente.trim() || lineas.length === 0}
                 style={{
                   width: "100%", padding: "16px",
@@ -2678,6 +2779,64 @@ export default function VyniaApp() {
                   }}>
                   <I.Back s={16} /> Volver a datos del pedido
                 </button>
+
+                {/* ── Sugerencias de fecha ── */}
+                {(suggestionsLoading || dateSuggestions.length > 0) && (
+                  <section style={{
+                    background: "#fff", borderRadius: 14, padding: "14px 16px",
+                    border: "1px solid #A2C2D0", marginBottom: 12,
+                  }}>
+                    <label style={{ ...labelStyle, marginBottom: 8 }}>
+                      <span style={{ fontSize: 14 }}>&#128161;</span> Sugerencias de fecha
+                    </label>
+                    {suggestionsLoading ? (
+                      <div style={{ textAlign: "center", padding: "8px 0", color: "#A2C2D0", fontSize: 12 }}>
+                        Analizando produccion...
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {dateSuggestions.slice(0, 3).map(s => {
+                          const d = new Date(s.date + "T12:00:00");
+                          const dayName = DAY_NAMES[d.getDay()];
+                          const isSelected = fecha === s.date;
+                          return (
+                            <button key={s.date} onClick={() => setFecha(s.date)}
+                              title={`Seleccionar ${dayName} ${fmt.date(s.date)}: ${s.overlapping.map(p => p.nombre).join(", ")}`}
+                              style={{
+                                display: "flex", flexDirection: "column", gap: 2,
+                                padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                                border: isSelected ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
+                                background: isSelected ? "#E1F2FC" : "#FAFAFA",
+                                textAlign: "left", transition: "all 0.15s",
+                              }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                                <span style={{
+                                  fontWeight: 700, fontSize: 13, color: "#1B1C39",
+                                  fontFamily: "'Roboto Condensed', sans-serif",
+                                }}>
+                                  {dayName} {fmt.date(s.date)}
+                                </span>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600, color: "#4F6867",
+                                  background: "#E1F2FC", borderRadius: 6, padding: "2px 8px",
+                                }}>
+                                  {s.overlapCount} {s.overlapCount === 1 ? "producto" : "productos"} en comun
+                                </span>
+                              </div>
+                              <div style={{
+                                fontSize: 11, color: "#A2C2D0", fontWeight: 500,
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                maxWidth: "100%",
+                              }}>
+                                {s.overlapping.map(p => `${p.nombre} (${p.totalUnidades}u)`).join(", ")}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                )}
 
                 {/* ── Fecha ── */}
                 <section style={{
@@ -3548,6 +3707,167 @@ export default function VyniaApp() {
             </div>
           );
         })()}
+
+        {/* ══════════════════════════════════════════
+            PARSE WHATSAPP ORDER MODAL
+        ══════════════════════════════════════════ */}
+        {showParseModal && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(27,28,57,0.45)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={() => { if (!parseLoading) setShowParseModal(false); }}>
+            <div style={{
+              background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+              borderRadius: 20, padding: "24px 20px 20px", maxWidth: 480, width: "100%",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.18)", animation: "popoverIn 0.2s ease-out",
+              maxHeight: "85vh", overflowY: "auto",
+            }} onClick={e => e.stopPropagation()}>
+
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 24 }}>📋</span>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>Pegar pedido</div>
+                  <div style={{ fontSize: 12, color: "#888" }}>Pega un mensaje de WhatsApp para analizar</div>
+                </div>
+              </div>
+
+              {/* Error state */}
+              {parseError && (
+                <div style={{ background: "#FFF3E0", border: "1px solid #E65100", borderRadius: 12, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "#E65100" }}>
+                  {parseError}
+                </div>
+              )}
+
+              {/* Input phase */}
+              {!parseResult && (
+                <>
+                  <textarea
+                    value={parseText}
+                    onChange={e => setParseText(e.target.value)}
+                    placeholder="Pega aquí el mensaje de WhatsApp..."
+                    rows={6}
+                    style={{
+                      width: "100%", padding: "12px 14px", borderRadius: 12,
+                      border: "1.5px solid #E8E0D4", fontSize: 14, background: "#EFE9E4",
+                      outline: "none", resize: "vertical", fontFamily: "Inter, sans-serif",
+                      lineHeight: 1.5, boxSizing: "border-box",
+                    }}
+                    onFocus={e => { e.target.style.borderColor = "#4F6867"; }}
+                    onBlur={e => { e.target.style.borderColor = "#E8E0D4"; }}
+                    disabled={parseLoading}
+                    autoFocus
+                  />
+                  <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
+                    <button onClick={() => setShowParseModal(false)} disabled={parseLoading}
+                      style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid #ccc", background: "transparent", color: "#666", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                      Cancelar
+                    </button>
+                    <button onClick={handleParseOrder} disabled={!parseText.trim() || parseLoading}
+                      style={{
+                        padding: "10px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                        background: !parseText.trim() || parseLoading ? "#A2C2D0" : "linear-gradient(135deg, #4F6867, #1B1C39)",
+                        color: "#fff", display: "flex", alignItems: "center", gap: 8,
+                        fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: !parseText.trim() || parseLoading ? "none" : "0 3px 12px rgba(79,104,103,0.35)",
+                        transition: "all 0.2s",
+                      }}>
+                      {parseLoading ? (
+                        <><span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} /> Analizando...</>
+                      ) : "Analizar"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Result preview phase */}
+              {parseResult && (
+                <>
+                  {/* Confidence badge */}
+                  <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{
+                      padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+                      background: parseResult.confidence === "high" ? "#E8F5E9" : parseResult.confidence === "medium" ? "#FFF3E0" : "#FFEBEE",
+                      color: parseResult.confidence === "high" ? "#2E7D32" : parseResult.confidence === "medium" ? "#E65100" : "#C62828",
+                    }}>
+                      {parseResult.confidence === "high" ? "Alta confianza" : parseResult.confidence === "medium" ? "Confianza media" : "Baja confianza"}
+                    </span>
+                  </div>
+
+                  {/* Detected info */}
+                  <div style={{ background: "#F8F6F3", borderRadius: 12, padding: "12px 14px", marginBottom: 12, fontSize: 13 }}>
+                    {parseResult.cliente && (
+                      <div style={{ marginBottom: 6 }}><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente:</span> <strong>{parseResult.cliente}</strong></div>
+                    )}
+                    {parseResult.telefono && (
+                      <div style={{ marginBottom: 6 }}><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Teléfono:</span> <strong>{parseResult.telefono}</strong></div>
+                    )}
+                    {parseResult.fecha && (
+                      <div style={{ marginBottom: 6 }}><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Fecha:</span> <strong>{fmt.date(parseResult.fecha)}{parseResult.hora ? ` a las ${parseResult.hora}` : ""}</strong></div>
+                    )}
+                    {parseResult.notas && (
+                      <div><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notas:</span> <strong>{parseResult.notas}</strong></div>
+                    )}
+                    {!parseResult.cliente && !parseResult.telefono && !parseResult.fecha && !parseResult.notas && (
+                      <div style={{ color: "#888" }}>No se detectaron datos del cliente</div>
+                    )}
+                  </div>
+
+                  {/* Products */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.07em", color: "#4F6867", fontWeight: 700, marginBottom: 8 }}>
+                      Productos detectados
+                    </div>
+                    {parseResult.lineas.length > 0 ? parseResult.lineas.map((l, i) => (
+                      <div key={i} style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "8px 12px", background: l.matched ? "#E8F5E9" : "#FFEBEE",
+                        borderRadius: 10, marginBottom: 4, fontSize: 13,
+                      }}>
+                        <span style={{ fontWeight: 600 }}>{l.nombre}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontFamily: "'Roboto Condensed', sans-serif", fontWeight: 700 }}>x{l.cantidad}</span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 6,
+                            background: l.matched ? "#2E7D32" : "#C62828", color: "#fff",
+                          }}>{l.matched ? "OK" : "?"}</span>
+                        </span>
+                      </div>
+                    )) : (
+                      <div style={{ color: "#888", fontSize: 13, padding: "8px 0" }}>No se detectaron productos</div>
+                    )}
+                  </div>
+
+                  {/* Warnings */}
+                  {parseResult.warnings?.length > 0 && (
+                    <div style={{ background: "#FFF8E1", border: "1px solid #FFD54F", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 12, color: "#F57F17" }}>
+                      {parseResult.warnings.map((w, i) => (
+                        <div key={i} style={{ marginBottom: i < parseResult.warnings.length - 1 ? 4 : 0 }}>⚠️ {w}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    <button onClick={() => { setParseResult(null); setParseError(null); }}
+                      style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid #ccc", background: "transparent", color: "#666", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                      Volver
+                    </button>
+                    <button onClick={() => aplicarParseo(parseResult)}
+                      disabled={parseResult.lineas.filter(l => l.matched).length === 0}
+                      style={{
+                        padding: "10px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                        background: parseResult.lineas.filter(l => l.matched).length === 0 ? "#A2C2D0" : "linear-gradient(135deg, #4F6867, #1B1C39)",
+                        color: "#fff", fontFamily: "'Roboto Condensed', sans-serif",
+                        boxShadow: parseResult.lineas.filter(l => l.matched).length === 0 ? "none" : "0 3px 12px rgba(79,104,103,0.35)",
+                        transition: "all 0.2s",
+                      }}>
+                      Aplicar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════
             WHATSAPP LISTO PROMPT

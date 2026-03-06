@@ -18,7 +18,8 @@ Vynia-MNGMNT/
 │   ├── clientes.js         # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
 │   ├── registros.js        # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
 │   ├── produccion.js       # GET (produccion diaria agregada con clientes)
-│   └── tracking.js         # GET (seguimiento publico por telefono)
+│   ├── tracking.js         # GET (seguimiento publico por telefono)
+│   └── parse-order.js      # POST (parseo IA de mensajes WhatsApp)
 ├── __tests__/              # Vitest test suite (51 tests, 14 files)
 ├── public/
 │   ├── seguimiento.html    # Pagina publica de seguimiento de pedidos (standalone, sin React)
@@ -144,6 +145,14 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Lee nombre de producto de formula `"AUX Producto Texto"`, no del titulo
 - Incluye lista completa de productos de cada pedido en `pedido.productos`
 - Usa OR query unico para traer todos los registros de todos los pedidos de golpe (mismo patron que tracking.js). Para >100 pedidos, divide en chunks de 100 (limite de compound filter de Notion)
+- **Modo rango** (sugerencias de fecha): `GET /api/produccion?fecha=YYYY-MM-DD&rango=7` devuelve produccion ligera de multiples dias en una sola llamada. Respuesta: `{ produccion: { "YYYY-MM-DD": [{ nombre, totalUnidades }], ... } }`. Solo nombre y unidades por producto/dia (sin datos de cliente/pedido). Rango max 14 dias. Cache 60s con key `produccion-rango:${fecha}:${dias}`
+
+### POST /api/parse-order
+- Body: `{ text: string, senderName?: string, senderPhone?: string }`
+- Parsea un mensaje de WhatsApp con Claude Haiku y devuelve datos estructurados del pedido
+- Flujo: 1) Carga catalogo via `loadCatalog()` (cached 5min), 2) Llama a Anthropic API con prompt + catalogo + fecha actual, 3) Post-procesa: valida productos contra catalogo, calcula confidence
+- Devuelve `{ ok, confidence, cliente, telefono, fecha, hora, pagado, notas, lineas: [{ nombre, cantidad, matched }], warnings: [] }`
+- Env var: `ANTHROPIC_API_KEY`
 
 ### GET /api/tracking
 - Query params: `tel=612345678` (numero de telefono, minimo 6 digitos)
@@ -212,12 +221,14 @@ Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()`
 - `deleteRegistros(registroIds)` — DELETE /api/registros
 - `findOrphanRegistros()` — GET /api/registros?orphans=true
 - `loadProduccion(fecha)` — GET /api/produccion?fecha=...
+- `loadProduccionRango(fecha, rango)` — GET /api/produccion?fecha=...&rango=N (produccion ligera multi-dia para sugerencias de fecha)
 - `loadProductos()` — GET /api/registros?productos=true
+- `parseWhatsApp(text, senderName?, senderPhone?)` — POST /api/parse-order
 
 ## Tabs de la app
 
 1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado prominente como cabecera de cada card, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple, toggle de visibilidad de precios (boton `€ ON/OFF` junto a barra de busqueda, oculto por defecto). Fila de fecha: botones Hoy/Manana/Pasado a la izquierda + datepicker al extremo derecho. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
-2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. 2) Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar"
+2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas)` — logica pura sin IA. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
 3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
 
 ## Sistema de Estado
@@ -298,7 +309,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - Variable de entorno en Vercel: `NOTION_TOKEN`
 - Git integration: push a `main` autodeploya automaticamente
 - Repo: `github.com/javintnvn/Vynia-MNGMNT`
-- **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 6 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
+- **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 7 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
 - **OBLIGATORIO en cada commit**: 1) Actualizar `"version"` en `package.json` (semver: patch para fixes/perf, minor para features, major para breaking changes). 2) Documentar los cambios en la seccion `## Changelog vX.Y.Z` al final de este archivo (CLAUDE.md) con ID de cambio (FIX-xx, FEAT-xx, PERF-xx) y descripcion concisa
 
 ## Notas tecnicas
@@ -405,3 +416,13 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-05**: CTA de resena Google rediseñado — fondo glass-morphism blanco (diferenciado del boton de busqueda verde). Logo oficial de Google Review (`google-review.png`) en lugar del SVG de estrella. Texto oscuro sobre fondo claro para contraste con la seccion de busqueda
+
+## Changelog v1.6.0
+
+### Mejoras
+- **FEAT-06**: Sugerencia inteligente de fecha de entrega — al crear un pedido, el sistema analiza la produccion de los proximos 7 dias y sugiere fechas optimas basandose en solapamiento de productos. Nuevo param `rango` en `GET /api/produccion` para consulta multi-dia ligera (1 API call en lugar de 7). Scoring: `overlapCount * 3 + overlapUnits`, desempate por fecha mas cercana. UI: seccion de sugerencias en Paso 2 del formulario "Nuevo" con chips clickables que muestran productos en comun y unidades. El usuario siempre tiene la ultima palabra. 11 tests nuevos en `date-suggestions.test.js`
+
+## Changelog v1.7.0
+
+### Mejoras
+- **FEAT-07**: Boton "Pegar pedido" en tab Nuevo — parsea mensajes de WhatsApp con IA (Claude Haiku 4.5) y pre-rellena el formulario. Modal glass-morphism con textarea, preview de resultado con badge de confianza (alta/media/baja), lista de productos detectados con indicador matched/no-matched, y warnings para productos no encontrados. Nuevo endpoint `api/parse-order.js` (7/12 serverless functions). Catalogo de productos extraido a `_notion.js` como funcion compartida `loadCatalog()` (reutilizada por `registros.js` y `parse-order.js`). Env var: `ANTHROPIC_API_KEY`

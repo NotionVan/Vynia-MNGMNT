@@ -23,9 +23,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { fecha } = req.query;
+  const { fecha, rango } = req.query;
   if (!fecha) {
     return res.status(400).json({ error: "Missing fecha parameter" });
+  }
+
+  // Multi-day range mode: lightweight response for date suggestions
+  if (rango) {
+    return handleRango(req, res, fecha, parseInt(rango, 10));
   }
 
   try {
@@ -158,7 +163,106 @@ export default async function handler(req, res) {
 }
 
 function nextDay(dateStr) {
+  return addDays(dateStr, 1);
+}
+
+function addDays(dateStr, n) {
   const d = new Date(dateStr);
-  d.setDate(d.getDate() + 1);
+  d.setDate(d.getDate() + n);
   return d.toISOString().split("T")[0];
+}
+
+async function handleRango(req, res, fecha, dias) {
+  dias = Math.max(1, Math.min(dias, 14));
+  const endDate = addDays(fecha, dias);
+
+  try {
+    const result = await cached(`produccion-rango:${fecha}:${dias}`, 60000, async () => {
+      // 1. Fetch all pedidos in the date range
+      let pedidos = [];
+      let cursor;
+      do {
+        const r = await notion.databases.query({
+          database_id: DB_PEDIDOS,
+          filter: {
+            and: [
+              { property: "Fecha entrega", date: { on_or_after: fecha } },
+              { property: "Fecha entrega", date: { before: endDate } },
+              { property: "No acude", checkbox: { equals: false } },
+            ],
+          },
+          start_cursor: cursor,
+          page_size: 100,
+        });
+        pedidos = pedidos.concat(r.results);
+        cursor = r.has_more ? r.next_cursor : undefined;
+      } while (cursor);
+
+      if (pedidos.length === 0) return {};
+
+      // 2. Map pedido ID → delivery date (YYYY-MM-DD)
+      const pedidoDateMap = {};
+      for (const page of pedidos) {
+        const ds = extractDateStart(page.properties["Fecha entrega"]);
+        pedidoDateMap[page.id] = ds ? ds.split("T")[0] : "";
+      }
+
+      // 3. Bulk fetch registros (OR in chunks of 100)
+      const pedidoIds = Object.keys(pedidoDateMap);
+      const OR_BATCH = 100;
+      let allRegistros = [];
+
+      for (let i = 0; i < pedidoIds.length; i += OR_BATCH) {
+        const chunk = pedidoIds.slice(i, i + OR_BATCH);
+        const orCond = chunk.map(id => ({
+          property: "Pedidos",
+          relation: { contains: id },
+        }));
+        let regCursor;
+        do {
+          const rr = await notion.databases.query({
+            database_id: DB_REGISTROS,
+            filter: orCond.length === 1 ? orCond[0] : { or: orCond },
+            start_cursor: regCursor,
+            page_size: 100,
+          });
+          allRegistros = allRegistros.concat(rr.results);
+          regCursor = rr.has_more ? rr.next_cursor : undefined;
+        } while (regCursor);
+      }
+
+      // 4. Aggregate: date → product → totalUnidades
+      const byDate = {};
+      for (const reg of allRegistros) {
+        const regPedidoIds = (reg.properties["Pedidos"]?.relation || []).map(r => r.id);
+        const auxProd = reg.properties["AUX Producto Texto"];
+        const nombre = (auxProd?.formula?.string || "").trim()
+          || extractTitle(reg.properties["Nombre"]);
+        const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
+        if (!nombre || unidades === 0) continue;
+
+        for (const pid of regPedidoIds) {
+          const d = pedidoDateMap[pid];
+          if (!d) continue;
+          if (!byDate[d]) byDate[d] = {};
+          if (!byDate[d][nombre]) byDate[d][nombre] = 0;
+          byDate[d][nombre] += unidades;
+        }
+      }
+
+      // 5. Convert to response format: { date: [{ nombre, totalUnidades }] }
+      const produccion = {};
+      for (const [date, prods] of Object.entries(byDate)) {
+        produccion[date] = Object.entries(prods)
+          .map(([nombre, totalUnidades]) => ({ nombre, totalUnidades }))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      }
+      return produccion;
+    });
+
+    return res.status(200).json({ produccion: result });
+  } catch (error) {
+    console.error("Error loading produccion rango:", error);
+    return res.status(500).json({ error: error.message });
+  }
 }

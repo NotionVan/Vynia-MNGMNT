@@ -210,7 +210,18 @@ export const notion = {
     return apiCall(`/produccion?fecha=${fecha}`);
   },
 
+  async loadProduccionRango(fecha, rango = 7) {
+    return apiCall(`/produccion?fecha=${fecha}&rango=${rango}`);
+  },
+
   async loadProductos() {
     return apiCall("/registros?productos=true");
+  },
+
+  async parseWhatsApp(text, senderName, senderPhone) {
+    return apiCall("/parse-order", {
+      method: "POST",
+      body: JSON.stringify({ text, senderName, senderPhone }),
+    });
   },
 };
