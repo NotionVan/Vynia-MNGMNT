@@ -562,6 +562,28 @@ function EstadoGauge({ estado, size = 44 }) {
   );
 }
 
+function PipelineRing({ count, total, color, bg }) {
+  const size = 68;
+  const sw = 5;
+  const r = (size - sw) / 2;
+  const cx = size / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = total > 0 ? count / total : 0;
+  const offset = circ * (1 - pct);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke={bg} strokeWidth={sw} />
+      {pct > 0 && (
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={sw}
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.65, 0, 0.35, 1)" }}
+        />
+      )}
+    </svg>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
 //  MAIN APP COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -725,6 +747,11 @@ export default function VyniaApp() {
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkSelected, setBulkSelected] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Glass calendar
+  const [glassCalTarget, setGlassCalTarget] = useState(null); // null | "pedidos" | "produccion"
+  const [glassCalMonth, setGlassCalMonth] = useState(null); // "YYYY-MM"
+  const glassCalRef = useRef(null);
 
   // Refs
   const toastTimer = useRef(null);
@@ -960,10 +987,92 @@ export default function VyniaApp() {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
       }
+      if (glassCalRef.current && !glassCalRef.current.contains(e.target)) {
+        setGlassCalTarget(null);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // ─── GLASS CALENDAR ───
+  const openGlassCal = (target, currentDate) => {
+    if (glassCalTarget === target) { setGlassCalTarget(null); return; }
+    const month = (currentDate || fmt.todayISO()).substring(0, 7);
+    setGlassCalTarget(target);
+    setGlassCalMonth(month);
+  };
+  const glassCalNav = (delta) => {
+    if (!glassCalMonth) return;
+    const [y, m] = glassCalMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setGlassCalMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+  useEffect(() => {
+    if (glassCalTarget) {
+      const el = document.getElementById(`gcal-sel-${glassCalTarget}`);
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }), 60);
+    }
+  }, [glassCalTarget, glassCalMonth]);
+  const renderGlassCal = (target, selectedVal, onChange) => {
+    if (glassCalTarget !== target || !glassCalMonth) return null;
+    const [y, m] = glassCalMonth.split("-").map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const monthName = new Date(y, m - 1, 15).toLocaleDateString("es-ES", { month: "long" });
+    const today = fmt.todayISO();
+    const days = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(y, m - 1, d);
+      const val = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      days.push({ val, day: d, weekday: date.toLocaleDateString("es-ES", { weekday: "narrow" }).toUpperCase(), isToday: val === today });
+    }
+    return (
+      <div ref={glassCalRef} style={{
+        background: "rgba(27,28,57,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        borderRadius: 16, padding: "14px 0", border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.25)", animation: "popoverIn 0.18s ease-out",
+        marginTop: 8, overflow: "hidden",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 14px" }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: "#fff", textTransform: "capitalize", fontFamily: "'Roboto Condensed', sans-serif", letterSpacing: "-0.02em" }}>{monthName}</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={() => glassCalNav(-1)} style={{ border: "none", background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.7)" }}>
+              <span style={{ transform: "rotate(180deg)", display: "flex" }}><I.Chevron s={12} /></span>
+            </button>
+            <button onClick={() => glassCalNav(1)} style={{ border: "none", background: "rgba(255,255,255,0.1)", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.7)" }}>
+              <I.Chevron s={12} />
+            </button>
+          </div>
+        </div>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", padding: "0 14px" }} className="scrollbar-hide">
+          <div style={{ display: "flex", gap: 10 }}>
+            {days.map(d => {
+              const sel = selectedVal === d.val;
+              return (
+                <div key={d.val} id={sel ? `gcal-sel-${target}` : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)" }}>{d.weekday}</span>
+                  <button onClick={() => { onChange(d.val); setGlassCalTarget(null); }}
+                    style={{
+                      width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 13, fontWeight: 600, position: "relative",
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                      background: sel ? "linear-gradient(135deg, #4F6867, #A2C2D0)" : "transparent",
+                      color: "#fff",
+                      boxShadow: sel ? "0 2px 12px rgba(79,104,103,0.5)" : "none",
+                      transition: "all 0.2s",
+                    }}>
+                    {d.isToday && !sel && <span style={{ position: "absolute", bottom: 1, width: 4, height: 4, borderRadius: "50%", background: "#A2C2D0" }} />}
+                    {d.day}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ─── LOAD PRODUCTS FOR SELECTED PEDIDO ───
   useEffect(() => {
@@ -2009,11 +2118,10 @@ export default function VyniaApp() {
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 150, backdropFilter: "blur(4px)",
         }}>
-          <div style={{
-            width: 44, height: 44, border: "3px solid #A2C2D0",
-            borderTopColor: "#4F6867", borderRadius: "50%",
-            animation: "spin 0.7s linear infinite",
-          }} />
+          <div style={{ position: "relative", width: 44, height: 44 }}>
+            <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 2.5px #4F6867", animation: "loaderAnim 2.5s infinite" }} />
+            <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 2.5px #4F6867", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} />
+          </div>
         </div>
       )}
 
@@ -2053,22 +2161,25 @@ export default function VyniaApp() {
                 })}
               </div>
               <div style={{ flex: 1 }} />
-              <div style={{ width: 140, position: "relative", display: "flex", alignItems: "center" }}>
-                <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
-                <input type="date" lang="es" value={filtroFecha || ""}
-                  onChange={e => { const v = e.target.value || null; setFiltroFecha(v); loadPedidos(v); }}
-                  title="Seleccionar fecha concreta"
-                  style={{
-                    width: "100%", padding: "9px 8px 9px 30px", borderRadius: 10,
-                    border: filtroFecha && ![fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO(), null].includes(filtroFecha)
-                      ? "2px solid #4F6867" : "1.5px solid #d4cec6",
-                    background: filtroFecha && ![fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO(), null].includes(filtroFecha)
-                      ? "#E1F2FC" : "#fff",
-                    fontSize: 13, color: "#1B1C39",
-                    outline: "none",
-                  }} />
-              </div>
+              {(() => {
+                const isCustomDate = filtroFecha && ![fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()].includes(filtroFecha);
+                return (
+                  <button title="Seleccionar fecha" onClick={() => openGlassCal("pedidos", filtroFecha)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
+                      border: isCustomDate ? "2px solid #4F6867" : "1.5px solid #d4cec6",
+                      background: isCustomDate ? "#E1F2FC" : "#fff",
+                      cursor: "pointer", fontSize: 13, color: "#1B1C39",
+                      fontFamily: "'Roboto Condensed', sans-serif", fontWeight: isCustomDate ? 700 : 500,
+                      transition: "all 0.2s",
+                    }}>
+                    <I.Cal s={14} c="#4F6867" />
+                    {isCustomDate ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
+                  </button>
+                );
+              })()}
             </div>
+            {renderGlassCal("pedidos", filtroFecha, (v) => { setFiltroFecha(v); loadPedidos(v); })}
 
             {/* ── Status filter pills + search ── */}
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -2324,12 +2435,10 @@ export default function VyniaApp() {
                 }}>Pedidos</div>
                 {fichaClienteLoading ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0" }}>
-                    <div style={{
-                      width: 28, height: 28, border: "2px solid #A2C2D0",
-                      borderTopColor: "#4F6867", borderRadius: "50%",
-                      animation: "spin 0.7s linear infinite",
-                      margin: "0 auto",
-                    }} />
+                    <div style={{ position: "relative", width: 28, height: 28, margin: "0 auto" }}>
+                      <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1.5px #4F6867", animation: "loaderAnim 2.5s infinite" }} />
+                      <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1.5px #4F6867", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} />
+                    </div>
                   </div>
                 ) : fichaClientePedidos.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0", fontSize: 13 }}>
@@ -3314,18 +3423,25 @@ export default function VyniaApp() {
                   );
                 })}
                 </div>
-                <div style={{ flex: 0.6, position: "relative", display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
-                  <input type="date" lang="es" value={produccionFecha}
-                    onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); setExpandAll(false); loadProduccion(e.target.value); }}
-                    style={{
-                      width: "100%", padding: "8px 8px 8px 30px", borderRadius: 10,
-                      border: "1px solid rgba(162,194,208,0.3)", fontSize: 13,
-                      background: "#fff", color: "#1B1C39",
-                      outline: "none",
-                    }} />
-                </div>
+                {(() => {
+                  const isPreset = [fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()].includes(produccionFecha);
+                  return (
+                    <button title="Seleccionar fecha" onClick={() => openGlassCal("produccion", produccionFecha)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
+                        border: !isPreset ? "2px solid #4F6867" : "1px solid rgba(162,194,208,0.3)",
+                        background: !isPreset ? "#E1F2FC" : "#fff",
+                        cursor: "pointer", fontSize: 13, color: "#1B1C39",
+                        fontFamily: "'Roboto Condensed', sans-serif", fontWeight: !isPreset ? 700 : 500,
+                        transition: "all 0.2s",
+                      }}>
+                      <I.Cal s={14} c="#4F6867" />
+                      {!isPreset ? new Date(produccionFecha + "T12:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
+                    </button>
+                  );
+                })()}
               </div>
+              {renderGlassCal("produccion", produccionFecha, (v) => { setProduccionFecha(v); setExpandedProduct(null); setExpandAll(false); loadProduccion(v); })}
 
               {/* Toggle recogidos */}
               <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14, flex: isDesktop ? "none" : undefined }}>
@@ -4514,7 +4630,7 @@ export default function VyniaApp() {
                         transition: "all 0.2s",
                       }}>
                       {parseLoading ? (
-                        <><span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} /> Analizando...</>
+                        <><span style={{ position: "relative", display: "inline-block", width: 14, height: 14 }}><span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1px #fff", animation: "loaderAnim 2.5s infinite" }} /><span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1px #fff", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} /></span> Analizando...</>
                       ) : "Analizar"}
                     </button>
                   </div>
@@ -5090,7 +5206,7 @@ export default function VyniaApp() {
           { key: "nuevo", icon: <I.Plus s={22} />, label: "Nuevo", tip: "Crear nuevo pedido" },
           { key: "produccion", icon: <I.ChefHat s={22} />, label: "Producción", tip: "Ver producción diaria" },
         ].map(t => (
-          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setCreateResult(null); if (t.key === "nuevo") resetForm(); if (t.key !== "pedidos") { setBusqueda(""); setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
+          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setGlassCalTarget(null); setCreateResult(null); if (t.key === "nuevo") resetForm(); if (t.key !== "pedidos") { setBusqueda(""); setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
             style={{
               flex: 1, padding: "6px 0", border: "none",
               background: "transparent", cursor: "pointer",
@@ -5194,7 +5310,17 @@ export default function VyniaApp() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes loaderAnim {
+          0%    { inset: 0   54% 54% 0;   }
+          12.5% { inset: 0   54% 0   0;   }
+          25%   { inset: 54% 54% 0   0;   }
+          37.5% { inset: 54% 0   0   0;   }
+          50%   { inset: 54% 0   0   54%; }
+          62.5% { inset: 0   0   0   54%; }
+          75%   { inset: 0   0   54% 54%; }
+          87.5% { inset: 0   0   54% 0;   }
+          100%  { inset: 0   54% 54% 0;   }
+        }
         @keyframes slideIn {
           from { opacity: 0; transform: translate(-50%, -12px); }
           to { opacity: 1; transform: translate(-50%, 0); }
@@ -5356,6 +5482,8 @@ export default function VyniaApp() {
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #A2C2D0; border-radius: 2px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         input[type="date"], input[type="time"] {
           -webkit-appearance: none; appearance: none;
         }
