@@ -680,6 +680,8 @@ export default function VyniaApp() {
   const [showChangelog, setShowChangelog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  const headerRef = useRef(null);
+  const [headerH, setHeaderH] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [helpExpanded, setHelpExpanded] = useState(new Set());
   const [helpActiveCategory, setHelpActiveCategory] = useState(null);
@@ -994,6 +996,16 @@ export default function VyniaApp() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ─── HEADER HEIGHT (for sticky filters on mobile) ───
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const measure = () => setHeaderH(headerRef.current.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(headerRef.current);
+    return () => ro.disconnect();
   }, []);
 
   // ─── GLASS CALENDAR ───
@@ -1901,7 +1913,7 @@ export default function VyniaApp() {
       paddingBottom: 90,
     }}>
       {/* ════ HEADER ════ */}
-      <header style={{
+      <header ref={headerRef} style={{
         background: "linear-gradient(180deg, #E1F2FC 0%, #EFE9E4 100%)",
         padding: isDesktop ? "16px 48px 12px" : "16px 20px 12px",
         position: "sticky", top: 0, zIndex: 50,
@@ -2173,6 +2185,16 @@ export default function VyniaApp() {
         ══════════════════════════════════════════ */}
         {tab === "pedidos" && (
           <div style={{ paddingTop: 12 }}>
+            {/* ── Sticky filters wrapper (mobile) ── */}
+            <div style={{
+              ...(!isDesktop ? {
+                position: "sticky", top: headerH, zIndex: 45,
+                background: "#EFE9E4",
+                marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16,
+                paddingTop: 2, paddingBottom: 6,
+                borderBottom: "1px solid rgba(162,194,208,0.2)",
+              } : {}),
+            }}>
             {/* ── Date selector row ── */}
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14 }}>
@@ -2362,6 +2384,7 @@ export default function VyniaApp() {
                 </div>
               </div>
             </div>
+            </div>{/* ── end sticky filters wrapper ── */}
 
             {/* ── Pipeline summary ── */}
             <div style={{
