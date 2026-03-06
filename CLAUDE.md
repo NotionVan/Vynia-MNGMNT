@@ -400,3 +400,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-04**: CTA de resena Google movido encima de la lista de pedidos (debajo de la barra de busqueda) en lugar de al final, para mayor visibilidad
+
+## Changelog v1.5.5
+
+### Mejoras
+- **FEAT-05**: CTA de resena Google rediseñado — fondo glass-morphism blanco (diferenciado del boton de busqueda verde). Logo oficial de Google Review (`google-review.png`) en lugar del SVG de estrella. Texto oscuro sobre fondo claro para contraste con la seccion de busqueda
