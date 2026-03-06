@@ -1952,35 +1952,63 @@ export default function VyniaApp() {
             </div>
           </div>
 
-          {/* Stats pills — desktop: inline in header row */}
+          {/* Stats dot-cards — desktop: inline in header row */}
           {isDesktop && (
             <div style={{
-              display: "flex", gap: 6, flex: 1, justifyContent: "center", maxWidth: 420,
+              display: "flex", gap: 8, flex: 1, justifyContent: "center", maxWidth: 460,
             }}>
               {[
-                { label: "Total", value: statsTotal, color: "#4F6867", bg: "#E1F2FC", filter: "todos" },
-                { label: "Pendientes", value: statsPendientes, color: "#1B1C39", bg: "#E1F2FC", filter: "pendientes" },
-                { label: "Recogidos", value: statsRecogidos, color: "#4F6867", bg: "#E1F2FC", filter: "recogidos" },
-              ].map(s => (
-                <button key={s.label} title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
+                { label: "Total", value: statsTotal, color: "#4F6867", dotDelay: "0s", filter: "todos" },
+                { label: "Pendientes", value: statsPendientes, color: "#1565C0", dotDelay: "-2s", filter: "pendientes" },
+                { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", dotDelay: "-4s", filter: "recogidos" },
+              ].map(s => {
+                const active = filtro === s.filter && tab === "pedidos";
+                return (
+                <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
                   style={{
-                    flex: 1, padding: "6px 8px", borderRadius: 10,
-                    border: filtro === s.filter && tab === "pedidos" ? `1.5px solid ${s.color}` : "1px solid #A2C2D0",
-                    background: filtro === s.filter && tab === "pedidos" ? s.bg : "#fff",
+                    position: "relative", overflow: "hidden",
+                    flex: 1, padding: "10px 8px", borderRadius: 14,
+                    background: active ? "rgba(225,242,252,0.6)" : "rgba(239,233,228,0.45)",
+                    backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                    border: active ? `1.5px solid ${s.color}55` : "1px solid rgba(162,194,208,0.25)",
                     cursor: "pointer", textAlign: "center",
-                    transition: "all 0.2s",
+                    transition: "all 0.25s",
+                    boxShadow: active ? `0 2px 12px ${s.color}18` : "none",
                   }}>
-                  <div style={{
-                    fontSize: 18, fontWeight: 800,
-                    fontFamily: "'Roboto Condensed', sans-serif", color: s.color,
-                    lineHeight: 1,
-                  }}>{s.value}</div>
-                  <div style={{
-                    fontSize: 9, color: "#4F6867", marginTop: 2,
-                    textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600,
-                  }}>{s.label}</div>
+                  {/* Moving dot */}
+                  <span style={{
+                    position: "absolute", width: 7, height: 7, borderRadius: "50%",
+                    background: s.color, opacity: active ? 0.9 : 0.5,
+                    boxShadow: `0 0 10px 2px ${s.color}50`,
+                    animation: "moveDot 6s linear infinite",
+                    animationDelay: s.dotDelay,
+                  }} />
+                  {/* Ray gradient */}
+                  <span style={{
+                    position: "absolute", inset: 0, borderRadius: "inherit",
+                    background: `radial-gradient(circle at 50% 0%, ${s.color}${active ? "18" : "0A"} 0%, transparent 65%)`,
+                    pointerEvents: "none",
+                  }} />
+                  {/* Corner lines */}
+                  <span style={{ position: "absolute", top: 6, left: 6, width: 10, height: 1, background: `${s.color}30`, borderRadius: 1 }} />
+                  <span style={{ position: "absolute", top: 6, left: 6, width: 1, height: 10, background: `${s.color}30`, borderRadius: 1 }} />
+                  <span style={{ position: "absolute", bottom: 6, right: 6, width: 10, height: 1, background: `${s.color}30`, borderRadius: 1 }} />
+                  <span style={{ position: "absolute", bottom: 6, right: 6, width: 1, height: 10, background: `${s.color}30`, borderRadius: 1 }} />
+                  {/* Content */}
+                  <div style={{ position: "relative", zIndex: 1 }}>
+                    <div style={{
+                      fontSize: 20, fontWeight: 800,
+                      fontFamily: "'Roboto Condensed', sans-serif", color: s.color,
+                      lineHeight: 1,
+                    }}>{s.value}</div>
+                    <div style={{
+                      fontSize: 9, color: "#4F6867", marginTop: 3,
+                      textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600,
+                    }}>{s.label}</div>
+                  </div>
                 </button>
-              ))}
+              );
+              })}
             </div>
           )}
 
@@ -2043,35 +2071,63 @@ export default function VyniaApp() {
           </div>
         </div>
 
-        {/* Stats bar — mobile/tablet only (desktop renders inline above) */}
+        {/* Stats dot-cards — mobile/tablet only (desktop renders inline above) */}
         <div style={{
           display: isDesktop ? "none" : "flex", gap: 8, marginTop: 14, overflow: "auto",
           scrollbarWidth: "none", msOverflowStyle: "none",
         }}>
           {[
-            { label: "Total", value: statsTotal, color: "#4F6867", bg: "#E1F2FC", filter: "todos" },
-            { label: "Pendientes", value: statsPendientes, color: "#1B1C39", bg: "#E1F2FC", filter: "pendientes" },
-            { label: "Recogidos", value: statsRecogidos, color: "#4F6867", bg: "#E1F2FC", filter: "recogidos" },
-          ].map(s => (
-            <button key={s.label} title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
+            { label: "Total", value: statsTotal, color: "#4F6867", dotDelay: "0s", filter: "todos" },
+            { label: "Pendientes", value: statsPendientes, color: "#1565C0", dotDelay: "-2s", filter: "pendientes" },
+            { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", dotDelay: "-4s", filter: "recogidos" },
+          ].map(s => {
+            const active = filtro === s.filter && tab === "pedidos";
+            return (
+            <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
               style={{
-                flex: 1, padding: "10px 8px", borderRadius: 10,
-                border: filtro === s.filter && tab === "pedidos" ? `1.5px solid ${s.color}` : "1px solid #A2C2D0",
-                background: filtro === s.filter && tab === "pedidos" ? s.bg : "#fff",
+                position: "relative", overflow: "hidden",
+                flex: 1, padding: "12px 8px", borderRadius: 14,
+                background: active ? "rgba(225,242,252,0.6)" : "rgba(239,233,228,0.45)",
+                backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                border: active ? `1.5px solid ${s.color}55` : "1px solid rgba(162,194,208,0.25)",
                 cursor: "pointer", textAlign: "center",
-                transition: "all 0.2s",
+                transition: "all 0.25s",
+                boxShadow: active ? `0 2px 12px ${s.color}18` : "none",
               }}>
-              <div style={{
-                fontSize: 22, fontWeight: 800,
-                fontFamily: "'Roboto Condensed', sans-serif", color: s.color,
-                lineHeight: 1,
-              }}>{s.value}</div>
-              <div style={{
-                fontSize: 10, color: "#4F6867", marginTop: 3,
-                textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600,
-              }}>{s.label}</div>
+              {/* Moving dot */}
+              <span style={{
+                position: "absolute", width: 8, height: 8, borderRadius: "50%",
+                background: s.color, opacity: active ? 0.9 : 0.5,
+                boxShadow: `0 0 12px 3px ${s.color}50`,
+                animation: "moveDot 6s linear infinite",
+                animationDelay: s.dotDelay,
+              }} />
+              {/* Ray gradient */}
+              <span style={{
+                position: "absolute", inset: 0, borderRadius: "inherit",
+                background: `radial-gradient(circle at 50% 0%, ${s.color}${active ? "18" : "0A"} 0%, transparent 65%)`,
+                pointerEvents: "none",
+              }} />
+              {/* Corner lines */}
+              <span style={{ position: "absolute", top: 6, left: 6, width: 12, height: 1, background: `${s.color}30`, borderRadius: 1 }} />
+              <span style={{ position: "absolute", top: 6, left: 6, width: 1, height: 12, background: `${s.color}30`, borderRadius: 1 }} />
+              <span style={{ position: "absolute", bottom: 6, right: 6, width: 12, height: 1, background: `${s.color}30`, borderRadius: 1 }} />
+              <span style={{ position: "absolute", bottom: 6, right: 6, width: 1, height: 12, background: `${s.color}30`, borderRadius: 1 }} />
+              {/* Content */}
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div style={{
+                  fontSize: 22, fontWeight: 800,
+                  fontFamily: "'Roboto Condensed', sans-serif", color: s.color,
+                  lineHeight: 1,
+                }}>{s.value}</div>
+                <div style={{
+                  fontSize: 10, color: "#4F6867", marginTop: 3,
+                  textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600,
+                }}>{s.label}</div>
+              </div>
             </button>
-          ))}
+          );
+          })}
         </div>
       </header>
 

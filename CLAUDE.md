@@ -611,3 +611,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FEAT-31**: Boton "Pagado" prominente en modal de detalle de pedido — el badge minusculo (9px) reemplazado por un boton full-width entre la seccion de info y productos. Estilo: gradiente Vynia (#4F6867→#3D5655) con sombra cuando pagado, borde semitransparente cuando no pagado. Icono SVG de moneda, texto "Pagado"/"Marcar como pagado", font 14px Roboto Condensed. El badge informativo "PAGADO" se mantiene en la fila de estado (solo lectura). Funcionalidad sin cambios (requestPagadoChange)
+
+## Changelog v2.2.2
+
+### Mejoras
+- **FEAT-32**: Stats cards estilo moving-dot — las tarjetas de estadisticas (Total/Pendientes/Recogidos) rediseñadas con efecto dot-card: punto luminoso (7-8px) que recorre el borde de la tarjeta con animacion `moveDot` (6s linear infinite, delays staggered), 4 lineas de esquina decorativas (L-brackets), gradiente radial "ray" desde el borde superior, fondo glass-morphism con backdrop-blur. Colores distintivos por tipo: Total (#4F6867 Vynia), Pendientes (#1565C0 azul pipeline), Recogidos (#2E7D32 verde pipeline). Estado activo: fondo accent azul claro, borde coloreado, dot mas brillante, ray mas intenso. Hover: lift -2px + sombra. Aplicado a ambas versiones: desktop (header inline) y mobile (barra de stats). Nueva keyframe `moveDot` + clase `.dot-card`
