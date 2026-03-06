@@ -615,4 +615,9 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 ## Changelog v2.2.2
 
 ### Mejoras
-- **FEAT-32**: Stats cards estilo moving-dot — las tarjetas de estadisticas (Total/Pendientes/Recogidos) rediseñadas con efecto dot-card: punto luminoso (7-8px) que recorre el borde de la tarjeta con animacion `moveDot` (6s linear infinite, delays staggered), 4 lineas de esquina decorativas (L-brackets), gradiente radial "ray" desde el borde superior, fondo glass-morphism con backdrop-blur. Colores distintivos por tipo: Total (#4F6867 Vynia), Pendientes (#1565C0 azul pipeline), Recogidos (#2E7D32 verde pipeline). Estado activo: fondo accent azul claro, borde coloreado, dot mas brillante, ray mas intenso. Hover: lift -2px + sombra. Aplicado a ambas versiones: desktop (header inline) y mobile (barra de stats). Nueva keyframe `moveDot` + clase `.dot-card`
+- **FEAT-32**: Stats cards estilo dot-card — las tarjetas de estadisticas (Total/Pendientes/Recogidos) rediseñadas con 4 lineas de esquina decorativas (L-brackets), gradiente radial "ray" desde el borde superior, fondo glass-morphism con backdrop-blur. Colores distintivos por tipo: Total (#4F6867 Vynia), Pendientes (#1565C0 azul pipeline), Recogidos (#2E7D32 verde pipeline). Estado activo: fondo accent azul claro, borde coloreado, ray mas intenso. Hover: lift -2px + sombra. Aplicado a ambas versiones: desktop (header inline) y mobile (barra de stats). Clase `.dot-card`
+
+## Changelog v2.2.3
+
+### Bug fixes
+- **FIX-17**: Eliminado punto animado (moveDot) de las stats cards — el dot luminoso que recorria el borde de cada tarjeta eliminado junto con la keyframe `moveDot`. Se mantiene el resto del diseno: L-brackets, ray gradient, glass-morphism, colores distintivos y hover lift

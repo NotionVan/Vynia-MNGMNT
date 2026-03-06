@@ -184,6 +184,7 @@ const I = {
   Gear: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /></svg>,
   Info: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 12v4" /><path d="M12 8h.01" /></svg>,
   Menu: (p = {}) => <svg width={p.s || 20} height={p.s || 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>,
+  Whisk: (p = {}) => <svg width={p.s || 32} height={p.s || 32} viewBox="0 0 32 40" fill="none" stroke={p.c || "#4F6867"} strokeWidth="1.8" strokeLinecap="round"><line x1="16" y1="0" x2="16" y2="14" /><path d="M16 14 C16 14, 8 22, 8 32 M16 14 C16 14, 12 22, 13 32 M16 14 C16 14, 20 22, 19 32 M16 14 C16 14, 24 22, 24 32" /></svg>,
 };
 
 // ─── HELP CONTENT ───
@@ -1958,9 +1959,9 @@ export default function VyniaApp() {
               display: "flex", gap: 8, flex: 1, justifyContent: "center", maxWidth: 460,
             }}>
               {[
-                { label: "Total", value: statsTotal, color: "#4F6867", dotDelay: "0s", filter: "todos" },
-                { label: "Pendientes", value: statsPendientes, color: "#1565C0", dotDelay: "-2s", filter: "pendientes" },
-                { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", dotDelay: "-4s", filter: "recogidos" },
+                { label: "Total", value: statsTotal, color: "#4F6867", filter: "todos" },
+                { label: "Pendientes", value: statsPendientes, color: "#1565C0", filter: "pendientes" },
+                { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", filter: "recogidos" },
               ].map(s => {
                 const active = filtro === s.filter && tab === "pedidos";
                 return (
@@ -1975,14 +1976,6 @@ export default function VyniaApp() {
                     transition: "all 0.25s",
                     boxShadow: active ? `0 2px 12px ${s.color}18` : "none",
                   }}>
-                  {/* Moving dot */}
-                  <span style={{
-                    position: "absolute", width: 7, height: 7, borderRadius: "50%",
-                    background: s.color, opacity: active ? 0.9 : 0.5,
-                    boxShadow: `0 0 10px 2px ${s.color}50`,
-                    animation: "moveDot 6s linear infinite",
-                    animationDelay: s.dotDelay,
-                  }} />
                   {/* Ray gradient */}
                   <span style={{
                     position: "absolute", inset: 0, borderRadius: "inherit",
@@ -2077,9 +2070,9 @@ export default function VyniaApp() {
           scrollbarWidth: "none", msOverflowStyle: "none",
         }}>
           {[
-            { label: "Total", value: statsTotal, color: "#4F6867", dotDelay: "0s", filter: "todos" },
-            { label: "Pendientes", value: statsPendientes, color: "#1565C0", dotDelay: "-2s", filter: "pendientes" },
-            { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", dotDelay: "-4s", filter: "recogidos" },
+            { label: "Total", value: statsTotal, color: "#4F6867", filter: "todos" },
+            { label: "Pendientes", value: statsPendientes, color: "#1565C0", filter: "pendientes" },
+            { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", filter: "recogidos" },
           ].map(s => {
             const active = filtro === s.filter && tab === "pedidos";
             return (
@@ -2094,14 +2087,6 @@ export default function VyniaApp() {
                 transition: "all 0.25s",
                 boxShadow: active ? `0 2px 12px ${s.color}18` : "none",
               }}>
-              {/* Moving dot */}
-              <span style={{
-                position: "absolute", width: 8, height: 8, borderRadius: "50%",
-                background: s.color, opacity: active ? 0.9 : 0.5,
-                boxShadow: `0 0 12px 3px ${s.color}50`,
-                animation: "moveDot 6s linear infinite",
-                animationDelay: s.dotDelay,
-              }} />
               {/* Ray gradient */}
               <span style={{
                 position: "absolute", inset: 0, borderRadius: "inherit",
@@ -2177,7 +2162,7 @@ export default function VyniaApp() {
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 150, backdropFilter: "blur(4px)",
         }}>
-          <div style={{ width: 44, height: 44, background: "#4F6867", animation: "doughRise 2.5s ease-in-out infinite" }} />
+          <div style={{ animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%" }}><I.Whisk s={44} /></div>
         </div>
       )}
 
@@ -2523,7 +2508,7 @@ export default function VyniaApp() {
                 }}>Pedidos</div>
                 {fichaClienteLoading ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0" }}>
-                    <div style={{ width: 28, height: 28, margin: "0 auto", background: "#4F6867", animation: "doughRise 2.5s ease-in-out infinite" }} />
+                    <div style={{ margin: "0 auto", width: 28, animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%" }}><I.Whisk s={28} /></div>
                   </div>
                 ) : fichaClientePedidos.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0", fontSize: 13 }}>
@@ -4743,7 +4728,7 @@ export default function VyniaApp() {
                         transition: "all 0.2s",
                       }}>
                       {parseLoading ? (
-                        <><span style={{ display: "inline-block", width: 14, height: 14, background: "#fff", animation: "doughRise 2.5s ease-in-out infinite", verticalAlign: "middle" }} /> Analizando...</>
+                        <><span style={{ display: "inline-block", animation: "whiskRock 1.2s ease-in-out infinite", transformOrigin: "50% 0%", verticalAlign: "middle" }}><I.Whisk s={14} c="#fff" /></span> Analizando...</>
                       ) : "Analizar"}
                     </button>
                   </div>
@@ -5419,12 +5404,6 @@ export default function VyniaApp() {
           background: #4F6867 !important;
         }
         .flow-btn:active { transform: scale(0.95); }
-        @keyframes moveDot {
-          0%, 100% { top: 10%; right: 10%; }
-          25% { top: 10%; right: calc(100% - 12px); }
-          50% { top: calc(100% - 12px); right: calc(100% - 12px); }
-          75% { top: calc(100% - 12px); right: 10%; }
-        }
         .dot-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,104,103,0.12) !important; }
         .dot-card:active { transform: scale(0.97); }
         @keyframes tubelightGlow {
