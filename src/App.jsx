@@ -5410,9 +5410,9 @@ export default function VyniaApp() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
-        @keyframes doughRise {
-          0%, 100% { border-radius: 50%; transform: scale(1); opacity: 0.6; }
-          50% { border-radius: 50%; transform: scale(1.15); opacity: 1; }
+        @keyframes whiskRock {
+          0%, 100% { transform: rotate(-12deg); }
+          50% { transform: rotate(12deg); }
         }
         @keyframes slideIn {
           from { opacity: 0; transform: translate(-50%, -12px); }

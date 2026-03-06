@@ -621,3 +621,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Bug fixes
 - **FIX-17**: Eliminado punto animado (moveDot) de las stats cards — el dot luminoso que recorria el borde de cada tarjeta eliminado junto con la keyframe `moveDot`. Se mantiene el resto del diseno: L-brackets, ray gradient, glass-morphism, colores distintivos y hover lift
+
+## Changelog v2.2.4
+
+### Mejoras
+- **FEAT-33**: Loader con batidora manual (whisk) — reemplazado el circulo pulsante por un icono SVG de batidora manual (`I.Whisk`) con animacion de balanceo (`whiskRock`, ±12deg, transform-origin en la parte superior del mango, 1.2s ease-in-out infinite). Aplicado a los 3 loaders: principal (44px), ficha cliente (28px), boton Analizar (14px, blanco). Eliminada keyframe `doughRise`
