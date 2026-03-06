@@ -166,6 +166,8 @@ const I = {
   Back: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m15 18-6-6 6-6" /></svg>,
   Send: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z" /><path d="m22 2-11 11" /></svg>,
   List: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>,
+  ClipboardList: (p = {}) => <svg width={p.s || 22} height={p.s || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01" /></svg>,
+  ChefHat: (p = {}) => <svg width={p.s || 22} height={p.s || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21H7" /><path d="M6 18V7a5 5 0 0 1 5-2.18A5 5 0 0 1 17.5 5 3.5 3.5 0 0 1 19 8.5 4.5 4.5 0 0 1 18 17H6Z" /></svg>,
   Tag: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2zM7 7h.01" /></svg>,
   Euro: () => <span style={{ fontWeight: 700, fontSize: 13 }}>€</span>,
   Printer: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>,
@@ -5084,9 +5086,9 @@ export default function VyniaApp() {
         zIndex: 60,
       }}>
         {[
-          { key: "pedidos", icon: <I.List s={22} />, label: "Pedidos", tip: "Ver lista de pedidos" },
+          { key: "pedidos", icon: <I.ClipboardList s={22} />, label: "Pedidos", tip: "Ver lista de pedidos" },
           { key: "nuevo", icon: <I.Plus s={22} />, label: "Nuevo", tip: "Crear nuevo pedido" },
-          { key: "produccion", icon: <I.Store s={22} />, label: "Producción", tip: "Ver producción diaria" },
+          { key: "produccion", icon: <I.ChefHat s={22} />, label: "Producción", tip: "Ver producción diaria" },
         ].map(t => (
           <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setCreateResult(null); if (t.key === "nuevo") resetForm(); if (t.key !== "pedidos") { setBusqueda(""); setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
             style={{
@@ -5125,6 +5127,10 @@ export default function VyniaApp() {
             <span style={{
               fontSize: 10, fontWeight: tab === t.key ? 700 : 500,
             }}>{t.label}</span>
+            {tab === t.key && t.key !== "nuevo" && <span style={{
+              width: 5, height: 5, borderRadius: "50%", background: "#4F6867",
+              marginTop: 2, transition: "all 0.25s",
+            }} />}
           </button>
         ))}
       </nav>

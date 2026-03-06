@@ -540,3 +540,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-24**: Iconos de bottom nav con fondo activo — los tabs Pedidos y Produccion ahora tienen un contenedor (36x36px, borderRadius 10) con fondo `#E1F2FC` cuando estan activos, igual que el tab Nuevo. Transicion suave de 0.25s. Inactivos: fondo transparente, color `#A2C2D0`
+
+## Changelog v1.9.7
+
+### Mejoras
+- **FEAT-25**: Iconos dock-style en bottom nav — Pedidos cambiado de `I.List` (lista generica) a `I.ClipboardList` (portapapeles con lista, strokeWidth 1.5). Produccion cambiado de `I.Store` (tienda) a `I.ChefHat` (gorro de chef, strokeWidth 1.5). Dot indicator (5px circulo verde Vynia) debajo del label del tab activo, inspirado en el dock de referencia. Los iconos originales `I.List` e `I.Store` se mantienen disponibles en el objeto `I`
