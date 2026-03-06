@@ -2997,10 +2997,8 @@ export default function VyniaApp() {
                 {/* ── Left column (desktop) ── */}
                 <div>
                   {/* ── Cliente ── */}
-                <section style={{
-                  background: "#fff", borderRadius: 14, padding: "16px",
-                  border: "1px solid #A2C2D0", marginBottom: 12,
-                }}>
+                <section style={{ ...formSectionStyle, marginBottom: 12 }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #4F6867, #A2C2D0)", borderRadius: "20px 20px 0 0" }} />
                   <label style={labelStyle}>
                     <I.User s={13} /> Cliente
                   </label>
@@ -3058,10 +3056,8 @@ export default function VyniaApp() {
                 </section>
 
                   {/* ── Notas + Pagado ── */}
-                <section style={{
-                  background: "#fff", borderRadius: 14, padding: "16px",
-                  border: "1px solid #A2C2D0", marginBottom: 16,
-                }}>
+                <section style={{ ...formSectionStyle, marginBottom: 16 }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #A2C2D0, #E1F2FC)", borderRadius: "20px 20px 0 0" }} />
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ flex: 1 }}>
                       <label style={labelStyle}>Notas</label>
@@ -3094,10 +3090,8 @@ export default function VyniaApp() {
                 {/* ── Right column (desktop) ── */}
                 <div>
                   {/* ── Productos ── */}
-                <section style={{
-                  background: "#fff", borderRadius: 14, padding: "16px",
-                  border: "1px solid #A2C2D0", marginBottom: 12,
-                }}>
+                <section style={{ ...formSectionStyle, marginBottom: 12 }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #1B1C39, #4F6867)", borderRadius: "20px 20px 0 0" }} />
                   <label style={labelStyle}>
                     <I.Box s={13} /> Productos
                   </label>
@@ -3172,13 +3166,14 @@ export default function VyniaApp() {
                           return (
                             <button key={name} onClick={() => addProducto(p)}
                               style={{
-                                padding: "6px 11px", borderRadius: 18, fontSize: 11,
-                                border: "1px solid #A2C2D0", background: "#EFE9E4",
+                                padding: "7px 13px", borderRadius: 20, fontSize: 11,
+                                border: "1px solid rgba(162,194,208,0.35)", background: "rgba(239,233,228,0.5)",
                                 cursor: "pointer", color: "#1B1C39",
-                                transition: "all 0.12s", fontWeight: 500,
+                                transition: "all 0.2s", fontWeight: 500,
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#A2C2D0"; }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(79,104,103,0.12)"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,233,228,0.5)"; e.currentTarget.style.borderColor = "rgba(162,194,208,0.35)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
                             >
                               + {name.length > 20 ? name.substring(0, 18) + "…" : name}
                             </button>
@@ -3316,10 +3311,8 @@ export default function VyniaApp() {
 
                 {/* ── Sugerencias de fecha ── */}
                 {(suggestionsLoading || dateSuggestions.length > 0) && (
-                  <section style={{
-                    background: "#fff", borderRadius: 14, padding: "14px 16px",
-                    border: "1px solid #A2C2D0", marginBottom: 12,
-                  }}>
+                  <section style={{ ...formSectionStyle, marginBottom: 12 }}>
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #E1F2FC, #4F6867)", borderRadius: "20px 20px 0 0" }} />
                     <label style={{ ...labelStyle, marginBottom: 8 }}>
                       <span style={{ fontSize: 14 }}>&#128161;</span> Sugerencias de fecha
                     </label>
@@ -3373,10 +3366,8 @@ export default function VyniaApp() {
                 )}
 
                 {/* ── Fecha ── */}
-                <section style={{
-                  background: "#fff", borderRadius: 14, padding: "16px",
-                  border: "1px solid #A2C2D0", marginBottom: 12,
-                }}>
+                <section style={{ ...formSectionStyle, marginBottom: 12 }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #4F6867, #1B1C39)", borderRadius: "20px 20px 0 0" }} />
                   <label style={labelStyle}>
                     <I.Cal s={13} /> Entrega
                   </label>
@@ -5566,7 +5557,8 @@ export default function VyniaApp() {
         }
         input:focus, textarea:focus {
           border-color: #4F6867 !important;
-          box-shadow: 0 0 0 3px rgba(79,104,103,0.15) !important;
+          background: #fff !important;
+          box-shadow: 0 0 0 3px rgba(79,104,103,0.12), 0 2px 8px rgba(79,104,103,0.08) !important;
           outline: none;
         }
         button:active { transform: scale(0.97); }
@@ -5601,14 +5593,23 @@ export default function VyniaApp() {
 
 // ─── SHARED STYLES ───
 const labelStyle = {
-  fontSize: 10, textTransform: "uppercase", letterSpacing: "0.07em",
+  fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em",
   color: "#4F6867", fontWeight: 700,
-  display: "flex", alignItems: "center", gap: 5,
+  display: "flex", alignItems: "center", gap: 6,
+  marginBottom: 2,
 };
 
 const inputStyle = {
-  width: "100%", padding: "11px 14px", borderRadius: 10,
-  border: "1.5px solid #E8E0D4", fontSize: 14,
-  background: "#EFE9E4", outline: "none",
+  width: "100%", padding: "13px 16px", borderRadius: 14,
+  border: "1.5px solid rgba(162,194,208,0.25)", fontSize: 14,
+  background: "rgba(239,233,228,0.35)", outline: "none",
   color: "#1B1C39", boxSizing: "border-box",
+  transition: "border-color 0.2s, box-shadow 0.2s, background 0.2s",
+};
+const formSectionStyle = {
+  position: "relative", overflow: "hidden",
+  background: "radial-gradient(120% 120% at 20% 0%, rgba(255,255,255,0.97) 0%, rgba(225,242,252,0.25) 100%)",
+  borderRadius: 20, padding: "20px 18px",
+  border: "1px solid rgba(162,194,208,0.15)",
+  boxShadow: "0 4px 24px rgba(79,104,103,0.07), 0 1px 3px rgba(0,0,0,0.04)",
 };

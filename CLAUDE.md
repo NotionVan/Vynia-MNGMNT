@@ -626,3 +626,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FEAT-33**: Loader con batidora manual (whisk) — reemplazado el circulo pulsante por un icono SVG de batidora manual (`I.Whisk`) con animacion de balanceo (`whiskRock`, ±12deg, transform-origin en la parte superior del mango, 1.2s ease-in-out infinite). Aplicado a los 3 loaders: principal (44px), ficha cliente (28px), boton Analizar (14px, blanco). Eliminada keyframe `doughRise`
+
+## Changelog v2.3.0
+
+### Mejoras
+- **FEAT-34**: Rediseno de secciones del formulario "Nuevo Pedido" — inspirado en profile-card premium. Secciones (Cliente, Notas+Pagado, Productos, Sugerencias, Entrega) con fondo radial-gradient claro, borderRadius 20px, sombra por capas (4px+1px), borde semi-transparente. Barra de acento gradiente (3px) en la parte superior de cada seccion: verde Vynia (Cliente), azul muted (Notas), oscuro (Productos/Entrega), accent (Sugerencias). Inputs con fondo translucido `rgba(239,233,228,0.35)`, borderRadius 14px, padding ampliado, transicion a fondo blanco en focus con glow verde. Labels con fontSize 11px y spacing mejorado. Pills de productos frecuentes con sombra sutil y hover elevado. Estilo compartido via constante `formSectionStyle`
