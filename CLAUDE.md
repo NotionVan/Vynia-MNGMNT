@@ -389,3 +389,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **PERF-03**: "Ver pedido" instantaneo tras crear — en lugar de esperar a que `loadPedidos()` termine el roundtrip a Notion, construye el pedido inmediatamente con los datos de creacion (cliente, productos, fecha, estado "Sin empezar") y abre el modal al instante. Se actualiza silenciosamente cuando llegan los datos completos (numPedido, etc.)
+
+## Changelog v1.5.3
+
+### Bug fixes
+- **FIX-05**: Seguimiento no encuentra pedidos cuando hay clientes duplicados con mismo telefono — `tracking.js` solo buscaba pedidos del primer cliente encontrado. Fix: recopilar TODOS los client IDs que coinciden con el telefono y usar OR filter para buscar pedidos de todos ellos (mismo patron que ya usa registros). El nombre mostrado sigue siendo el del mejor match

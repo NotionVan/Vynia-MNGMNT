@@ -51,7 +51,10 @@ export default async function handler(req, res) {
         return { pedidos: [], cliente: null };
       }
 
-      // Prioritize exact phone match when multiple results (e.g. "612" matching several)
+      // Collect ALL matching client IDs (handles duplicate client entries)
+      const allClientIds = clientSearch.results.map(r => r.id);
+
+      // Pick best name for display (prefer exact phone match)
       let bestMatch = clientSearch.results[0];
       if (clientSearch.results.length > 1 && searchTel.length >= 9) {
         const exact = clientSearch.results.find(r => {
@@ -61,19 +64,19 @@ export default async function handler(req, res) {
         if (exact) bestMatch = exact;
       }
 
-      const clienteId = bestMatch.id;
       const titleProp = Object.values(bestMatch.properties).find(p => p.type === "title");
       const clienteNombre = titleProp
         ? (titleProp.title || []).map(t => t.plain_text).join("")
         : "";
 
-      // 2. Query pedidos for this client (recent first)
+      // 2. Query pedidos for ALL matching clients (recent first)
+      const clientFilter = allClientIds.length === 1
+        ? { property: "Clientes", relation: { contains: allClientIds[0] } }
+        : { or: allClientIds.map(id => ({ property: "Clientes", relation: { contains: id } })) };
+
       const pedidosRes = await notion.databases.query({
         database_id: DB_PEDIDOS,
-        filter: {
-          property: "Clientes",
-          relation: { contains: clienteId },
-        },
+        filter: clientFilter,
         sorts: [{ property: "Fecha entrega", direction: "descending" }],
         page_size: 20,
       });
