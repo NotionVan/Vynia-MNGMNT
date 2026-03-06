@@ -2121,10 +2121,7 @@ export default function VyniaApp() {
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 150, backdropFilter: "blur(4px)",
         }}>
-          <div style={{ position: "relative", width: 44, height: 44 }}>
-            <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 2.5px #4F6867", animation: "loaderAnim 2.5s infinite" }} />
-            <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 2.5px #4F6867", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} />
-          </div>
+          <div style={{ width: 44, height: 44, background: "#4F6867", animation: "doughRise 2.5s ease-in-out infinite" }} />
         </div>
       )}
 
@@ -2470,10 +2467,7 @@ export default function VyniaApp() {
                 }}>Pedidos</div>
                 {fichaClienteLoading ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0" }}>
-                    <div style={{ position: "relative", width: 28, height: 28, margin: "0 auto" }}>
-                      <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1.5px #4F6867", animation: "loaderAnim 2.5s infinite" }} />
-                      <span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1.5px #4F6867", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} />
-                    </div>
+                    <div style={{ width: 28, height: 28, margin: "0 auto", background: "#4F6867", animation: "doughRise 2.5s ease-in-out infinite" }} />
                   </div>
                 ) : fichaClientePedidos.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "20px 0", color: "#A2C2D0", fontSize: 13 }}>
@@ -4693,7 +4687,7 @@ export default function VyniaApp() {
                         transition: "all 0.2s",
                       }}>
                       {parseLoading ? (
-                        <><span style={{ position: "relative", display: "inline-block", width: 14, height: 14 }}><span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1px #fff", animation: "loaderAnim 2.5s infinite" }} /><span style={{ position: "absolute", borderRadius: 50, boxShadow: "inset 0 0 0 1px #fff", animation: "loaderAnim 2.5s infinite", animationDelay: "-1.25s" }} /></span> Analizando...</>
+                        <><span style={{ display: "inline-block", width: 14, height: 14, background: "#fff", animation: "doughRise 2.5s ease-in-out infinite", verticalAlign: "middle" }} /> Analizando...</>
                       ) : "Analizar"}
                     </button>
                   </div>
@@ -5373,16 +5367,19 @@ export default function VyniaApp() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
         }
-        @keyframes loaderAnim {
-          0%    { inset: 0   54% 54% 0;   }
-          12.5% { inset: 0   54% 0   0;   }
-          25%   { inset: 54% 54% 0   0;   }
-          37.5% { inset: 54% 0   0   0;   }
-          50%   { inset: 54% 0   0   54%; }
-          62.5% { inset: 0   0   0   54%; }
-          75%   { inset: 0   0   54% 54%; }
-          87.5% { inset: 0   0   54% 0;   }
-          100%  { inset: 0   54% 54% 0;   }
+        @keyframes doughRise {
+          0%, 100% {
+            border-radius: 42% 58% 62% 38% / 38% 42% 58% 62%;
+            transform: scaleY(0.75) scaleX(1.15) rotate(0deg);
+          }
+          33% {
+            border-radius: 58% 42% 38% 62% / 62% 58% 42% 38%;
+            transform: scaleY(1.05) scaleX(0.92) rotate(120deg);
+          }
+          66% {
+            border-radius: 45% 55% 52% 48% / 55% 45% 48% 52%;
+            transform: scaleY(0.95) scaleX(1.05) rotate(240deg);
+          }
         }
         @keyframes slideIn {
           from { opacity: 0; transform: translate(-50%, -12px); }

@@ -597,6 +597,11 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 ### Mejoras
 - **FIX-15**: Logo del header un 25% mas grande — contenedor e imagen de 48px a 60px
 
+## Changelog v2.2.0
+
+### Mejoras
+- **FEAT-31**: Loader de panaderia — reemplazado el luma-spin geometrico (dos rectangulos con `inset` morph) por un efecto de masa de pan que sube (`doughRise`). Un unico elemento que muta su `border-radius` entre formas organicas asimetricas mientras rota y cambia de escala, simulando masa siendo amasada. CSS puro, sin SVG. Aplicado a los 3 loaders: principal (44px, color Vynia), ficha cliente (28px), y boton Analizar (14px, blanco). Animacion 2.5s `ease-in-out` infinita con 3 keyframes (aplanado→subido→intermedio)
+
 ## Changelog v2.1.3
 
 ### Mejoras
