@@ -181,6 +181,7 @@ const I = {
   Mic: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>,
   Gear: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /></svg>,
   Info: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 12v4" /><path d="M12 8h.01" /></svg>,
+  Menu: (p = {}) => <svg width={p.s || 20} height={p.s || 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>,
 };
 
 // ─── HELP CONTENT ───
@@ -652,6 +653,8 @@ export default function VyniaApp() {
   const sentinelRef = useRef(null);
   const [mostrarPrecios, setMostrarPrecios] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
   const [showHelp, setShowHelp] = useState(false);
   const [helpExpanded, setHelpExpanded] = useState(new Set());
   const [helpActiveCategory, setHelpActiveCategory] = useState(null);
@@ -951,6 +954,9 @@ export default function VyniaApp() {
       if (clienteWrapperRef.current && !clienteWrapperRef.current.contains(e.target)) {
         setClienteSuggestions([]);
         setSearchResults([]);
+      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1864,47 +1870,62 @@ export default function VyniaApp() {
             </div>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button title={apiMode === "live" ? "Cambiar a modo demo (sin conexión)" : "Cambiar a modo live (Notion)"} onClick={() => {
-              setApiMode(m => m === "demo" ? "live" : "demo");
-            }} style={{
-              padding: "5px 10px", borderRadius: 6, fontSize: 10,
-              border: `1px solid ${apiMode === "live" ? "#4F6867" : "#A2C2D0"}`,
-              background: apiMode === "live" ? "#E1F2FC" : "#EFE9E4",
-              color: apiMode === "live" ? "#4F6867" : "#4F6867",
-              cursor: "pointer", fontWeight: 600, letterSpacing: "0.04em",
-              textTransform: "uppercase",
-            }}>
-              {apiMode === "live" ? "● LIVE" : "◌ DEMO"}
-            </button>
-            <button title="Imprimir lista de pedidos" onClick={() => window.print()} id="btn-print" style={{
+          <div ref={menuRef} style={{ position: "relative" }}>
+            <button title="Menú" onClick={() => setShowMenu(v => !v)} style={{
               width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
-              background: "#fff", cursor: "pointer", display: "flex",
-              alignItems: "center", justifyContent: "center", color: "#4F6867",
+              background: showMenu ? "#E1F2FC" : "#fff", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", color: "#4F6867",
             }}>
-              <I.Printer />
+              <I.Menu />
             </button>
-            <button title="Limpiar registros huérfanos" onClick={cleanupOrphanRegistros} style={{
-              width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
-              background: "#fff", cursor: "pointer", display: "flex",
-              alignItems: "center", justifyContent: "center", color: "#4F6867",
-            }}>
-              <I.Broom />
-            </button>
-            <button title="Manual de uso" onClick={() => { setHelpActiveCategory(tab === "produccion" ? "produccion" : tab === "nuevo" ? "nuevo" : "pedidos"); setHelpExpanded(new Set()); setShowHelp(true); }} style={{
-              width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
-              background: "#fff", cursor: "pointer", display: "flex",
-              alignItems: "center", justifyContent: "center", color: "#4F6867",
-            }}>
-              <I.Help />
-            </button>
-            <button title="Recargar pedidos" onClick={() => { invalidateApiCache(); loadPedidos(); }} style={{
-              width: 34, height: 34, borderRadius: 9, border: "1px solid #A2C2D0",
-              background: "#fff", cursor: "pointer", display: "flex",
-              alignItems: "center", justifyContent: "center", color: "#4F6867",
-            }}>
-              <I.Refresh />
-            </button>
+            {showMenu && (
+              <div style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 6,
+                background: "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                borderRadius: 12, padding: 4, minWidth: 220,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06)",
+                border: "1px solid rgba(162,194,208,0.3)",
+                zIndex: 80, animation: "popoverIn 0.18s ease-out",
+              }}>
+                {[
+                  { icon: <I.Refresh s={16} />, label: "Recargar pedidos", action: () => { invalidateApiCache(); loadPedidos(); } },
+                  { icon: <I.Printer s={16} />, label: "Imprimir", action: () => window.print() },
+                  { icon: <I.Help s={16} />, label: "Manual de uso", action: () => { setHelpActiveCategory(tab === "produccion" ? "produccion" : tab === "nuevo" ? "nuevo" : "pedidos"); setHelpExpanded(new Set()); setShowHelp(true); } },
+                  { icon: <I.Broom s={16} />, label: "Limpiar registros", action: cleanupOrphanRegistros },
+                ].map((item, i) => (
+                  <button key={i} onClick={() => { setShowMenu(false); item.action(); }} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", border: "none", background: "transparent",
+                    cursor: "pointer", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                    color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif",
+                    transition: "background 0.15s",
+                  }} onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <span style={{ color: "#4F6867", display: "flex" }}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+                <div style={{ height: 1, background: "#A2C2D0", opacity: 0.3, margin: "4px 8px" }} />
+                <button onClick={() => { setShowMenu(false); setApiMode(m => m === "demo" ? "live" : "demo"); }} style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", border: "none", background: "transparent",
+                  cursor: "pointer", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif",
+                  transition: "background 0.15s",
+                }} onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 16, height: 16, borderRadius: 8, fontSize: 10, fontWeight: 700,
+                    background: apiMode === "live" ? "#4F6867" : "#A2C2D0",
+                    color: "#fff",
+                  }}>{apiMode === "live" ? "●" : "○"}</span>
+                  <span style={{ letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 11, fontWeight: 600 }}>
+                    {apiMode === "live" ? "LIVE" : "DEMO"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

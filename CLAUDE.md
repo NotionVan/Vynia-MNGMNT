@@ -510,3 +510,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-18**: Layout full-width con columnas auto-fill — eliminadas restricciones max-width (1400px/960px), la app ahora usa 100% del ancho del navegador. Grid de cards cambiado de `repeat(3, 1fr)` a `repeat(auto-fill, minmax(320px, 1fr))` para ajustar automaticamente el numero de columnas segun el ancho disponible (~5 columnas en 1920px, ~3-4 en laptops, sin cambios en tablet/movil). Padding horizontal aumentado de 32px a 48px en desktop. Gap entre cards aumentado de 12px a 16px. Bottom nav y bulk bar ajustados para full-width
+
+## Changelog v1.9.1
+
+### Mejoras
+- **FEAT-19**: Menu hamburguesa en header — los 5 botones del header (LIVE/DEMO, Imprimir, Escoba, Ayuda, Recargar) agrupados en un unico boton hamburguesa con dropdown glass-morphism. Cada opcion con icono + texto descriptivo. Toggle LIVE/DEMO al final con separador visual. Click fuera cierra el menu. Nuevo icono `I.Menu`. Estado: `showMenu`, ref: `menuRef`
