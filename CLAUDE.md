@@ -525,3 +525,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-21**: Boton "Seleccionar" estilo flow-button — borde redondeado pill (border-radius 100px), circulo expandible al hover que llena el boton de color Vynia (#4F6867) con texto blanco, transicion cubic-bezier suave (0.6s), efecto active scale(0.95). En modo bulk activo, fondo rojo (#C62828) con circulo ya expandido. Iconos SVG inline (check/X) en vez de Unicode
+
+## Changelog v1.9.4
+
+### Mejoras
+- **FEAT-22**: Efecto tubelight en filtros de tab Produccion — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendiente/Todo el dia) envueltos en contenedores glass-morphism con backdrop-blur, identico patron visual que los filtros de tab Pedidos. Barra tubelight con glow en pill activo. Pills sin borde propio, fondo transparente cuando inactivos

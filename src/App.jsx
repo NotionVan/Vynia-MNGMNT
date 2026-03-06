@@ -3270,32 +3270,39 @@ export default function VyniaApp() {
               alignItems: "center",
               marginBottom: 14,
             }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: isDesktop ? 0 : 14, flex: isDesktop ? 1 : undefined, alignItems: "center" }}>
+                <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14, flex: 1 }}>
                 {[
                   { label: "Hoy", val: fmt.todayISO() },
                   { label: "Mañana", val: fmt.tomorrowISO() },
                   { label: "Pasado", val: fmt.dayAfterISO() },
-                ].map(d => (
+                ].map(d => {
+                  const sel = produccionFecha === d.val;
+                  return (
                   <button key={d.label} title={`Ver producción de ${d.label.toLowerCase()}`} onClick={() => { setProduccionFecha(d.val); setExpandedProduct(null); setExpandAll(false); loadProduccion(d.val); }}
                     style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10,
-                      border: produccionFecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                      background: produccionFecha === d.val ? "#E1F2FC" : "#EFE9E4",
-                      color: produccionFecha === d.val ? "#1B1C39" : "#4F6867",
-                      fontWeight: produccionFecha === d.val ? 700 : 500,
+                      position: "relative", flex: 1, padding: "8px 0", borderRadius: 10,
+                      border: "none",
+                      background: sel ? "#E1F2FC" : "transparent",
+                      color: sel ? "#1B1C39" : "#4F6867",
+                      fontWeight: sel ? 700 : 500,
                       fontSize: 13, cursor: "pointer",
-                      transition: "all 0.15s",
+                      transition: "all 0.25s",
+                      boxShadow: sel ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
                     }}>
+                    {sel && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
                     {d.label}
                   </button>
-                ))}
-                <div style={{ flex: 0.8, position: "relative", display: "flex", alignItems: "center" }}>
+                  );
+                })}
+                </div>
+                <div style={{ flex: 0.6, position: "relative", display: "flex", alignItems: "center" }}>
                   <div style={{ position: "absolute", left: 9, pointerEvents: "none", zIndex: 1, color: "#4F6867", display: "flex" }}><I.Cal s={14} /></div>
                   <input type="date" lang="es" value={produccionFecha}
                     onChange={e => { setProduccionFecha(e.target.value); setExpandedProduct(null); setExpandAll(false); loadProduccion(e.target.value); }}
                     style={{
                       width: "100%", padding: "8px 8px 8px 30px", borderRadius: 10,
-                      border: "2px solid #4F6867", fontSize: 13,
+                      border: "1px solid rgba(162,194,208,0.3)", fontSize: 13,
                       background: "#fff", color: "#1B1C39",
                       outline: "none",
                     }} />
@@ -3303,21 +3310,27 @@ export default function VyniaApp() {
               </div>
 
               {/* Toggle recogidos */}
-              <div style={{ display: "flex", gap: 8, flex: isDesktop ? "none" : undefined }}>
-                <button title="Ver solo producción pendiente" onClick={() => { setOcultarRecogidos(true); setExpandAll(false); setExpandedProduct(null); }}
-                  style={{
-                    flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    border: ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                    background: ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
-                    color: ocultarRecogidos ? "#1B1C39" : "#4F6867",
-                  }}>Pendiente</button>
-                <button title="Ver toda la producción del día" onClick={() => { setOcultarRecogidos(false); setExpandAll(false); setExpandedProduct(null); }}
-                  style={{
-                    flex: 1, padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    border: !ocultarRecogidos ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
-                    background: !ocultarRecogidos ? "#E1F2FC" : "#EFE9E4",
-                    color: !ocultarRecogidos ? "#1B1C39" : "#4F6867",
-                  }}>Todo el día</button>
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(79,104,103,0.06)", border: "1px solid rgba(162,194,208,0.3)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 14, flex: isDesktop ? "none" : undefined }}>
+                {[
+                  { label: "Pendiente", val: true, tip: "Ver solo producción pendiente" },
+                  { label: "Todo el día", val: false, tip: "Ver toda la producción del día" },
+                ].map(f => {
+                  const sel = ocultarRecogidos === f.val;
+                  return (
+                    <button key={f.label} title={f.tip} onClick={() => { setOcultarRecogidos(f.val); setExpandAll(false); setExpandedProduct(null); }}
+                      style={{
+                        position: "relative", flex: 1, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        border: "none",
+                        background: sel ? "#E1F2FC" : "transparent",
+                        color: sel ? "#1B1C39" : "#4F6867",
+                        transition: "all 0.25s",
+                        boxShadow: sel ? "0 1px 4px rgba(79,104,103,0.1)" : "none",
+                      }}>
+                      {sel && <span style={{ position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)", width: 24, height: 3, borderRadius: 2, background: "#4F6867", boxShadow: "0 0 8px 2px rgba(79,104,103,0.4), 0 0 20px 4px rgba(79,104,103,0.15)", animation: "tubelightGlow 2s ease-in-out infinite" }} />}
+                      {f.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>{/* end date+toggle wrapper */}
 
