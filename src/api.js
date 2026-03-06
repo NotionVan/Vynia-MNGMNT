@@ -218,10 +218,10 @@ export const notion = {
     return apiCall("/registros?productos=true");
   },
 
-  async parseWhatsApp(text, senderName, senderPhone) {
+  async parseWhatsApp(text, senderName, senderPhone, imageBase64) {
     return apiCall("/parse-order", {
       method: "POST",
-      body: JSON.stringify({ text, senderName, senderPhone }),
+      body: JSON.stringify({ text, senderName, senderPhone, imageBase64 }),
     });
   },
 };

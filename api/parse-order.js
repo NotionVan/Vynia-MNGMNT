@@ -8,9 +8,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { text, senderName, senderPhone } = req.body;
-  if (!text || typeof text !== "string" || text.trim().length < 5) {
-    return res.status(400).json({ error: "text is required (min 5 chars)" });
+  const { text, imageBase64, senderName, senderPhone } = req.body;
+  const hasText = text && typeof text === "string" && text.trim().length >= 5;
+  const hasImage = imageBase64 && typeof imageBase64 === "string" && imageBase64.startsWith("data:image/");
+  if (!hasText && !hasImage) {
+    return res.status(400).json({ error: "text (min 5 chars) or imageBase64 is required" });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -29,7 +31,9 @@ export default async function handler(req, res) {
     const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const dayName = dias[now.getDay()];
 
-    const systemPrompt = `Eres un parser de pedidos para Vynia, una pastelería sin gluten. Dado un mensaje de WhatsApp, extrae la información del pedido.
+    const systemPrompt = `Eres un parser de pedidos para Vynia, una pastelería sin gluten. Dado un mensaje de WhatsApp (texto o captura de pantalla), extrae la información del pedido.
+
+Si recibes una imagen, es una captura de pantalla de una conversación de WhatsApp. Lee el texto de la conversación y extrae el pedido.
 
 Catálogo de productos (usa EXACTAMENTE estos nombres cuando haya match):
 ${productNames.join("\n")}
@@ -56,11 +60,25 @@ Reglas:
 - Si no se menciona cantidad, asume 1
 - Si hay conversación larga con negociación, extrae solo el pedido final/confirmado
 - NO inventes productos que no están en el catálogo — ponlos en no_encontrados
-- Si se menciona un nombre de persona como remitente o firma, úsalo como cliente`;
+- Si se menciona un nombre de persona como remitente o firma, úsalo como cliente
+- En capturas de pantalla, el nombre del contacto de WhatsApp suele ser el cliente`;
 
-    let userMessage = text.trim();
+    // Build content array (text, image, or both)
+    const content = [];
+    if (hasImage) {
+      const commaIdx = imageBase64.indexOf(",");
+      const meta = imageBase64.slice(0, commaIdx);
+      const data = imageBase64.slice(commaIdx + 1);
+      const media_type = (meta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
+      content.push({
+        type: "image",
+        source: { type: "base64", media_type, data },
+      });
+    }
+    let userMessage = hasText ? text.trim() : "Analiza esta captura de WhatsApp y extrae el pedido.";
     if (senderName) userMessage += `\n\n[Remitente del mensaje: ${senderName}]`;
     if (senderPhone) userMessage += `\n[Teléfono del remitente: ${senderPhone}]`;
+    content.push({ type: "text", text: userMessage });
 
     // Call Anthropic API
     const apiRes = await fetch(ANTHROPIC_API_URL, {
@@ -74,7 +92,7 @@ Reglas:
         model: MODEL,
         max_tokens: 1024,
         messages: [
-          { role: "user", content: userMessage },
+          { role: "user", content },
         ],
         system: systemPrompt,
       }),

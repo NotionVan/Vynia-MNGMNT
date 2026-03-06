@@ -148,9 +148,10 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - **Modo rango** (sugerencias de fecha): `GET /api/produccion?fecha=YYYY-MM-DD&rango=7` devuelve produccion ligera de multiples dias en una sola llamada. Respuesta: `{ produccion: { "YYYY-MM-DD": [{ nombre, totalUnidades }], ... } }`. Solo nombre y unidades por producto/dia (sin datos de cliente/pedido). Rango max 14 dias. Cache 60s con key `produccion-rango:${fecha}:${dias}`
 
 ### POST /api/parse-order
-- Body: `{ text: string, senderName?: string, senderPhone?: string }`
-- Parsea un mensaje de WhatsApp con Claude Haiku y devuelve datos estructurados del pedido
-- Flujo: 1) Carga catalogo via `loadCatalog()` (cached 5min), 2) Llama a Anthropic API con prompt + catalogo + fecha actual, 3) Post-procesa: valida productos contra catalogo, calcula confidence
+- Body: `{ text?: string, imageBase64?: string, senderName?: string, senderPhone?: string }`
+- Requiere al menos `text` (min 5 chars) O `imageBase64` (data URI)
+- Parsea texto o captura de WhatsApp con Claude Haiku 4.5 (vision) y devuelve datos estructurados del pedido
+- Flujo: 1) Carga catalogo via `loadCatalog()` (cached 5min), 2) Construye content array multimodal (image + text), 3) Llama a Anthropic API, 4) Post-procesa: valida productos contra catalogo, calcula confidence
 - Devuelve `{ ok, confidence, cliente, telefono, fecha, hora, pagado, notas, lineas: [{ nombre, cantidad, matched }], warnings: [] }`
 - Env var: `ANTHROPIC_API_KEY`
 
@@ -223,7 +224,7 @@ Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()`
 - `loadProduccion(fecha)` — GET /api/produccion?fecha=...
 - `loadProduccionRango(fecha, rango)` — GET /api/produccion?fecha=...&rango=N (produccion ligera multi-dia para sugerencias de fecha)
 - `loadProductos()` — GET /api/registros?productos=true
-- `parseWhatsApp(text, senderName?, senderPhone?)` — POST /api/parse-order
+- `parseWhatsApp(text?, senderName?, senderPhone?, imageBase64?)` — POST /api/parse-order (texto, imagen, o ambos)
 
 ## Tabs de la app
 
@@ -426,3 +427,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-07**: Boton "Pegar pedido" en tab Nuevo — parsea mensajes de WhatsApp con IA (Claude Haiku 4.5) y pre-rellena el formulario. Modal glass-morphism con textarea, preview de resultado con badge de confianza (alta/media/baja), lista de productos detectados con indicador matched/no-matched, y warnings para productos no encontrados. Nuevo endpoint `api/parse-order.js` (7/12 serverless functions). Catalogo de productos extraido a `_notion.js` como funcion compartida `loadCatalog()` (reutilizada por `registros.js` y `parse-order.js`). Env var: `ANTHROPIC_API_KEY`
+
+## Changelog v1.7.1
+
+### Mejoras
+- **FEAT-08**: Modal "Pegar pedido" acepta capturas de pantalla de WhatsApp ademas de texto. Zona unificada: drop zone para arrastrar imagenes, pegar desde clipboard (Cmd+V / Ctrl+V), o boton de seleccion de archivo. Claude Haiku 4.5 (vision) analiza la captura y extrae el pedido. Preview de imagen con boton para quitar. El textarea sigue disponible debajo para contexto adicional. Endpoint `parse-order.js` extendido con soporte multimodal (content array con bloques image + text)

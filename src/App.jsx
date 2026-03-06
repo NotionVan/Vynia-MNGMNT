@@ -591,9 +591,11 @@ export default function VyniaApp() {
   const [createResult, setCreateResult] = useState(null); // { status: "ok"|"err", cliente?, total?, pedidoId?, message? }
   const [showParseModal, setShowParseModal] = useState(false);
   const [parseText, setParseText] = useState("");
+  const [parseImage, setParseImage] = useState(null); // { dataUrl, fileName }
   const [parseLoading, setParseLoading] = useState(false);
   const [parseResult, setParseResult] = useState(null);
   const [parseError, setParseError] = useState(null);
+  const parseFileRef = useRef(null);
 
   // Produccion diaria
   const [produccionData, setProduccionData] = useState([]);
@@ -1335,13 +1337,42 @@ export default function VyniaApp() {
   };
 
   // ─── PARSE WHATSAPP ORDER ───
+  const handleParseImageFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setParseImage({ dataUrl: e.target.result, fileName: file.name });
+    reader.readAsDataURL(file);
+  };
+  const handleParsePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        handleParseImageFile(item.getAsFile());
+        return;
+      }
+    }
+  };
+  const handleParseDrop = (e) => {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = "#E8E0D4";
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleParseImageFile(file);
+  };
   const handleParseOrder = async () => {
-    if (!parseText.trim() || parseLoading) return;
+    const hasText = parseText.trim().length >= 5;
+    const hasImage = !!parseImage;
+    if ((!hasText && !hasImage) || parseLoading) return;
     setParseLoading(true);
     setParseError(null);
     setParseResult(null);
     try {
-      const result = await notion.parseWhatsApp(parseText.trim());
+      const result = await notion.parseWhatsApp(
+        hasText ? parseText.trim() : null,
+        null, null,
+        hasImage ? parseImage.dataUrl : null
+      );
       if (result?.ok) setParseResult(result);
       else setParseError(result?.error || "Error desconocido");
     } catch (err) {
@@ -2438,7 +2469,7 @@ export default function VyniaApp() {
                 margin: 0, color: "#1B1C39",
               }}>Nuevo Pedido</h2>
               {nuevoPaso === 1 && (
-                <button title="Pegar mensaje de WhatsApp" onClick={() => { setParseText(""); setParseResult(null); setParseError(null); setShowParseModal(true); }} style={{
+                <button title="Pegar mensaje de WhatsApp" onClick={() => { setParseText(""); setParseImage(null); setParseResult(null); setParseError(null); setShowParseModal(true); }} style={{
                   padding: "7px 14px", borderRadius: 20, border: "1.5px solid #A2C2D0",
                   background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600,
                   color: "#4F6867", display: "flex", alignItems: "center", gap: 6,
@@ -3726,7 +3757,7 @@ export default function VyniaApp() {
                 <span style={{ fontSize: 24 }}>📋</span>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>Pegar pedido</div>
-                  <div style={{ fontSize: 12, color: "#888" }}>Pega un mensaje de WhatsApp para analizar</div>
+                  <div style={{ fontSize: 12, color: "#888" }}>Pega texto, imagen o captura de WhatsApp</div>
                 </div>
               </div>
 
@@ -3739,12 +3770,51 @@ export default function VyniaApp() {
 
               {/* Input phase */}
               {!parseResult && (
-                <>
+                <div onPaste={handleParsePaste}>
+                  {/* Image preview */}
+                  {parseImage && (
+                    <div style={{ position: "relative", marginBottom: 10, borderRadius: 12, overflow: "hidden", background: "#F8F6F3", border: "1.5px solid #E8E0D4" }}>
+                      <img src={parseImage.dataUrl} alt="Captura" style={{ width: "100%", maxHeight: 220, objectFit: "contain", display: "block" }} />
+                      <button onClick={() => setParseImage(null)} disabled={parseLoading}
+                        style={{
+                          position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: "50%",
+                          background: "rgba(0,0,0,0.55)", border: "none", color: "#fff", fontSize: 16,
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                          lineHeight: 1,
+                        }}>×</button>
+                      <div style={{ padding: "6px 12px", fontSize: 11, color: "#888", background: "#F8F6F3" }}>
+                        {parseImage.fileName || "Imagen pegada"}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Drop zone + file input (when no image) */}
+                  {!parseImage && (
+                    <div
+                      onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#4F6867"; }}
+                      onDragLeave={e => { e.currentTarget.style.borderColor = "#A2C2D0"; }}
+                      onDrop={handleParseDrop}
+                      onClick={() => parseFileRef.current?.click()}
+                      style={{
+                        border: "2px dashed #A2C2D0", borderRadius: 12, padding: "16px 14px",
+                        textAlign: "center", cursor: "pointer", marginBottom: 10,
+                        background: "#F8F6F3", transition: "border-color 0.15s",
+                      }}
+                    >
+                      <div style={{ fontSize: 28, marginBottom: 4 }}>📸</div>
+                      <div style={{ fontSize: 13, color: "#4F6867", fontWeight: 600 }}>Arrastra una captura o pulsa para seleccionar</div>
+                      <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>Tambien puedes pegar con Cmd+V / Ctrl+V</div>
+                      <input ref={parseFileRef} type="file" accept="image/*" style={{ display: "none" }}
+                        onChange={e => { if (e.target.files?.[0]) handleParseImageFile(e.target.files[0]); e.target.value = ""; }} />
+                    </div>
+                  )}
+
+                  {/* Textarea (always visible — optional context when image present) */}
                   <textarea
                     value={parseText}
                     onChange={e => setParseText(e.target.value)}
-                    placeholder="Pega aquí el mensaje de WhatsApp..."
-                    rows={6}
+                    placeholder={parseImage ? "Contexto adicional (opcional)..." : "O pega aqui el texto del mensaje..."}
+                    rows={parseImage ? 3 : 6}
                     style={{
                       width: "100%", padding: "12px 14px", borderRadius: 12,
                       border: "1.5px solid #E8E0D4", fontSize: 14, background: "#EFE9E4",
@@ -3754,20 +3824,20 @@ export default function VyniaApp() {
                     onFocus={e => { e.target.style.borderColor = "#4F6867"; }}
                     onBlur={e => { e.target.style.borderColor = "#E8E0D4"; }}
                     disabled={parseLoading}
-                    autoFocus
+                    autoFocus={!parseImage}
                   />
                   <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowParseModal(false)} disabled={parseLoading}
                       style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid #ccc", background: "transparent", color: "#666", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                       Cancelar
                     </button>
-                    <button onClick={handleParseOrder} disabled={!parseText.trim() || parseLoading}
+                    <button onClick={handleParseOrder} disabled={(!parseText.trim() && !parseImage) || parseLoading}
                       style={{
                         padding: "10px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                        background: !parseText.trim() || parseLoading ? "#A2C2D0" : "linear-gradient(135deg, #4F6867, #1B1C39)",
+                        background: (!parseText.trim() && !parseImage) || parseLoading ? "#A2C2D0" : "linear-gradient(135deg, #4F6867, #1B1C39)",
                         color: "#fff", display: "flex", alignItems: "center", gap: 8,
                         fontFamily: "'Roboto Condensed', sans-serif",
-                        boxShadow: !parseText.trim() || parseLoading ? "none" : "0 3px 12px rgba(79,104,103,0.35)",
+                        boxShadow: (!parseText.trim() && !parseImage) || parseLoading ? "none" : "0 3px 12px rgba(79,104,103,0.35)",
                         transition: "all 0.2s",
                       }}>
                       {parseLoading ? (
@@ -3775,7 +3845,7 @@ export default function VyniaApp() {
                       ) : "Analizar"}
                     </button>
                   </div>
-                </>
+                </div>
               )}
 
               {/* Result preview phase */}
