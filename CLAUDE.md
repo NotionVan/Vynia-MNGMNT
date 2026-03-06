@@ -453,3 +453,13 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-13**: Dictado por voz en modal "Pegar pedido" — boton "Dictar" que usa la Web Speech API del navegador (`SpeechRecognition`, `es-ES`) para transcribir audio en tiempo real. El staff reproduce un audio de WhatsApp y la app lo escucha via microfono del dispositivo. Transcripcion en vivo al textarea, con resultado editable antes de analizar. Animacion de pulso (CSS `micPulse`) mientras escucha. Cleanup automatico al cerrar modal. Coste $0 (API del navegador, sin backend). Compatible con Chrome y Safari (desktop/movil). Muestra error informativo en navegadores sin soporte (Firefox). Nuevo icono SVG `I.Mic`
+
+## Changelog v1.8.2
+
+### Bug fixes
+- **FIX-06**: Modificar productos de un pedido duplicaba todos los registros — al abrir un pedido desde la lista o ficha de cliente, los productos se cargaban via `parseProductsStr` como `{nombre, unidades}` sin campo `id` del registro de Notion. El useEffect que carga registros frescos (con IDs) se saltaba la recarga al ver que el array ya tenia items. Al guardar, `guardarModificacion` no encontraba IDs para borrar los registros viejos, creando nuevos sin eliminar los anteriores. Fix: (1) useEffect ahora verifica que los productos tengan `id` antes de saltarse la recarga, (2) safety net en `guardarModificacion` que carga registros frescos de la API si los productos no tienen IDs
+
+## Changelog v1.8.3
+
+### Mejoras
+- **FEAT-14**: Rediseno de la seccion "Disponible para venta" en tab Produccion — movida encima de los filtros (Pendiente/Todo el dia) con flujo de 3 estados: (1) boton CTA "Planificar produccion" cuando no hay plan, (2) modo edicion con busqueda, pills frecuentes y steppers al pulsar el boton, (3) resumen compacto con totales (plan/pedidos/disponibles) y lista de productos con badges de excedente al pulsar "Listo". Boton "Editar" para volver al modo edicion. Reemplazado `surplusCollapsed` por `surplusEditing` (sin persistencia en localStorage del estado colapsado). Ayuda actualizada con el nuevo flujo
