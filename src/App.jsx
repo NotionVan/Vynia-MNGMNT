@@ -1762,15 +1762,17 @@ export default function VyniaApp() {
   const totalItems = lineas.reduce((s, l) => s + l.cantidad, 0);
 
   // ─── STATS (single-pass, memoized) ───
-  const { statsTotal, statsPendientes, statsRecogidos } = useMemo(() => {
-    let total = 0, pendientes = 0, recogidos = 0;
+  const { statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger } = useMemo(() => {
+    let total = 0, pendientes = 0, recogidos = 0, porPreparar = 0, listoRecoger = 0;
     for (const p of pedidos) {
       total++;
       const g = ESTADOS[p.estado]?.group;
       if (p.estado === "Recogido") recogidos++;
       else if (g !== "complete") pendientes++;
+      if (p.estado === "Sin empezar" || p.estado === "En preparación") porPreparar++;
+      if (p.estado === "Listo para recoger") listoRecoger++;
     }
-    return { statsTotal: total, statsPendientes: pendientes, statsRecogidos: recogidos };
+    return { statsTotal: total, statsPendientes: pendientes, statsRecogidos: recogidos, statsPorPreparar: porPreparar, statsListoRecoger: listoRecoger };
   }, [pedidos]);
 
   // ─── FILTERED PEDIDOS (memoized) ───
@@ -1908,11 +1910,11 @@ export default function VyniaApp() {
             <div style={{
               width: 42, height: 42,
               background: "#ffffff",
-              borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden",
               border: "1px solid #A2C2D0",
             }}>
-              <img src="/logovynia2_azul.png" alt="Vynia" style={{ width: 34, height: 34, objectFit: "contain" }} />
+              <img src="/logo-vynia-redondo.png" alt="Vynia" style={{ width: 42, height: 42, objectFit: "cover" }} />
             </div>
             <div style={{ position: "relative" }}>
               <h1 style={{
@@ -2316,6 +2318,34 @@ export default function VyniaApp() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ── Pipeline summary ── */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12,
+              padding: "18px 12px", borderRadius: 16,
+              background: "rgba(255,255,255,0.82)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(162,194,208,0.3)",
+              boxShadow: "0 2px 12px rgba(79,104,103,0.06)",
+              marginBottom: 16,
+            }}>
+              {[
+                { label: "Por preparar", count: statsPorPreparar, color: "#1565C0", bg: "#E3F2FD", desc: "Pedidos pendientes de elaborar en el obrador" },
+                { label: "Listo para recoger", count: statsListoRecoger, color: "#E65100", bg: "#FFF3E0", desc: "Terminados y esperando recogida del cliente" },
+                { label: "Recogido", count: statsRecogidos, color: "#2E7D32", bg: "#E8F5E9", desc: "Pedidos entregados al cliente" },
+              ].map(s => (
+                <div key={s.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                  <div style={{ position: "relative", width: 68, height: 68 }}>
+                    <PipelineRing count={s.count} total={statsTotal || 1} color={s.color} bg={s.bg} />
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "'Roboto Condensed', sans-serif", lineHeight: 1 }}>{s.count}</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#1B1C39", marginTop: 8, fontFamily: "'Roboto Condensed', sans-serif" }}>{s.label}</span>
+                  <span style={{ fontSize: 10, color: "#4F6867", marginTop: 3, lineHeight: 1.3, maxWidth: 130 }}>{s.desc}</span>
+                </div>
+              ))}
             </div>
 
             {/* ── Ficha cliente ── */}

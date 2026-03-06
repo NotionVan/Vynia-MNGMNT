@@ -556,3 +556,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ### Mejoras
 - **FEAT-27**: Glass Calendar — los date pickers nativos de Pedidos y Produccion reemplazados por un calendario glass-morphism horizontal. Fondo oscuro translucido (`rgba(27,28,57,0.88)`) con `backdrop-filter: blur(20px)`, strip horizontal scrollable con todos los dias del mes, dia seleccionado con gradient pill (`#4F6867→#A2C2D0`), dot indicator para "hoy", navegacion de meses con chevrons, auto-scroll al dia seleccionado. Boton "Fecha" reemplaza el input nativo, mostrando la fecha formateada cuando es una fecha custom. Se cierra al seleccionar dia, click fuera, o cambiar de tab. CSS `.scrollbar-hide` para ocultar scrollbar del strip
 - **FEAT-28**: Luma-spin loader — los 3 spinners circulares (principal 44px, ficha cliente 28px, boton Analizar 14px) reemplazados por el efecto luma-spin: dos rectangulos con bordes redondeados que se metamorfosean con `@keyframes loaderAnim` (inset porcentual, funciona en cualquier tamaño). Colores Vynia (`#4F6867`) para spinners sobre fondo claro, blanco para el spinner inline del boton. Duracion 2.5s con delay -1.25s para el segundo rectangulo
+
+## Changelog v1.10.1
+
+### Mejoras
+- **FIX-12**: Logo del header corregido — cambiado de `logovynia2_azul.png` (logo azul texto) a `Logo Vynia redondo.png` (logo circular con "Obrador Artesano / Sin Gluten"). Contenedor ajustado a `borderRadius: "50%"` e imagen a `objectFit: "cover"` para encajar el logo circular. Fichero copiado a `public/logo-vynia-redondo.png`
