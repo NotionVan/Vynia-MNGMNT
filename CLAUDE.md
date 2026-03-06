@@ -186,7 +186,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Fondo de pagina con gradientes radiales sutiles para dar profundidad al efecto glass
 - Vynia-branded: misma paleta de colores y fuentes que la app principal
 - Mobile-first, responsive
-- CTA de resena Google: boton gradient Vynia (#4F6867) con estrella dorada SVG, efecto shine sweep en hover, texto "Dejanos tu opinion". Aparece encima de la lista de pedidos (tras el header "Pedidos de X"). Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print
+- CTA de resena Google: tarjeta glass-morphism blanca con logo oficial de Google Review (`public/google-review.png`), texto "Dejanos tu opinion". Aparece encima de la lista de pedidos (tras el header "Pedidos de X"). Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print
 - Modo iframe: detecta `window !== window.top`, añade clase `.embedded` (oculta logo y footer, fondo transparente, sin gradientes de fondo)
 - Iframe embed code para WordPress:
   ```html
