@@ -1,7 +1,8 @@
-import { loadCatalog } from "./_notion.js";
+import { loadCatalog, notion } from "./_notion.js";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5-20251001";
+const DB_CLIENTES = "1c418b3a-38b1-811f-b3ab-ea7a5e513ace";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -61,7 +62,9 @@ Reglas:
 - Si hay conversación larga con negociación, extrae solo el pedido final/confirmado
 - NO inventes productos que no están en el catálogo — ponlos en no_encontrados
 - Si se menciona un nombre de persona como remitente o firma, úsalo como cliente
-- En capturas de pantalla, el nombre del contacto de WhatsApp suele ser el cliente`;
+- En capturas de pantalla, el nombre del contacto de WhatsApp suele ser el cliente
+- El teléfono es CLAVE para identificar al cliente. Extrae el número en formato XXXXXXXXX (9 dígitos, sin código de país +34, sin espacios ni guiones). Si ves un número como +34 612 345 678, devuelve "612345678"
+- En capturas de WhatsApp, el número suele aparecer en la cabecera del chat o en el perfil del contacto`;
 
     // Build content array (text, image, or both)
     const content = [];
@@ -148,11 +151,47 @@ Reglas:
     else if (matchedCount === 0) confidence = "low";
     else if (matchedCount < totalMentioned) confidence = "medium";
 
+    // Clean phone: strip country code, spaces, dashes → XXXXXXXXX
+    let cleanTel = (parsed.telefono || senderPhone || "").replace(/\D/g, "");
+    if (cleanTel.startsWith("34") && cleanTel.length > 9) cleanTel = cleanTel.slice(2);
+    if (cleanTel.length < 6) cleanTel = "";
+
+    // Lookup client by phone in Notion
+    let clienteId = null;
+    let clienteNombre = parsed.cliente || senderName || null;
+    let clienteExiste = false;
+
+    if (cleanTel) {
+      try {
+        const search = await notion.databases.query({
+          database_id: DB_CLIENTES,
+          filter: { property: "Teléfono", phone_number: { contains: cleanTel } },
+          page_size: 5,
+        });
+        if (search.results.length > 0) {
+          // Pick best match: prefer exact phone match
+          let best = search.results[0];
+          for (const r of search.results) {
+            const rTel = (r.properties["Teléfono"]?.phone_number || "").replace(/\D/g, "");
+            if (rTel === cleanTel || rTel.endsWith(cleanTel)) { best = r; break; }
+          }
+          clienteId = best.id;
+          const titleProp = Object.values(best.properties).find(p => p.type === "title");
+          clienteNombre = titleProp ? (titleProp.title || []).map(t => t.plain_text).join("") : clienteNombre;
+          clienteExiste = true;
+        }
+      } catch (err) {
+        console.error("Client lookup failed (non-blocking):", err.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       confidence,
-      cliente: parsed.cliente || senderName || null,
-      telefono: parsed.telefono || senderPhone || null,
+      cliente: clienteNombre,
+      telefono: cleanTel || null,
+      clienteId,
+      clienteExiste,
       fecha: parsed.fecha || null,
       hora: parsed.hora || null,
       pagado: parsed.pagado || false,

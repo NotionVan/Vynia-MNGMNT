@@ -1383,10 +1383,15 @@ export default function VyniaApp() {
   };
 
   const aplicarParseo = (result) => {
-    if (result.cliente) {
+    if (result.clienteId && result.clienteExiste) {
+      // Client found by phone in DB — select directly
+      setCliente(result.cliente || "");
+      setSelectedClienteId(result.clienteId);
+      setClienteSuggestions([]);
+    } else if (result.cliente) {
       setCliente(result.cliente);
       setSelectedClienteId(null);
-      // Trigger autocomplete to try to match existing client
+      // No match by phone — trigger autocomplete by name as fallback
       if (apiMode !== "demo" && result.cliente.trim().length >= 2) {
         clearTimeout(clienteSearchTimer.current);
         clienteSearchTimer.current = setTimeout(async () => {
@@ -3865,7 +3870,15 @@ export default function VyniaApp() {
                   {/* Detected info */}
                   <div style={{ background: "#F8F6F3", borderRadius: 12, padding: "12px 14px", marginBottom: 12, fontSize: 13 }}>
                     {parseResult.cliente && (
-                      <div style={{ marginBottom: 6 }}><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente:</span> <strong>{parseResult.cliente}</strong></div>
+                      <div style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente:</span>
+                        <strong>{parseResult.cliente}</strong>
+                        {parseResult.clienteExiste ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6, background: "#2E7D32", color: "#fff" }}>EN BD</span>
+                        ) : (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6, background: "#E65100", color: "#fff" }}>NUEVO</span>
+                        )}
+                      </div>
                     )}
                     {parseResult.telefono && (
                       <div style={{ marginBottom: 6 }}><span style={{ color: "#888", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Teléfono:</span> <strong>{parseResult.telefono}</strong></div>

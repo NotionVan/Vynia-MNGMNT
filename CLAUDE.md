@@ -432,3 +432,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-08**: Modal "Pegar pedido" acepta capturas de pantalla de WhatsApp ademas de texto. Zona unificada: drop zone para arrastrar imagenes, pegar desde clipboard (Cmd+V / Ctrl+V), o boton de seleccion de archivo. Claude Haiku 4.5 (vision) analiza la captura y extrae el pedido. Preview de imagen con boton para quitar. El textarea sigue disponible debajo para contexto adicional. Endpoint `parse-order.js` extendido con soporte multimodal (content array con bloques image + text)
+
+## Changelog v1.7.2
+
+### Mejoras
+- **FEAT-09**: Identificacion de cliente por telefono en parseo de pedidos. Tras extraer el telefono del mensaje/captura, el backend busca en BD Clientes por numero (formato XXXXXXXXX, sin codigo de pais). Si existe: devuelve `clienteId` + nombre verificado de la BD, el frontend lo selecciona directamente sin autocomplete. Si no existe: badge "NUEVO" en preview, pre-rellena nombre + telefono para crear nuevo cliente al submit. Prompt actualizado para priorizar extraccion de telefono en formato limpio
