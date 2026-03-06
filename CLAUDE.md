@@ -465,3 +465,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-14**: Rediseno de la seccion "Disponible para venta" en tab Produccion — movida encima de los filtros (Pendiente/Todo el dia) con flujo de 3 estados: (1) boton CTA "Planificar produccion" cuando no hay plan, (2) modo edicion con busqueda, pills frecuentes y steppers al pulsar el boton, (3) resumen compacto con totales (plan/pedidos/disponibles) y lista de productos con badges de excedente al pulsar "Listo". Boton "Editar" para volver al modo edicion. Reemplazado `surplusCollapsed` por `surplusEditing` (sin persistencia en localStorage del estado colapsado). Ayuda actualizada con el nuevo flujo
+
+## Changelog v1.8.4
+
+### Bug fixes
+- **FIX-07**: Mensajes de error de microfono accionables — `not-allowed` ahora indica al usuario que vaya a Ajustes del navegador > Permisos > Microfono. `no-speech` indica que acerque el audio al microfono. Errores genericos siguen mostrando el codigo de error

@@ -1471,7 +1471,10 @@ export default function VyniaApp() {
       setParseText(finalTranscript + (interim ? " " + interim : ""));
     };
     rec.onerror = (event) => {
-      if (event.error !== "aborted") setParseError("Error de microfono: " + event.error);
+      if (event.error === "aborted") { /* ignore */ }
+      else if (event.error === "not-allowed") setParseError("Permiso de microfono denegado. Ve a Ajustes del navegador > Permisos > Microfono y permite el acceso a esta pagina.");
+      else if (event.error === "no-speech") setParseError("No se detecto voz. Asegurate de que el audio se reproduce cerca del microfono.");
+      else setParseError("Error de microfono: " + event.error);
       setIsListening(false);
     };
     rec.onend = () => setIsListening(false);
