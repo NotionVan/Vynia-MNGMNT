@@ -443,3 +443,13 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ### Mejoras
 - **FEAT-10**: Rediseno visual del boton "Pegar pedido" — estilo premium card con gradiente, contenedor de icono con backdrop-blur, titulo+subtitulo, flecha chevron, efecto shine sweep en hover (CSS animation). Modal header con icono SVG en contenedor gradiente (#4F6867→#1B1C39). Drop zone con icono SVG imagen. Prompt WhatsApp con icono en contenedor gradiente verde
 - **FEAT-11**: Eliminacion total de emojis Unicode del sistema — reemplazados por iconos SVG inline via objeto `I` (nuevos: Clipboard, Img, AlertTri, Mail, Gear). Afecta: boton pegar, modal parse (header, drop zone, warnings, prompt WhatsApp), ficha cliente (email), badge PASADO, y las 5 categorias de HELP_CONTENT (bento cards)
+
+## Changelog v1.8.0
+
+### Mejoras
+- **FEAT-12**: Seccion "Disponible para venta" en tab Produccion — el panadero introduce las unidades planificadas por producto y el sistema calcula el excedente disponible para venta directa (plan - pedidos). Datos en localStorage por fecha (key `vynia-surplus:YYYY-MM-DD`), limpieza automatica de entradas >7 dias. Stepper con NumberFlow, busqueda de catalogo para productos sin pedidos, pills de acceso rapido (FRECUENTES), resumen agregado (planificadas/pedidos/disponibles). Badge verde (excedente), rojo (deficit), gris (justo). Seccion colapsable con estado persistente. Soporte print. 15 tests nuevos en `surplus-plan.test.js`
+
+## Changelog v1.8.1
+
+### Mejoras
+- **FEAT-13**: Dictado por voz en modal "Pegar pedido" — boton "Dictar" que usa la Web Speech API del navegador (`SpeechRecognition`, `es-ES`) para transcribir audio en tiempo real. El staff reproduce un audio de WhatsApp y la app lo escucha via microfono del dispositivo. Transcripcion en vivo al textarea, con resultado editable antes de analizar. Animacion de pulso (CSS `micPulse`) mientras escucha. Cleanup automatico al cerrar modal. Coste $0 (API del navegador, sin backend). Compatible con Chrome y Safari (desktop/movil). Muestra error informativo en navegadores sin soporte (Firefox). Nuevo icono SVG `I.Mic`

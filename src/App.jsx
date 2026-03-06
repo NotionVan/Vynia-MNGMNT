@@ -178,6 +178,7 @@ const I = {
   Img: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>,
   AlertTri: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
   Mail: (p = {}) => <svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 7l-10 7L2 7" /></svg>,
+  Mic: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>,
   Gear: (p = {}) => <svg width={p.s || 18} height={p.s || 18} viewBox="0 0 24 24" fill="none" stroke={p.c || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /></svg>,
 };
 
@@ -310,6 +311,12 @@ const HELP_CONTENT = [
         steps: ["Pulsa un producto para ver los pedidos asociados", "Pulsa un pedido para abrir su detalle completo"],
         tip: "El badge de cada producto muestra el total de unidades",
       },
+      {
+        title: "Disponible para venta",
+        content: "Debajo de la lista de produccion hay una seccion para planificar las unidades que vas a producir. El sistema calcula automaticamente lo que sobra para venta directa.",
+        steps: ["Introduce las unidades planificadas con los botones +/−", "Anade productos que no esten en pedidos con el buscador o los accesos rapidos", "El badge muestra el excedente: verde (sobra), rojo (falta), gris (justo)"],
+        tip: "Los datos se guardan por dia en el navegador y se mantienen al recargar la pagina",
+      },
     ],
   },
   {
@@ -424,6 +431,33 @@ function computeDateSuggestions(produccionRango, lineas) {
     })
     .filter(s => s.score > 0)
     .sort((a, b) => b.score - a.score || a.date.localeCompare(b.date));
+}
+
+// ─── SURPLUS (localStorage helpers for planned production) ───
+const SURPLUS_KEY = "vynia-surplus:";
+const SURPLUS_COLLAPSED_KEY = "vynia-surplus-collapsed";
+
+function loadSurplusPlan(fecha) {
+  try { return JSON.parse(localStorage.getItem(SURPLUS_KEY + fecha) || "{}"); }
+  catch { return {}; }
+}
+
+function saveSurplusPlan(fecha, plan) {
+  const clean = Object.fromEntries(Object.entries(plan).filter(([, v]) => v > 0));
+  if (Object.keys(clean).length) {
+    localStorage.setItem(SURPLUS_KEY + fecha, JSON.stringify(clean));
+  } else {
+    localStorage.removeItem(SURPLUS_KEY + fecha);
+  }
+}
+
+function cleanOldSurplus() {
+  const cutoff = Date.now() - 7 * 86400000;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k?.startsWith(SURPLUS_KEY) && new Date(k.slice(SURPLUS_KEY.length)) < cutoff)
+      localStorage.removeItem(k);
+  }
 }
 
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
@@ -600,7 +634,9 @@ export default function VyniaApp() {
   const [parseLoading, setParseLoading] = useState(false);
   const [parseResult, setParseResult] = useState(null);
   const [parseError, setParseError] = useState(null);
+  const [isListening, setIsListening] = useState(false);
   const parseFileRef = useRef(null);
+  const speechRecRef = useRef(null);
 
   // Produccion diaria
   const [produccionData, setProduccionData] = useState([]);
@@ -608,6 +644,11 @@ export default function VyniaApp() {
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [expandAll, setExpandAll] = useState(false);
   const [ocultarRecogidos, setOcultarRecogidos] = useState(true);
+  const [surplusPlan, setSurplusPlan] = useState({});
+  const [surplusSearch, setSurplusSearch] = useState("");
+  const [surplusCollapsed, setSurplusCollapsed] = useState(() => {
+    try { return localStorage.getItem(SURPLUS_COLLAPSED_KEY) === "1"; } catch { return false; }
+  });
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [phoneMenu, setPhoneMenu] = useState(null); // { tel, x, y }
   const [confirmCancel, setConfirmCancel] = useState(null); // pedidoId
@@ -822,6 +863,15 @@ export default function VyniaApp() {
     const interval = setInterval(check, 120000);
     return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); };
   }, []);
+
+  // ─── Surplus: cleanup old plans on mount ───
+  useEffect(() => { cleanOldSurplus(); }, []);
+
+  // ─── Surplus: load plan when production date changes ───
+  useEffect(() => {
+    setSurplusPlan(loadSurplusPlan(produccionFecha));
+    setSurplusSearch("");
+  }, [produccionFecha]);
 
   // ─── Load product catalog from Notion (source of truth) ───
   useEffect(() => {
@@ -1387,6 +1437,40 @@ export default function VyniaApp() {
     }
   };
 
+  const toggleListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setParseError("Tu navegador no soporta dictado por voz. Usa Chrome o Safari.");
+      return;
+    }
+    if (isListening) { speechRecRef.current?.stop(); return; }
+    const rec = new SR();
+    rec.lang = "es-ES";
+    rec.continuous = true;
+    rec.interimResults = true;
+    speechRecRef.current = rec;
+    let finalTranscript = parseText;
+    rec.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + t;
+        } else {
+          interim += t;
+        }
+      }
+      setParseText(finalTranscript + (interim ? " " + interim : ""));
+    };
+    rec.onerror = (event) => {
+      if (event.error !== "aborted") setParseError("Error de microfono: " + event.error);
+      setIsListening(false);
+    };
+    rec.onend = () => setIsListening(false);
+    rec.start();
+    setIsListening(true);
+  };
+
   const aplicarParseo = (result) => {
     if (result.clienteId && result.clienteExiste) {
       // Client found by phone in DB — select directly
@@ -1525,6 +1609,56 @@ export default function VyniaApp() {
       activeProductCount: view.filter(p => p.udsFiltradas > 0).length,
     };
   }, [produccionData, ocultarRecogidos]);
+
+  // ─── SURPLUS VIEW (memoized) ───
+  const surplusView = useMemo(() => {
+    const items = new Map();
+    for (const prod of produccionData) {
+      const key = prod.nombre.toLowerCase().trim();
+      items.set(key, { nombre: prod.nombre, pedidos: prod.totalUnidades, plan: surplusPlan[key] || 0 });
+    }
+    for (const [key, plan] of Object.entries(surplusPlan)) {
+      if (!items.has(key) && plan > 0) {
+        const cat = catalogo.find(c => c.nombre.toLowerCase().trim() === key);
+        items.set(key, { nombre: cat?.nombre || key, pedidos: 0, plan });
+      }
+    }
+    return Array.from(items.values())
+      .map(it => ({ ...it, excedente: it.plan - it.pedidos }))
+      .sort((a, b) => (b.pedidos > 0) - (a.pedidos > 0) || a.nombre.localeCompare(b.nombre, "es"));
+  }, [produccionData, surplusPlan, catalogo]);
+
+  const surplusTotals = useMemo(() => {
+    const totalPlan = surplusView.reduce((s, p) => s + p.plan, 0);
+    const totalPedidos = surplusView.reduce((s, p) => s + p.pedidos, 0);
+    const totalDisp = surplusView.reduce((s, p) => s + Math.max(0, p.excedente), 0);
+    return { totalPlan, totalPedidos, totalDisp };
+  }, [surplusView]);
+
+  const surplusSearchResults = useMemo(() => {
+    if (!surplusSearch) return [];
+    const q = surplusSearch.toLowerCase();
+    const existing = new Set(surplusView.map(p => p.nombre.toLowerCase().trim()));
+    return catalogo.filter(p => p.nombre.toLowerCase().includes(q) && !existing.has(p.nombre.toLowerCase().trim()));
+  }, [surplusSearch, catalogo, surplusView]);
+
+  const updateSurplus = useCallback((nombre, newVal) => {
+    const key = nombre.toLowerCase().trim();
+    setSurplusPlan(prev => {
+      const next = { ...prev, [key]: Math.max(0, newVal) };
+      if (next[key] === 0) delete next[key];
+      saveSurplusPlan(produccionFecha, next);
+      return next;
+    });
+  }, [produccionFecha]);
+
+  const toggleSurplusCollapsed = useCallback(() => {
+    setSurplusCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(SURPLUS_COLLAPSED_KEY, next ? "1" : "0"); } catch { /* */ }
+      return next;
+    });
+  }, []);
 
   // ═══════════════════════════════════════════════════════════
   //  RENDER
@@ -2501,7 +2635,7 @@ export default function VyniaApp() {
                   </div>
                   <div style={{ flex: 1, textAlign: "left" }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif", lineHeight: 1.2 }}>Pegar pedido</div>
-                    <div style={{ fontSize: 10, color: "#4F6867", opacity: 0.75 }}>Texto o captura de WhatsApp</div>
+                    <div style={{ fontSize: 10, color: "#4F6867", opacity: 0.75 }}>Texto, imagen o voz</div>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4F6867"
                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -3203,6 +3337,218 @@ export default function VyniaApp() {
                 </div>
               );
             })()}
+
+            {/* ═══ SURPLUS: Disponible para venta ═══ */}
+            <div data-surplus-section style={{
+              marginTop: 20, background: "#fff", borderRadius: 14,
+              border: "1px solid #A2C2D0", overflow: "hidden",
+              boxShadow: "0 1px 4px rgba(60,50,30,0.04)",
+            }}>
+              {/* Header (collapsible) */}
+              <button title={surplusCollapsed ? "Expandir disponible para venta" : "Contraer disponible para venta"} onClick={toggleSurplusCollapsed}
+                style={{
+                  width: "100%", padding: "12px 16px",
+                  border: "none", background: "linear-gradient(135deg, #4F6867, #3D5655)",
+                  cursor: "pointer", display: "flex",
+                  alignItems: "center", justifyContent: "space-between",
+                  color: "#fff",
+                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <I.Store s={18} />
+                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Roboto Condensed', sans-serif" }}>
+                    Disponible para venta
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {surplusTotals.totalPlan > 0 && (
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>
+                      {surplusTotals.totalDisp} disp.
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: 10,
+                    transform: surplusCollapsed ? "rotate(0deg)" : "rotate(90deg)",
+                    transition: "transform 0.2s",
+                  }}>&#9654;</span>
+                </div>
+              </button>
+
+              {!surplusCollapsed && (
+                <div style={{ padding: "0 16px 16px" }}>
+                  {/* Summary bar */}
+                  {surplusTotals.totalPlan > 0 && (
+                    <div style={{
+                      display: "flex", justifyContent: "center", gap: 16,
+                      padding: "10px 0", marginBottom: 8,
+                      fontSize: 11, color: "#4F6867", fontWeight: 600,
+                    }}>
+                      <span>{surplusTotals.totalPlan} planif.</span>
+                      <span style={{ color: "#A2C2D0" }}>|</span>
+                      <span>{surplusTotals.totalPedidos} en pedidos</span>
+                      <span style={{ color: "#A2C2D0" }}>|</span>
+                      <span style={{ color: surplusTotals.totalDisp > 0 ? "#2E7D32" : "#A2C2D0" }}>
+                        {surplusTotals.totalDisp} disponibles
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Product rows */}
+                  {surplusView.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {surplusView.map(item => (
+                        <div key={item.nombre} style={{
+                          padding: "10px 12px", borderRadius: 10,
+                          background: "#FAFAFA", border: "1px solid #E8E0D4",
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <I.Box s={14} />
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#1B1C39" }}>{item.nombre}</span>
+                            </div>
+                            {/* Surplus badge */}
+                            <span style={{
+                              fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
+                              fontFamily: "'Roboto Condensed', sans-serif",
+                              background: item.plan === 0 ? "transparent" : item.excedente > 0 ? "#E8F5E9" : item.excedente < 0 ? "#FFEBEE" : "#F5F5F5",
+                              color: item.plan === 0 ? "#A2C2D0" : item.excedente > 0 ? "#2E7D32" : item.excedente < 0 ? "#C62828" : "#8B8B8B",
+                              border: item.plan === 0 ? "none" : `1px solid ${item.excedente > 0 ? "#C8E6C9" : item.excedente < 0 ? "#FFCDD2" : "#E0E0E0"}`,
+                            }}>
+                              {item.plan === 0 ? "—" : (item.excedente > 0 ? "+" : "") + item.excedente}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 11, color: "#A2C2D0", fontWeight: 500 }}>
+                              Pedidos: {item.pedidos}
+                            </span>
+                            {/* Stepper */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                              <span style={{ fontSize: 11, color: "#4F6867", fontWeight: 600, marginRight: 8 }}>Plan:</span>
+                              <button title="Reducir cantidad planificada" onClick={() => updateSurplus(item.nombre, item.plan - 1)}
+                                style={{
+                                  width: 30, height: 30, borderRadius: "8px 0 0 8px",
+                                  border: "1.5px solid #A2C2D0", borderRight: "none",
+                                  background: "#EFE9E4", cursor: "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  color: "#4F6867", opacity: item.plan === 0 ? 0.3 : 1,
+                                }}
+                                disabled={item.plan === 0}>
+                                <I.Minus s={12} />
+                              </button>
+                              <div style={{
+                                width: 42, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+                                borderTop: "1.5px solid #A2C2D0", borderBottom: "1.5px solid #A2C2D0",
+                                background: "#fff", fontSize: 15, fontWeight: 700,
+                                color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif",
+                              }}>
+                                <NumberFlow value={item.plan} />
+                              </div>
+                              <button title="Aumentar cantidad planificada" onClick={() => updateSurplus(item.nombre, item.plan + 1)}
+                                style={{
+                                  width: 30, height: 30, borderRadius: "0 8px 8px 0",
+                                  border: "1.5px solid #A2C2D0", borderLeft: "none",
+                                  background: "#EFE9E4", cursor: "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  color: "#4F6867",
+                                }}>
+                                <I.Plus s={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ textAlign: "center", fontSize: 12, color: "#A2C2D0", padding: "10px 0", margin: 0 }}>
+                      Planifica tu produccion para ver disponibilidad
+                    </p>
+                  )}
+
+                  {/* Add product */}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ position: "relative" }}>
+                      <div style={{
+                        position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                        color: "#A2C2D0", pointerEvents: "none",
+                      }}><I.Search s={14} /></div>
+                      <input
+                        placeholder="Anadir producto al plan..."
+                        value={surplusSearch}
+                        onChange={e => setSurplusSearch(e.target.value)}
+                        style={{
+                          width: "100%", padding: "9px 12px 9px 32px", borderRadius: 10,
+                          border: "1.5px solid #E8E0D4", fontSize: 12,
+                          background: "#EFE9E4", outline: "none",
+                          fontFamily: "inherit",
+                        }} />
+                    </div>
+
+                    {/* Search results dropdown */}
+                    {surplusSearch && surplusSearchResults.length > 0 && (
+                      <div style={{
+                        marginTop: 4, maxHeight: 180, overflowY: "auto",
+                        borderRadius: 14, padding: 3,
+                        background: "rgba(239,233,228,0.88)",
+                        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06)",
+                        animation: "popoverIn 0.15s ease-out",
+                      }}>
+                        <div style={{
+                          background: "rgba(255,255,255,0.95)", borderRadius: 12,
+                          overflow: "hidden", border: "1px solid rgba(162,194,208,0.25)",
+                        }}>
+                          {surplusSearchResults.slice(0, 6).map((p, i) => (
+                            <button key={p.nombre} onClick={() => { updateSurplus(p.nombre, 1); setSurplusSearch(""); }}
+                              style={{
+                                width: "100%", padding: "9px 14px",
+                                border: "none",
+                                borderBottom: i < surplusSearchResults.length - 1 ? "1px solid rgba(162,194,208,0.15)" : "none",
+                                background: "transparent", cursor: "pointer",
+                                display: "flex", alignItems: "center", gap: 6,
+                                fontSize: 12, textAlign: "left", transition: "background 0.15s",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = "#E1F2FC"}
+                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                            >
+                              <span style={{ color: "#4F6867", fontWeight: 700, fontSize: 14 }}>+</span>
+                              <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                              <span style={{
+                                fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                                background: "#E1F2FC",
+                                color: p.cat === "Panaderia" ? "#4F6867" : "#1B1C39",
+                                fontWeight: 600,
+                              }}>{p.cat === "Panaderia" ? "PAN" : "PAST"}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick add pills */}
+                    {!surplusSearch && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+                        {FRECUENTES.map(name => {
+                          const existing = surplusView.find(p => p.nombre.toLowerCase().trim() === name.toLowerCase().trim());
+                          if (existing) return null;
+                          return (
+                            <button key={name} title={`Anadir ${name} al plan`} onClick={() => { updateSurplus(name, 1); }}
+                              style={{
+                                padding: "4px 10px", borderRadius: 8,
+                                border: "1px solid #E8E0D4", background: "#EFE9E4",
+                                fontSize: 11, cursor: "pointer", color: "#4F6867",
+                                fontWeight: 500, transition: "all 0.15s",
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#E1F2FC"; e.currentTarget.style.borderColor = "#4F6867"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "#EFE9E4"; e.currentTarget.style.borderColor = "#E8E0D4"; }}
+                            >+ {name.length > 20 ? name.slice(0, 18) + "..." : name}</button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -3774,7 +4120,7 @@ export default function VyniaApp() {
         ══════════════════════════════════════════ */}
         {showParseModal && (
           <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(27,28,57,0.45)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-            onClick={() => { if (!parseLoading) setShowParseModal(false); }}>
+            onClick={() => { if (!parseLoading) { speechRecRef.current?.stop(); setShowParseModal(false); } }}>
             <div style={{
               background: "rgba(255,255,255,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               borderRadius: 20, padding: "24px 20px 20px", maxWidth: 480, width: "100%",
@@ -3795,7 +4141,7 @@ export default function VyniaApp() {
                 </div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1B1C39", fontFamily: "'Roboto Condensed', sans-serif" }}>Pegar pedido</div>
-                  <div style={{ fontSize: 12, color: "#888" }}>Pega texto, imagen o captura de WhatsApp</div>
+                  <div style={{ fontSize: 12, color: "#888" }}>Texto, imagen o dictado por voz</div>
                 </div>
               </div>
 
@@ -3847,6 +4193,29 @@ export default function VyniaApp() {
                     </div>
                   )}
 
+                  {/* Mic dictation button */}
+                  <button
+                    onClick={toggleListening}
+                    disabled={parseLoading}
+                    title={isListening ? "Parar dictado" : "Dictar con microfono"}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 14px", borderRadius: 10,
+                      border: isListening ? "1.5px solid #C62828" : "1.5px solid #A2C2D0",
+                      background: isListening ? "rgba(198,40,40,0.08)" : "transparent",
+                      color: isListening ? "#C62828" : "#4F6867",
+                      fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      transition: "all 0.2s", marginBottom: 8, width: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {isListening ? (
+                      <><span className="mic-pulse" style={{ display: "inline-flex" }}><I.Mic s={16} c="#C62828" /></span> Escuchando... pulsa para parar</>
+                    ) : (
+                      <><I.Mic s={16} c="#4F6867" /> Dictar (reproduce el audio y escucha)</>
+                    )}
+                  </button>
+
                   {/* Textarea (always visible — optional context when image present) */}
                   <textarea
                     value={parseText}
@@ -3865,7 +4234,7 @@ export default function VyniaApp() {
                     autoFocus={!parseImage}
                   />
                   <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
-                    <button onClick={() => setShowParseModal(false)} disabled={parseLoading}
+                    <button onClick={() => { speechRecRef.current?.stop(); setShowParseModal(false); }} disabled={parseLoading}
                       style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid #ccc", background: "transparent", color: "#666", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                       Cancelar
                     </button>
@@ -4526,6 +4895,11 @@ export default function VyniaApp() {
           pointer-events: none;
         }
         .parse-btn:hover .parse-btn-shine { transform: translateX(100%); }
+        @keyframes micPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .mic-pulse { animation: micPulse 1.2s ease-in-out infinite; }
         .estado-btn {
           position: relative;
           overflow: hidden;
@@ -4615,6 +4989,8 @@ export default function VyniaApp() {
           * { box-shadow: none !important; animation: none !important; }
           a[href^="tel:"] { color: #1B1C39 !important; text-decoration: none !important; }
           [data-help-overlay] { display: none !important; }
+          [data-surplus-section] input, [data-surplus-section] button:not([data-surplus-row]) { display: none !important; }
+          [data-surplus-section] [data-surplus-stepper] { display: none !important; }
         }
       `}</style>
     </div>
