@@ -591,3 +591,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FIX-14**: Logo del header un 15% mas grande — contenedor e imagen de 42px a 48px
+
+## Changelog v2.1.2
+
+### Mejoras
+- **FIX-15**: Logo del header un 25% mas grande — contenedor e imagen de 48px a 60px

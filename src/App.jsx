@@ -1909,13 +1909,13 @@ export default function VyniaApp() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: isDesktop ? 16 : 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 48, height: 48,
+              width: 60, height: 60,
               background: "#ffffff",
               borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden",
               border: "1px solid #A2C2D0",
             }}>
-              <img src="/logo-vynia-redondo.png" alt="Vynia" style={{ width: 48, height: 48, objectFit: "cover" }} />
+              <img src="/logo-vynia-redondo.png" alt="Vynia" style={{ width: 60, height: 60, objectFit: "cover" }} />
             </div>
             <div style={{ position: "relative" }}>
               <h1 style={{
