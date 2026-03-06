@@ -1551,21 +1551,53 @@ export default function VyniaApp() {
   const toggleListening = async () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setParseError("Tu navegador no soporta dictado por voz. Usa Chrome o Safari.");
+      setParseError("Tu navegador no soporta dictado por voz. Usa Chrome.");
       return;
     }
     if (isListening) { stopListening(); return; }
 
+    // Safari detection: webkitSpeechRecognition exists but doesn't work reliably
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari) {
+      setParseError("Safari no soporta dictado de forma fiable. Abre la app en Chrome para usar esta funcion.");
+      return;
+    }
+
     setListenError("");
     setParseError(null);
 
-    // Step 1: Start SpeechRecognition FIRST (it handles its own mic access)
+    // Step 1: Request mic permission via getUserMedia FIRST (triggers browser prompt reliably)
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        // Set up audio visualization
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          audioCtxRef.current = audioCtx;
+          const source = audioCtx.createMediaStreamSource(stream);
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 128;
+          analyser.smoothingTimeConstant = 0.75;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+        } catch { /* visualization won't work */ }
+      } catch (err) {
+        setParseError(err.name === "NotAllowedError"
+          ? "Microfono bloqueado. Pulsa el candado en la barra de direcciones, permite el microfono y recarga la pagina."
+          : "No se pudo acceder al microfono: " + err.message);
+        return;
+      }
+    }
+
+    // Step 2: Start SpeechRecognition AFTER mic permission is granted
     const rec = new SR();
     rec.lang = "es-ES";
     rec.continuous = true;
     rec.interimResults = true;
     speechRecRef.current = rec;
     let finalTranscript = parseText;
+    let fatalError = false; // prevents auto-restart after permission errors
     setListenText(parseText);
 
     rec.onresult = (event) => {
@@ -1585,20 +1617,31 @@ export default function VyniaApp() {
 
     rec.onerror = (event) => {
       if (event.error === "aborted") return;
+      if (event.error === "no-speech") return; // normal silence, auto-restart via onend
+      fatalError = true;
+      let msg;
       if (event.error === "not-allowed") {
-        setListenError("Microfono bloqueado. Pulsa el candado en la barra de direcciones, permite el microfono y recarga la pagina.");
-      } else if (event.error === "no-speech") {
-        // no-speech is normal — Chrome fires this after silence, just let it auto-restart via onend
-        return;
+        // Chrome has a SEPARATE "speech recognition" permission from "microphone"
+        msg = "Chrome bloquea el reconocimiento de voz. Ve a Ajustes de Chrome > Privacidad > Reconocimiento de voz y asegurate de que esta permitido. Luego recarga la pagina.";
+      } else if (event.error === "network") {
+        msg = "Sin conexion al servicio de voz de Google. Comprueba tu conexion a internet.";
+      } else if (event.error === "service-not-allowed") {
+        msg = "El servicio de reconocimiento de voz no esta disponible. Usa Chrome y permite el reconocimiento de voz en Ajustes.";
       } else {
-        setListenError("Error de microfono: " + event.error);
+        msg = "Error de dictado: " + event.error;
       }
+      // Show error in BOTH popup (while visible) and modal (after popup closes)
+      setListenError(msg);
+      setParseError(msg);
+      stopListening();
     };
 
     // Auto-restart on end (Chrome stops after ~10s silence with continuous=true)
     rec.onend = () => {
-      if (isListeningRef.current) {
+      if (isListeningRef.current && !fatalError) {
         try { rec.start(); } catch { stopListening(); }
+      } else {
+        stopListening();
       }
     };
 
@@ -1606,31 +1649,15 @@ export default function VyniaApp() {
       rec.start();
     } catch (err) {
       setParseError("No se pudo iniciar el dictado: " + err.message);
+      // Clean up getUserMedia stream if we already started it
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+      if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
       return;
     }
 
     isListeningRef.current = true;
     setIsListening(true);
-
-    // Step 2: Start getUserMedia separately for audio visualization (non-blocking)
-    if (navigator.mediaDevices?.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (!isListeningRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        audioCtxRef.current = audioCtx;
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 128;
-        analyser.smoothingTimeConstant = 0.75;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-        requestAnimationFrame(() => drawWaveform());
-      } catch {
-        // Visualization won't work but speech recognition still runs
-      }
-    }
+    requestAnimationFrame(() => drawWaveform());
   };
 
   const aplicarParseo = (result) => {

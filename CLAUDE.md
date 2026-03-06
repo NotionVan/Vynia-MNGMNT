@@ -495,3 +495,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-09**: Dictado por voz no funcionaba — reescrito el flujo de inicio: (1) `SpeechRecognition.start()` se ejecuta PRIMERO y gestiona sus propios permisos de micro (antes `getUserMedia` bloqueaba el micro y `SpeechRecognition` no podia acceder), (2) `getUserMedia` se lanza DESPUES de forma asincrona y no-bloqueante solo para la visualizacion del canvas, (3) `rec.start()` envuelto en try-catch para capturar errores sincronos, (4) `rec.onend` auto-reinicia el reconocimiento en vez de parar (Chrome corta tras ~10s de silencio con `continuous=true`), (5) `no-speech` ya no se trata como error fatal (silencio normal), (6) errores visibles dentro del popup fullscreen via `listenError` (antes se mostraban detras del overlay), (7) `isListeningRef` ref para closures fiables en `onend`/`drawWaveform`
+
+## Changelog v1.8.10
+
+### Bug fixes
+- **FIX-10**: Dictado bloqueado incluso con permiso de micro concedido — Chrome tiene permiso de "reconocimiento de voz" SEPARADO del permiso de microfono. Fixes: (1) revertido a `getUserMedia` PRIMERO para forzar el prompt del navegador, luego `SpeechRecognition` despues (el stream se mantiene para visualizacion), (2) flag `fatalError` local evita bucle infinito de auto-reinicio cuando `rec.onerror` con `not-allowed` disparaba `rec.onend` que intentaba `rec.start()` otra vez, (3) deteccion de Safari (existe `webkitSpeechRecognition` pero no funciona de forma fiable) con mensaje al usuario, (4) mensajes de error especificos para `not-allowed` (enlace a Ajustes Chrome > Reconocimiento de voz), `network` (sin conexion), `service-not-allowed`, (5) errores mostrados tanto en popup fullscreen (`listenError`) como en modal (`parseError`)
