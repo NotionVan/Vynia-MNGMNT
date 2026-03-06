@@ -374,3 +374,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-03**: "Ver pedido" tras crear no abria modal de detalle — race condition entre `loadPedidos()` async (sin await) y `pedidos.find()` en `verPedidoCreado()`. Fix: `pendingViewPedidoId` ref + useEffect que selecciona el pedido cuando `pedidos` se actualiza con los datos nuevos
+
+## Changelog v1.5.0
+
+### Mejoras
+- **FEAT-03**: Boton CTA de resena Google en pagina de seguimiento (`seguimiento.html`) — aparece debajo de las cards de pedido tras consultar por telefono. Estilo gradient Vynia (#4F6867) con efecto shine sweep en hover, glow radial, scale transitions y animacion de entrada staggered. Estrella dorada SVG (Google brand), titulo "Dejanos tu opinion", subtitulo "Tu resena nos ayuda a crecer". Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print. Compatible con modo iframe (vynia.es/mi-pedido/)
