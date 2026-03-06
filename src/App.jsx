@@ -2095,21 +2095,33 @@ export default function VyniaApp() {
                   );
                 })}
               </div>
-              <button title={bulkMode ? "Cancelar selección" : "Seleccionar pedidos"} onClick={() => {
+              <button className={`flow-btn${bulkMode ? " flow-btn-active" : ""}`} title={bulkMode ? "Cancelar selección" : "Seleccionar pedidos"} onClick={() => {
                 if (bulkMode) { setBulkMode(false); setBulkSelected(new Set()); }
                 else { setBulkMode(true); setBulkSelected(new Set()); }
               }}
                 style={{
-                  padding: "7px 14px", borderRadius: 20, fontSize: 12,
-                  border: bulkMode ? "1.5px solid #C62828" : "1.5px solid #d4cec6",
-                  background: bulkMode ? "#FFEBEE" : "#fff",
-                  color: bulkMode ? "#C62828" : "#4F6867",
-                  fontWeight: bulkMode ? 700 : 500,
-                  cursor: "pointer", transition: "all 0.15s",
+                  position: "relative", overflow: "hidden",
+                  padding: "7px 16px 7px 14px", borderRadius: 100, fontSize: 12,
+                  border: `1.5px solid ${bulkMode ? "transparent" : "rgba(79,104,103,0.35)"}`,
+                  background: bulkMode ? "#C62828" : "transparent",
+                  color: bulkMode ? "#fff" : "#4F6867",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.6s cubic-bezier(0.23,1,0.32,1)",
                   fontFamily: "'Roboto Condensed', sans-serif",
-                  display: "flex", alignItems: "center", gap: 5,
+                  display: "flex", alignItems: "center", gap: 6,
                 }}>
-                {bulkMode ? "✕ Cancelar" : "☐ Seleccionar"}
+                <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 6, transition: "transform 0.6s ease-out" }}>
+                  {bulkMode ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg> : <I.Check s={12} />}
+                  <span>{bulkMode ? "Cancelar" : "Seleccionar"}</span>
+                </span>
+                <span className="flow-btn-circle" style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: bulkMode ? 220 : 0, height: bulkMode ? 220 : 0,
+                  background: "#C62828", borderRadius: "50%",
+                  transition: "all 0.8s cubic-bezier(0.19,1,0.22,1)",
+                }} />
               </button>
               <div ref={clienteWrapperRef} style={{ position: "relative", flex: 1, minWidth: 180 }}>
                 <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#A2C2D0", pointerEvents: "none" }}>
@@ -5122,6 +5134,17 @@ export default function VyniaApp() {
         .grid-cards {
           transition: grid-template-columns 0.3s ease;
         }
+        .flow-btn:not(.flow-btn-active):hover {
+          border-color: transparent !important;
+          color: #fff !important;
+          border-radius: 12px !important;
+        }
+        .flow-btn:not(.flow-btn-active):hover .flow-btn-circle {
+          width: 220px !important;
+          height: 220px !important;
+          background: #4F6867 !important;
+        }
+        .flow-btn:active { transform: scale(0.95); }
         @keyframes tubelightGlow {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }

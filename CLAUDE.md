@@ -520,3 +520,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-20**: Efecto tubelight en pills de filtro — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendientes/Recogidos/Todos) envueltos en contenedores glass-morphism con fondo sutil y backdrop-blur. El pill activo muestra una barra luminosa ("tubelight") de 24x3px con glow via box-shadow en la parte superior, animada con pulso sutil (`tubelightGlow`). Pills sin borde propio, fondo transparente cuando inactivos. Boton "Seleccionar" queda fuera del contenedor. Nueva keyframe `tubelightGlow`
+
+## Changelog v1.9.3
+
+### Mejoras
+- **FEAT-21**: Boton "Seleccionar" estilo flow-button — borde redondeado pill (border-radius 100px), circulo expandible al hover que llena el boton de color Vynia (#4F6867) con texto blanco, transicion cubic-bezier suave (0.6s), efecto active scale(0.95). En modo bulk activo, fondo rojo (#C62828) con circulo ya expandido. Iconos SVG inline (check/X) en vez de Unicode
