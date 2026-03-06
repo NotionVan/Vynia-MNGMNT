@@ -1776,15 +1776,13 @@ export default function VyniaApp() {
       background: "#EFE9E4",
       fontFamily: "'Roboto Condensed', 'Segoe UI', system-ui, sans-serif",
       color: "#1B1C39",
-      maxWidth: isDesktop ? 1400 : 960,
-      margin: "0 auto",
       position: "relative",
       paddingBottom: 90,
     }}>
       {/* ════ HEADER ════ */}
       <header style={{
         background: "linear-gradient(180deg, #E1F2FC 0%, #EFE9E4 100%)",
-        padding: isDesktop ? "16px 32px 12px" : "16px 20px 12px",
+        padding: isDesktop ? "16px 48px 12px" : "16px 20px 12px",
         position: "sticky", top: 0, zIndex: 50,
         borderBottom: "1px solid #A2C2D0",
       }}>
@@ -1996,7 +1994,7 @@ export default function VyniaApp() {
         </div>
       )}
 
-      <main style={{ padding: isDesktop ? "0 32px" : "0 16px" }}>
+      <main style={{ padding: isDesktop ? "0 48px" : "0 16px" }}>
 
         {/* ══════════════════════════════════════════
             TAB: PEDIDOS
@@ -2371,7 +2369,7 @@ export default function VyniaApp() {
                         for (const p of groups[dateKey]) { if (esTarde(p)) tardeSet.add(p.id); }
                         const manana = groups[dateKey].filter(p => !tardeSet.has(p.id));
                         const tarde = groups[dateKey].filter(p => tardeSet.has(p.id));
-                        const gridStyle = { display: "grid", gridTemplateColumns: isDesktop ? "repeat(3, 1fr)" : isTablet ? "repeat(2, 1fr)" : "1fr", gap: isDesktop ? 12 : 8 };
+                        const gridStyle = { display: "grid", gridTemplateColumns: isDesktop ? "repeat(auto-fill, minmax(320px, 1fr))" : isTablet ? "repeat(2, 1fr)" : "1fr", gap: isDesktop ? 16 : 8 };
                         const renderCards = (list) => list.map(p => {
                           const isBulkSel = bulkMode && bulkSelected.has(p.id);
                           return (
@@ -4939,7 +4937,7 @@ export default function VyniaApp() {
       {bulkMode && bulkSelected.size > 0 && (
         <div style={{
           position: "fixed", bottom: 68, left: "50%", transform: "translateX(-50%)",
-          width: "calc(100% - 24px)", maxWidth: isDesktop ? 1380 : 940,
+          width: "calc(100% - 96px)",
           background: "rgba(27,28,57,0.92)",
           backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
           borderRadius: 16, padding: "12px 16px",
@@ -5011,8 +5009,8 @@ export default function VyniaApp() {
 
       {/* ════ BOTTOM NAV ════ */}
       <nav style={{
-        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        width: "100%", maxWidth: isDesktop ? 1400 : 960,
+        position: "fixed", bottom: 0, left: 0,
+        width: "100%",
         background: "rgba(255,255,255,0.95)",
         backdropFilter: "blur(12px)",
         borderTop: "1px solid #A2C2D0",

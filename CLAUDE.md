@@ -280,7 +280,7 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 
 - **Palette**: Vynia brand — primario `#4F6867`, secundario `#1B1C39`, accent `#E1F2FC`, bg `#EFE9E4`, muted `#A2C2D0`
 - **Fuentes**: Roboto Condensed (titulos/numeros), Inter (texto)
-- **Responsive**: Mobile-first, max-width 960px centrado
+- **Responsive**: Mobile-first, full-width (sin max-width). Grid de cards auto-fill con `minmax(320px, 1fr)` (columnas automaticas segun ancho). Tablet: 2 cols fijas. Mobile: 1 col
 - **Tooltips**: Todos los botones tienen `title` para hover (desktop) + sistema de tooltip tactil por long-press ~0.4s (movil) con popup animado que desaparece tras 1.5s
 - **Cards de pedido**: Cabecera prominente estilo glass-button con semicirculo SVG animado (`EstadoGauge`) que muestra progreso del pipeline (0%/33%/66%/100%), titulo del estado (13px bold), subtitulo con porcentaje, fondo degradado con color del estado, shimmer overlay. Constantes: `ESTADO_PROGRESS` (mapa estado→progreso 0-1). Boton pipeline secundario (fondo semitransparente, texto coloreado, sin sombra). Boton picker `···` para cambio manual
 - **Toggle precios**: Boton `€ ON/OFF` a la derecha de la barra de busqueda, oculto por defecto (`mostrarPrecios` state). Controla visibilidad del importe en cards
@@ -505,3 +505,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-11**: Dictado por voz bloqueado a nivel HTTP — `vercel.json` enviaba header `Permissions-Policy: microphone=()` que prohibe el acceso al microfono antes de que el JavaScript se ejecute. Cambiado a `microphone=(self)`. Eliminado `getUserMedia` completamente (conflicto con `SpeechRecognition` por bug de Chromium #41083534: ambos intentan acceder al mic y se bloquean mutuamente). `SpeechRecognition.start()` gestiona su propio acceso al mic y muestra el prompt nativo de Chrome. Canvas waveform (Web Audio API) reemplazado por ecualizador CSS puro (8 barras con `@keyframes eqBar` staggered). Eliminados refs innecesarios: `audioCtxRef`, `analyserRef`, `animFrameRef`, `streamRef`, `canvasRef` y funcion `drawWaveform()`
+
+## Changelog v1.9.0
+
+### Mejoras
+- **FEAT-18**: Layout full-width con columnas auto-fill — eliminadas restricciones max-width (1400px/960px), la app ahora usa 100% del ancho del navegador. Grid de cards cambiado de `repeat(3, 1fr)` a `repeat(auto-fill, minmax(320px, 1fr))` para ajustar automaticamente el numero de columnas segun el ancho disponible (~5 columnas en 1920px, ~3-4 en laptops, sin cambios en tablet/movil). Padding horizontal aumentado de 32px a 48px en desktop. Gap entre cards aumentado de 12px a 16px. Bottom nav y bulk bar ajustados para full-width
