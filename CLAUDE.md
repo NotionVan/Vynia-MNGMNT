@@ -545,3 +545,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-25**: Iconos dock-style en bottom nav — Pedidos cambiado de `I.List` (lista generica) a `I.ClipboardList` (portapapeles con lista, strokeWidth 1.5). Produccion cambiado de `I.Store` (tienda) a `I.ChefHat` (gorro de chef, strokeWidth 1.5). Dot indicator (5px circulo verde Vynia) debajo del label del tab activo, inspirado en el dock de referencia. Los iconos originales `I.List` e `I.Store` se mantienen disponibles en el objeto `I`
+
+## Changelog v1.9.8
+
+### Mejoras
+- **FEAT-26**: Header rebranding — logo sustituido de base64 inline (`VYNIA_LOGO`) a `/logovynia2_azul.png` (mismo que pagina de seguimiento). Titulo cambiado de "PEDIDOS" a "Gestion de Pedidos de Vynia". Titulo "Produccion Diaria" en tab Produccion centrado (`textAlign: "center"`)

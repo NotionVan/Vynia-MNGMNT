@@ -1803,14 +1803,14 @@ export default function VyniaApp() {
               overflow: "hidden",
               border: "1px solid #A2C2D0",
             }}>
-              <img src={VYNIA_LOGO} alt="Vynia" style={{ width: 34, height: 34, objectFit: "contain" }} />
+              <img src="/logovynia2_azul.png" alt="Vynia" style={{ width: 34, height: 34, objectFit: "contain" }} />
             </div>
             <div style={{ position: "relative" }}>
               <h1 style={{
                 fontFamily: "'Roboto Condensed', sans-serif", fontSize: 15, fontWeight: 600,
                 margin: 0, color: "#4F6867", letterSpacing: "0.08em",
                 textTransform: "uppercase",
-              }}>Pedidos</h1>
+              }}>Gestión de Pedidos de Vynia</h1>
               <span onClick={() => setShowChangelog(v => !v)} style={{
                 fontFamily: "Inter, sans-serif", fontSize: 9, color: "#A2C2D0",
                 letterSpacing: "0.03em", cursor: "pointer",
@@ -3278,7 +3278,7 @@ export default function VyniaApp() {
           <div style={{ paddingTop: 16 }}>
             <h2 style={{
               fontFamily: "'Roboto Condensed', sans-serif", fontSize: 22, fontWeight: 700,
-              margin: "0 0 16px", color: "#1B1C39",
+              margin: "0 0 16px", color: "#1B1C39", textAlign: "center",
             }}>Producción Diaria</h2>
 
             {/* Date selector + toggle — inline on desktop */}
