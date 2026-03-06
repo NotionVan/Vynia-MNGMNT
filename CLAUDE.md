@@ -561,3 +561,17 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FIX-12**: Logo del header corregido — cambiado de `logovynia2_azul.png` (logo azul texto) a `Logo Vynia redondo.png` (logo circular con "Obrador Artesano / Sin Gluten"). Contenedor ajustado a `borderRadius: "50%"` e imagen a `objectFit: "cover"` para encajar el logo circular. Fichero copiado a `public/logo-vynia-redondo.png`
+
+## v2.0.0 — Rediseno visual completo
+
+Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
+
+- **Layout**: Full-width sin max-width, columnas auto-fill responsive `minmax(320px, 1fr)`
+- **Header**: Menu hamburguesa (agrupa LIVE/Print/Broom/Help/Refresh), logo circular Vynia, titulo "Gestion de Pedidos de Vynia"
+- **Filtros**: Efecto tubelight en pills de fecha y estado (Pedidos + Produccion), glow bar animada en pill activo, contenedor glass-morphism
+- **Seleccionar**: Estilo flow-button con circulo expandible en hover y estado activo
+- **Importes**: Toggle switch deslizante con icono euro (reemplaza boton "€ ON/OFF")
+- **Bottom nav**: Iconos dock-style (ClipboardList, ChefHat), fondo activo con dot indicator
+- **Calendario**: Glass calendar horizontal (fondo oscuro translucido, blur, strip scrollable, gradient pill, dot "hoy", navegacion de meses)
+- **Loaders**: Efecto luma-spin (rectangulos metamorficos) en los 3 spinners
+- **Produccion**: Titulo "Produccion Diaria" centrado
