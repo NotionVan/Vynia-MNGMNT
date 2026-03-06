@@ -500,3 +500,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Bug fixes
 - **FIX-10**: Dictado bloqueado incluso con permiso de micro concedido — Chrome tiene permiso de "reconocimiento de voz" SEPARADO del permiso de microfono. Fixes: (1) revertido a `getUserMedia` PRIMERO para forzar el prompt del navegador, luego `SpeechRecognition` despues (el stream se mantiene para visualizacion), (2) flag `fatalError` local evita bucle infinito de auto-reinicio cuando `rec.onerror` con `not-allowed` disparaba `rec.onend` que intentaba `rec.start()` otra vez, (3) deteccion de Safari (existe `webkitSpeechRecognition` pero no funciona de forma fiable) con mensaje al usuario, (4) mensajes de error especificos para `not-allowed` (enlace a Ajustes Chrome > Reconocimiento de voz), `network` (sin conexion), `service-not-allowed`, (5) errores mostrados tanto en popup fullscreen (`listenError`) como en modal (`parseError`)
+
+## Changelog v1.8.11
+
+### Bug fixes
+- **FIX-11**: Dictado por voz bloqueado a nivel HTTP — `vercel.json` enviaba header `Permissions-Policy: microphone=()` que prohibe el acceso al microfono antes de que el JavaScript se ejecute. Cambiado a `microphone=(self)`. Eliminado `getUserMedia` completamente (conflicto con `SpeechRecognition` por bug de Chromium #41083534: ambos intentan acceder al mic y se bloquean mutuamente). `SpeechRecognition.start()` gestiona su propio acceso al mic y muestra el prompt nativo de Chrome. Canvas waveform (Web Audio API) reemplazado por ecualizador CSS puro (8 barras con `@keyframes eqBar` staggered). Eliminados refs innecesarios: `audioCtxRef`, `analyserRef`, `animFrameRef`, `streamRef`, `canvasRef` y funcion `drawWaveform()`

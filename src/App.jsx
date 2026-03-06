@@ -694,11 +694,6 @@ export default function VyniaApp() {
   const [listenError, setListenError] = useState(""); // error shown inside listening popup
   const parseFileRef = useRef(null);
   const speechRecRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const analyserRef = useRef(null);
-  const animFrameRef = useRef(null);
-  const streamRef = useRef(null);
-  const canvasRef = useRef(null);
   const isListeningRef = useRef(false); // ref mirror of isListening for closures
 
   // Produccion diaria
@@ -1508,47 +1503,10 @@ export default function VyniaApp() {
   const stopListening = () => {
     isListeningRef.current = false;
     speechRecRef.current?.stop();
-    cancelAnimationFrame(animFrameRef.current);
-    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    analyserRef.current = null;
     setIsListening(false);
   };
 
-  // Draw waveform bars on canvas using AnalyserNode frequency data
-  const drawWaveform = () => {
-    const canvas = canvasRef.current;
-    const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
-    const ctx = canvas.getContext("2d");
-    const bufLen = analyser.frequencyBinCount;
-    const data = new Uint8Array(bufLen);
-    const draw = () => {
-      if (!isListeningRef.current) return;
-      animFrameRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(data);
-      const w = canvas.width, h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      const bars = 32;
-      const barW = Math.max(2, (w / bars) - 2);
-      const gap = (w - bars * barW) / (bars - 1);
-      for (let i = 0; i < bars; i++) {
-        const idx = Math.floor(i * bufLen / bars);
-        const val = data[idx] / 255;
-        const barH = Math.max(3, val * h * 0.85);
-        const x = i * (barW + gap);
-        const y = (h - barH) / 2;
-        const alpha = 0.4 + val * 0.6;
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.beginPath();
-        ctx.roundRect(x, y, barW, barH, barW / 2);
-        ctx.fill();
-      }
-    };
-    draw();
-  };
-
-  const toggleListening = async () => {
+  const toggleListening = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setParseError("Tu navegador no soporta dictado por voz. Usa Chrome.");
@@ -1556,9 +1514,8 @@ export default function VyniaApp() {
     }
     if (isListening) { stopListening(); return; }
 
-    // Safari detection: webkitSpeechRecognition exists but doesn't work reliably
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isSafari) {
+    // Safari: webkitSpeechRecognition exists but doesn't work reliably
+    if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
       setParseError("Safari no soporta dictado de forma fiable. Abre la app en Chrome para usar esta funcion.");
       return;
     }
@@ -1566,38 +1523,15 @@ export default function VyniaApp() {
     setListenError("");
     setParseError(null);
 
-    // Step 1: Request mic permission via getUserMedia FIRST (triggers browser prompt reliably)
-    if (navigator.mediaDevices?.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        streamRef.current = stream;
-        // Set up audio visualization
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          audioCtxRef.current = audioCtx;
-          const source = audioCtx.createMediaStreamSource(stream);
-          const analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 128;
-          analyser.smoothingTimeConstant = 0.75;
-          source.connect(analyser);
-          analyserRef.current = analyser;
-        } catch { /* visualization won't work */ }
-      } catch (err) {
-        setParseError(err.name === "NotAllowedError"
-          ? "Microfono bloqueado. Pulsa el candado en la barra de direcciones, permite el microfono y recarga la pagina."
-          : "No se pudo acceder al microfono: " + err.message);
-        return;
-      }
-    }
-
-    // Step 2: Start SpeechRecognition AFTER mic permission is granted
+    // SpeechRecognition handles its own mic access — no getUserMedia needed.
+    // Chrome shows the native permission prompt on the first call to rec.start().
     const rec = new SR();
     rec.lang = "es-ES";
     rec.continuous = true;
     rec.interimResults = true;
     speechRecRef.current = rec;
     let finalTranscript = parseText;
-    let fatalError = false; // prevents auto-restart after permission errors
+    let fatalError = false;
     setListenText(parseText);
 
     rec.onresult = (event) => {
@@ -1617,12 +1551,11 @@ export default function VyniaApp() {
 
     rec.onerror = (event) => {
       if (event.error === "aborted") return;
-      if (event.error === "no-speech") return; // normal silence, auto-restart via onend
+      if (event.error === "no-speech") return;
       fatalError = true;
       let msg;
       if (event.error === "not-allowed") {
-        // Chrome has a SEPARATE "speech recognition" permission from "microphone"
-        msg = "Chrome bloquea el reconocimiento de voz. Ve a Ajustes de Chrome > Privacidad > Reconocimiento de voz y asegurate de que esta permitido. Luego recarga la pagina.";
+        msg = "Microfono bloqueado. Pulsa el candado en la barra de direcciones, permite el microfono y recarga la pagina.";
       } else if (event.error === "network") {
         msg = "Sin conexion al servicio de voz de Google. Comprueba tu conexion a internet.";
       } else if (event.error === "service-not-allowed") {
@@ -1630,13 +1563,10 @@ export default function VyniaApp() {
       } else {
         msg = "Error de dictado: " + event.error;
       }
-      // Show error in BOTH popup (while visible) and modal (after popup closes)
       setListenError(msg);
       setParseError(msg);
-      stopListening();
     };
 
-    // Auto-restart on end (Chrome stops after ~10s silence with continuous=true)
     rec.onend = () => {
       if (isListeningRef.current && !fatalError) {
         try { rec.start(); } catch { stopListening(); }
@@ -1649,15 +1579,11 @@ export default function VyniaApp() {
       rec.start();
     } catch (err) {
       setParseError("No se pudo iniciar el dictado: " + err.message);
-      // Clean up getUserMedia stream if we already started it
-      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-      if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
       return;
     }
 
     isListeningRef.current = true;
     setIsListening(true);
-    requestAnimationFrame(() => drawWaveform());
   };
 
   const aplicarParseo = (result) => {
@@ -4674,13 +4600,12 @@ export default function VyniaApp() {
               </div>
             )}
 
-            {/* Canvas waveform */}
-            <canvas
-              ref={canvasRef}
-              width={280}
-              height={64}
-              style={{ width: 280, height: 64, marginBottom: 16, borderRadius: 12 }}
-            />
+            {/* CSS equalizer bars */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, height: 48, marginBottom: 16 }}>
+              {[0, 0.15, 0.3, 0.05, 0.25, 0.4, 0.1, 0.35].map((d, i) => (
+                <div key={i} className="eq-bar" style={{ width: 4, borderRadius: 2, background: "rgba(255,255,255,0.6)", animationDelay: `${d}s` }} />
+              ))}
+            </div>
 
             {/* Live transcript preview */}
             {listenText && (
@@ -5258,6 +5183,11 @@ export default function VyniaApp() {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.06); }
         }
+        @keyframes eqBar {
+          0%, 100% { height: 6px; }
+          50% { height: 36px; }
+        }
+        .eq-bar { animation: eqBar 0.8s ease-in-out infinite; }
         .estado-btn {
           position: relative;
           overflow: hidden;
