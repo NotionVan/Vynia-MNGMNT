@@ -314,15 +314,64 @@ const HELP_CONTENT = [
       },
       {
         title: "Planificar produccion",
-        content: "Encima de los filtros aparece un boton para introducir la carga de produccion del dia. El sistema calcula automaticamente lo que sobra para venta directa.",
+        content: "Encima de los filtros hay un desplegable para introducir la carga de produccion del dia. El sistema compara tu plan con los pedidos existentes y calcula automaticamente cuantas unidades quedan disponibles para venta directa (excedente = plan − pedidos).",
         steps: [
-          "Pulsa Planificar produccion para abrir el editor",
-          "Busca productos o usa los accesos rapidos frecuentes",
-          "Ajusta las unidades con los botones +/−",
-          "Pulsa Listo cuando termines — veras un resumen compacto con lo reservado y lo disponible",
-          "Pulsa Editar en cualquier momento para modificar la planificacion",
+          "Pulsa la barra verde Planificar produccion para abrir el desplegable",
+          "El chevron del header indica el estado: abajo = cerrado, arriba = abierto",
+          "Pulsa de nuevo el header para cerrar el desplegable en cualquier momento",
         ],
-        tip: "Los datos se guardan por dia en el navegador y se mantienen al recargar. El badge muestra el excedente: verde (sobra), rojo (falta), gris (justo)",
+        tip: "Pulsa el boton circular con la i (ℹ) en el header para ver una explicacion detallada dentro de la propia seccion",
+      },
+      {
+        title: "Anadir productos al plan",
+        content: "Dentro del desplegable abierto puedes buscar productos del catalogo o usar los accesos rapidos.",
+        steps: [
+          "Escribe en el buscador para filtrar productos del catalogo",
+          "Pulsa un resultado para anadirlo con cantidad 1",
+          "Si no hay productos aun, aparecen pills de acceso rapido con los productos frecuentes",
+          "Cuando ya hay productos, los accesos rapidos aparecen como pills pequenas debajo de la lista",
+        ],
+      },
+      {
+        title: "Ajustar cantidades",
+        content: "Cada producto tiene un stepper (+/−) para modificar las unidades planificadas.",
+        steps: [
+          "Pulsa + para aumentar la cantidad planificada",
+          "Pulsa − para reducir. Si llega a 0, el producto se elimina del plan",
+          "El numero central muestra la cantidad actual con animacion",
+          "Si el producto tiene pedidos, veras el texto X en pedidos debajo del nombre",
+        ],
+        tip: "Junto al stepper aparece un badge de excedente cuando hay pedidos para ese producto",
+      },
+      {
+        title: "Interpretar los badges de excedente",
+        content: "Cada producto con pedidos muestra un badge de color junto al stepper que indica la diferencia entre lo planificado y lo reservado.",
+        steps: [
+          "Badge verde (+N) — sobran N unidades para venta directa",
+          "Badge rojo (−N) — faltan N unidades para cubrir los pedidos",
+          "Badge gris (0) — la produccion cubre exactamente los pedidos, sin excedente",
+        ],
+        tip: "Ejemplo: si planificas 6 brownies y hay 3 en pedidos, el badge mostrara +3 en verde (3 disponibles para venta)",
+      },
+      {
+        title: "Resumen con el desplegable cerrado",
+        content: "Al cerrar el desplegable, el header muestra un resumen compacto con los totales del plan.",
+        steps: [
+          "El subtitulo del header muestra: X plan · Y pedidos · Z disp.",
+          "Debajo del header se despliega la lista de productos con Plan, Pedidos y badge de excedente",
+          "Pulsa en cualquier parte del header para volver a abrir y editar",
+        ],
+      },
+      {
+        title: "Persistencia de datos",
+        content: "Los datos del plan se guardan automaticamente en tu navegador (localStorage) para cada dia.",
+        steps: [
+          "Cada dia tiene su propio plan independiente",
+          "Los datos se mantienen al recargar la pagina o cerrar el navegador",
+          "Los planes de mas de 7 dias se eliminan automaticamente para no acumular datos",
+          "Al cambiar de fecha en el selector, se carga el plan correspondiente a ese dia",
+        ],
+        tip: "Los datos solo se guardan en tu navegador, no en Notion. Si cambias de dispositivo o borras datos del navegador, los planes se pierden",
       },
     ],
   },
@@ -1448,13 +1497,23 @@ export default function VyniaApp() {
     }
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setParseError("Tu navegador no soporta dictado por voz. Usa Chrome o Safari.");
       return;
     }
     if (isListening) { speechRecRef.current?.stop(); return; }
+
+    // Request mic permission explicitly — triggers browser prompt
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop()); // release immediately, SpeechRecognition manages its own stream
+    } catch (err) {
+      setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
+      return;
+    }
+
     const rec = new SR();
     rec.lang = "es-ES";
     rec.continuous = true;
@@ -1475,7 +1534,7 @@ export default function VyniaApp() {
     };
     rec.onerror = (event) => {
       if (event.error === "aborted") { /* ignore */ }
-      else if (event.error === "not-allowed") setParseError("Permiso de microfono denegado. Ve a Ajustes del navegador > Permisos > Microfono y permite el acceso a esta pagina.");
+      else if (event.error === "not-allowed") setParseError("Permiso de microfono denegado. Pulsa el icono de candado en la barra de direcciones y permite el microfono.");
       else if (event.error === "no-speech") setParseError("No se detecto voz. Asegurate de que el audio se reproduce cerca del microfono.");
       else setParseError("Error de microfono: " + event.error);
       setIsListening(false);

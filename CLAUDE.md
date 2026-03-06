@@ -475,3 +475,13 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **FEAT-15**: Seccion de planificacion convertida en desplegable — el header con gradiente Vynia actua como toggle (chevron animado arriba/abajo). Unifica las 3 vistas (CTA, edicion, resumen) en una sola card con header consistente. Nuevo icono `I.Info` y boton circular en el header que despliega un panel informativo inline (fondo `#E1F2FC`, animacion `popoverIn`) con instrucciones detalladas: como funciona, como usar busqueda/steppers, significado de badges (verde/rojo/gris) y persistencia en localStorage. Las filas del editor ahora muestran badge de excedente junto al stepper y texto "X en pedidos" para contexto inmediato. Estado `surplusInfoOpen` se resetea al cambiar de fecha
+
+## Changelog v1.8.6
+
+### Bug fixes
+- **FIX-08**: El navegador no mostraba el dialogo de permiso de microfono — `SpeechRecognition.start()` no siempre dispara el prompt del navegador. Fix: llamar a `navigator.mediaDevices.getUserMedia({ audio: true })` antes de iniciar el reconocimiento de voz para forzar el dialogo de permisos. El stream se libera inmediatamente (SpeechRecognition gestiona el suyo propio). Si el usuario deniega, se muestra mensaje accionable con instrucciones para el candado de la barra de direcciones
+
+## Changelog v1.8.7
+
+### Mejoras
+- **FEAT-16**: Seccion de ayuda de planificacion ampliada — la entrada unica "Planificar produccion" se divide en 6 secciones detalladas: (1) como abrir/cerrar el desplegable y el chevron, (2) anadir productos via buscador y pills frecuentes, (3) ajustar cantidades con steppers e info "X en pedidos", (4) interpretar badges de excedente (verde/rojo/gris con ejemplos), (5) resumen compacto visible con desplegable cerrado, (6) persistencia de datos en localStorage por dia con retencion de 7 dias y advertencia sobre cambio de dispositivo
