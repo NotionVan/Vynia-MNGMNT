@@ -298,6 +298,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - Git integration: push a `main` autodeploya automaticamente
 - Repo: `github.com/javintnvn/Vynia-MNGMNT`
 - **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 6 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
+- **OBLIGATORIO en cada commit**: 1) Actualizar `"version"` en `package.json` (semver: patch para fixes/perf, minor para features, major para breaking changes). 2) Documentar los cambios en la seccion `## Changelog vX.Y.Z` al final de este archivo (CLAUDE.md) con ID de cambio (FIX-xx, FEAT-xx, PERF-xx) y descripcion concisa
 
 ## Notas tecnicas
 
@@ -368,3 +369,8 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 ### Mejoras
 - **PERF-02**: Eliminar N+1 queries en `/api/produccion` — reemplazado loop de 1 query por pedido (batches de 5, con 200ms delay) por OR query unico que trae todos los registros de golpe. Mismo patron que ya usa `tracking.js`. Para >100 pedidos, divide en chunks de 100 (limite de compound filter de Notion). Reduce latencia de ~12s a ~600ms con 100 pedidos, eliminando riesgo de timeout en Vercel
+
+## Changelog v1.4.5
+
+### Bug fixes
+- **FIX-03**: "Ver pedido" tras crear no abria modal de detalle — race condition entre `loadPedidos()` async (sin await) y `pedidos.find()` en `verPedidoCreado()`. Fix: `pendingViewPedidoId` ref + useEffect que selecciona el pedido cuando `pedidos` se actualiza con los datos nuevos

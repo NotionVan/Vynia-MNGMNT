@@ -595,6 +595,7 @@ export default function VyniaApp() {
   const toastTimer = useRef(null);
   const searchRef = useRef(null);
   const clienteSearchTimer = useRef(null);
+  const pendingViewPedidoId = useRef(null);
 
   // ─── TOAST ───
   const notify = useCallback((type, msg) => {
@@ -1236,8 +1237,26 @@ export default function VyniaApp() {
           ? parseProductsStr(found.productos)
           : (Array.isArray(found.productos) ? found.productos : []),
       });
+    } else {
+      pendingViewPedidoId.current = pedidoId;
     }
   };
+
+  useEffect(() => {
+    if (!pendingViewPedidoId.current) return;
+    const found = pedidos.find(p => p.id === pendingViewPedidoId.current);
+    if (found) {
+      pendingViewPedidoId.current = null;
+      setSelectedPedido({
+        ...found,
+        pedidoTitulo: found.nombre,
+        tel: found.tel, telefono: found.tel,
+        productos: typeof found.productos === "string"
+          ? parseProductsStr(found.productos)
+          : (Array.isArray(found.productos) ? found.productos : []),
+      });
+    }
+  }, [pedidos]);
 
   const resetForm = () => {
     setNuevoPaso(1);
