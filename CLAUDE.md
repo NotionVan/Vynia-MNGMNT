@@ -19,19 +19,19 @@ Vynia-MNGMNT/
 │   ├── registros.js        # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
 │   ├── produccion.js       # GET (produccion diaria agregada con clientes)
 │   ├── tracking.js         # GET (seguimiento publico por telefono)
-│   └── parse-order.js      # POST (parseo IA de mensajes WhatsApp)
-├── __tests__/              # Vitest test suite (51 tests, 14 files)
+│   └── parse-order.js      # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
+├── __tests__/              # Vitest test suite (77 tests, 16 files)
 ├── public/
 │   ├── seguimiento.html    # Pagina publica de seguimiento de pedidos (standalone, sin React)
 │   └── logovynia2_azul.png # Logo Vynia usado en seguimiento
 ├── src/
-│   ├── App.jsx             # Componente principal (toda la UI, ~2800 lineas)
+│   ├── App.jsx             # Componente principal (toda la UI, ~5100 lineas)
 │   └── api.js              # Cliente API frontend (wrapper fetch)
 ├── main.jsx                # Entry point React
 ├── index.html
 ├── vite.config.js
 ├── vercel.json             # Rewrites: /seguimiento → tracking page, /api/* → serverless, /* → SPA
-├── .env.local              # NOTION_TOKEN (gitignored)
+├── .env.local              # NOTION_TOKEN, ANTHROPIC_API_KEY (gitignored)
 └── package.json
 ```
 
@@ -229,8 +229,8 @@ Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()`
 ## Tabs de la app
 
 1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado prominente como cabecera de cada card, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple, toggle de visibilidad de precios (boton `€ ON/OFF` junto a barra de busqueda, oculto por defecto). Fila de fecha: botones Hoy/Manana/Pasado a la izquierda + datepicker al extremo derecho. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
-2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas)` — logica pura sin IA. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
-3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
+2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. Boton "Pegar pedido" (card premium con shine effect) abre modal para importar pedidos de WhatsApp via: texto pegado, captura de pantalla (drag-drop/clipboard/file), o dictado por voz (Web Speech API, boton "Dictar" con pulso animado). Parseo con Claude Haiku 4.5 (vision), preview con confianza, matching contra catalogo, lookup de cliente por telefono. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas)` — logica pura sin IA. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
+3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Seccion "Disponible para venta": flujo de 3 estados — boton CTA "Planificar produccion" → modo edicion (steppers, busqueda catalogo, pills frecuentes) → resumen compacto con totales plan/pedidos/disponibles y badges de excedente/deficit. Datos en localStorage por fecha (`vynia-surplus:YYYY-MM-DD`), limpieza >7 dias. Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
 
 ## Sistema de Estado
 
@@ -288,7 +288,9 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 - **Update banner**: Chequeo automatico de `/version.json` cada 2 min + al volver a la pestaña. Si hay nueva version desplegada, muestra banner flotante "Nueva version disponible" con boton "Actualizar" (reload). Plugin Vite `version-json` genera el fichero en build y lo sirve en dev
 - **Print**: CSS @media print para imprimir lista de pedidos/produccion
 - **Bottom nav**: 3 tabs fijas (Pedidos, Nuevo, Produccion) con safe-area-inset-bottom
-- **Seccion de Ayuda**: Boton `?` en header abre modal full-screen con manual de instrucciones. Dos niveles de navegacion: (1) Bento Grid con 5 cards de categoria (Pedidos, Nuevo Pedido, Produccion, Seguimiento, General) con gradientes de color unicos, iconos, animaciones staggered de entrada y hover scale; (2) Animated List con secciones expandibles estilo acordeon, numero circular coloreado, preview truncado, pasos numerados y tips con borde de acento. Contextual: abre la categoria del tab activo. Estado: `showHelp`, `helpExpanded` (Set), `helpActiveCategory`. Contenido estatico en constante `HELP_CONTENT` (~180 lineas). Colores por categoria: Pedidos (#1565C0 azul), Nuevo (#2E7D32 verde), Produccion (#E65100 naranja), Seguimiento (#7B1FA2 morado), General (#4F6867). CSS: `helpSlideUp`, `helpItemIn`, `.help-bento-card`, `.help-list-item`. Oculto en @media print
+- **Iconos SVG inline**: Objeto `I` con funciones de componente (`I.Clipboard`, `I.Img`, `I.AlertTri`, `I.Mail`, `I.Gear`, `I.Mic`, `I.Phone`, `I.Plus`, `I.Store`, etc.). Props: `s` (size), `c` (color). Zero emojis Unicode en toda la app
+- **Modal "Pegar pedido"**: Glass-morphism con header gradiente (#4F6867→#1B1C39) + icono SVG, drop zone para imagenes, boton "Dictar" con Web Speech API (pulso animado `micPulse` mientras escucha), textarea, boton "Analizar". Preview de resultado con badge de confianza, productos matched/unmatched, warnings con triangulo SVG. CSS: `.parse-btn` (shine effect), `.mic-pulse`
+- **Seccion de Ayuda**: Boton `?` en header abre modal full-screen con manual de instrucciones. Dos niveles de navegacion: (1) Bento Grid con 5 cards de categoria (Pedidos, Nuevo Pedido, Produccion, Seguimiento, General) con gradientes de color unicos, iconos SVG, animaciones staggered de entrada y hover scale; (2) Animated List con secciones expandibles estilo acordeon, numero circular coloreado, preview truncado, pasos numerados y tips con borde de acento. Contextual: abre la categoria del tab activo. Estado: `showHelp`, `helpExpanded` (Set), `helpActiveCategory`. Contenido estatico en constante `HELP_CONTENT` (~180 lineas). Colores por categoria: Pedidos (#1565C0 azul), Nuevo (#2E7D32 verde), Produccion (#E65100 naranja), Seguimiento (#7B1FA2 morado), General (#4F6867). CSS: `helpSlideUp`, `helpItemIn`, `.help-bento-card`, `.help-list-item`. Oculto en @media print
 
 ## Modos
 
@@ -307,7 +309,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 ## Deploy
 
 - Vercel project name: `vynia-mngmnt` en team `javiers-projects-9e54bc4d`
-- Variable de entorno en Vercel: `NOTION_TOKEN`
+- Variables de entorno en Vercel: `NOTION_TOKEN`, `ANTHROPIC_API_KEY`
 - Git integration: push a `main` autodeploya automaticamente
 - Repo: `github.com/javintnvn/Vynia-MNGMNT`
 - **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 7 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
@@ -321,7 +323,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
 - Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
-- Toda la UI esta en un solo componente `App.jsx` (~2700 lineas) — no hay componentes separados
+- Toda la UI esta en un solo componente `App.jsx` (~5100 lineas) — no hay componentes separados
 - El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en App.jsx, con carga dinamica via `/api/registros?productos=true`
 - `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
@@ -334,7 +336,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 
 - **Framework**: Vitest 4.x con jsdom
 - **Ejecutar**: `npm test` (o `npx vitest run`)
-- **14 archivos de test**, 51 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones
+- **16 archivos de test**, 77 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
 ## Changelog v1.4.0
