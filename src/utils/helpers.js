@@ -18,6 +18,15 @@ export function waLink(tel) {
   return `https://wa.me/${num}`;
 }
 
+// ─── PARSE PRODUCTS STRING ("2x Brownie, 1x Cookie") ───
+export function parseProductsStr(str) {
+  if (!str || typeof str !== "string") return [];
+  return str.split(",").map(s => {
+    const m = s.trim().match(/^(\d+)x\s+(.+)$/);
+    return m ? { nombre: m[2].trim(), unidades: parseInt(m[1], 10) } : null;
+  }).filter(Boolean);
+}
+
 // ─── DATE SUGGESTIONS (scoring for delivery date optimization) ───
 export function computeDateSuggestions(produccionRango, lineas) {
   if (!produccionRango || !lineas || lineas.length === 0) return [];
