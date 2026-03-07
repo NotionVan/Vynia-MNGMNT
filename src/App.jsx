@@ -680,15 +680,21 @@ export default function VyniaApp() {
         prods = await notion.loadRegistros(pedido.id) || [];
       }
       const oldIds = prods.filter(p => p.id).map(p => p.id);
+      let deleteWarning = false;
       if (oldIds.length > 0) {
-        await notion.deleteRegistros(oldIds);
+        try {
+          await notion.deleteRegistros(oldIds);
+        } catch (delErr) {
+          console.error("Error borrando registros antiguos:", delErr);
+          deleteWarning = true;
+        }
       }
       // Reload fresh registros (with new IDs)
       const freshProds = await notion.loadRegistros(pedido.id);
       setSelectedPedido(prev => prev ? { ...prev, productos: Array.isArray(freshProds) ? freshProds : [] } : prev);
       setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, importe: newImporte, productos: newProdsStr } : p));
       invalidateProduccion(pedido.fecha); invalidateSearchCache();
-      notify("ok", "Pedido modificado");
+      notify(deleteWarning ? "warn" : "ok", deleteWarning ? "Pedido modificado, pero la limpieza de registros antiguos falló" : "Pedido modificado");
       return true;
     } catch (err) {
       notify("err", err.message);
@@ -1096,7 +1102,7 @@ export default function VyniaApp() {
         <div style={{
           position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)",
           padding: "10px 20px", borderRadius: 10, zIndex: 200,
-          background: toast.type === "ok" ? "#3D5655" : "#C62828",
+          background: toast.type === "ok" ? "#3D5655" : toast.type === "warn" ? "#E65100" : "#C62828",
           color: "#fff", fontSize: 13, fontWeight: 600,
           boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
           animation: "slideIn 0.3s ease",

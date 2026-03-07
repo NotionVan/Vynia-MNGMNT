@@ -737,3 +737,14 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Docs
 - **FIX-18**: Corregir referencias obsoletas en CLAUDE.md — 3 menciones a "en App.jsx" actualizadas: catalogo de productos ahora referencia `constants/catalogo.js`, constantes de estado ahora referencia `constants/estados.js`. Evita confusion de Claude Code al buscar definiciones en fichero incorrecto
+
+## Changelog v2.5.0
+
+### Security
+- **FIX-19**: Rate limiting en `/api/tracking` — endpoint publico ahora protegido con doble capa de rate limiting in-memory: 10 req/min por IP (previene brute force) + 3 req/min por telefono (previene enumeracion de clientes). Respuesta 429 con header `Retry-After: 60`. Limpieza automatica de entradas stale cada 60s. Limitacion: store se resetea en cold start (~15 min), aceptable para el volumen actual
+
+### Bug fixes
+- **FIX-20**: Hardening `guardarModificacion` — eliminacion de registros antiguos envuelta en try-catch separado. Si la creacion de nuevos registros tiene exito pero la eliminacion de los antiguos falla, el usuario recibe un warning naranja ("Pedido modificado, pero la limpieza fallo") en lugar de un error rojo que oculta que los nuevos ya estan creados. Nuevo tipo de toast `"warn"` con fondo naranja (#E65100)
+
+### Cleanup
+- **FIX-21**: Eliminados `src/middleware.ts` y `src/api/_middleware.ts` — dead code de Next.js Edge Middleware no ejecutable en Vercel Hobby plan con Vite. El rate limiting real ahora vive directamente en `api/tracking.js`

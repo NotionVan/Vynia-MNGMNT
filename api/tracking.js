@@ -1,5 +1,24 @@
 import { notion, cached, PROP_UNIDADES } from "./_notion.js";
 
+// ─── Rate limiter in-memory (per Vercel instance) ───
+const _rl = new Map();
+function rateLimit(key, max, windowMs) {
+  const now = Date.now();
+  const entry = _rl.get(key);
+  if (!entry || now - entry.ts > windowMs) {
+    _rl.set(key, { n: 1, ts: now });
+    return true;
+  }
+  if (entry.n >= max) return false;
+  entry.n++;
+  return true;
+}
+// Evict stale entries every 60s to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _rl) if (now - v.ts > 120000) _rl.delete(k);
+}, 60000);
+
 const DB_CLIENTES = "1c418b3a-38b1-811f-b3ab-ea7a5e513ace";
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
@@ -24,6 +43,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Rate limit by IP (10 req/min)
+  const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  if (!rateLimit(`ip:${ip}`, 10, 60000)) {
+    res.setHeader("Retry-After", "60");
+    return res.status(429).json({ error: "Demasiadas consultas. Intenta en 1 minuto." });
+  }
+
   const { tel } = req.query;
   if (!tel || tel.replace(/\D/g, "").length < 6) {
     return res.status(400).json({ error: "Introduce un número de teléfono válido" });
@@ -33,6 +59,12 @@ export default async function handler(req, res) {
   const searchTel = cleanTel.startsWith("34") && cleanTel.length > 9
     ? cleanTel.slice(2)
     : cleanTel;
+
+  // Rate limit by phone (3 req/min)
+  if (!rateLimit(`tel:${searchTel}`, 3, 60000)) {
+    res.setHeader("Retry-After", "60");
+    return res.status(429).json({ error: "Demasiadas consultas para este número." });
+  }
 
   try {
     // Cache whole response for 15s (repeated lookups by same client)
