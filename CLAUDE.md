@@ -765,3 +765,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 - **REFACTOR-12**: `DB_REGISTROS` centralizado — constante movida de `registros.js`, `produccion.js` y `tracking.js` a `_notion.js` como export compartido. Elimina duplicacion del ID
 - **REFACTOR-13**: Batch de borrado de registros — `handleDelete` en `registros.js` sube de 3 a 10 registros en paralelo por batch, reduce tiempo de eliminacion
 - **REFACTOR-14**: Catalog TTL server-side — `loadCatalog()` cache TTL subido de 5min a 30min (el catalogo cambia raramente)
+
+## Changelog v2.6.1
+
+### Bug fixes
+- **FIX-22**: Telefono siempre visible en modal de detalle de pedido — al abrir un pedido (click en card), el numero de telefono se muestra siempre independientemente del estado del toggle "Ver/Ocultar datos". El toggle sigue ocultando telefonos en la lista de pedidos, ficha de cliente y resultados de busqueda. Eliminado `mostrarDatos` del destructuring de `OrderDetailModal.jsx` (ya no se usa en el componente)

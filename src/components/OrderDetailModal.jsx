@@ -16,7 +16,7 @@ export default function OrderDetailModal({
   onCancel,
 }) {
   const {
-    isDesktop, catalogo, mostrarDatos,
+    isDesktop, catalogo,
     requestEstadoChange: onEstadoChange,
     requestPagadoChange: onPagadoChange,
     openPhoneMenu: onPhoneMenu,
@@ -141,7 +141,7 @@ export default function OrderDetailModal({
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
                 <I.Phone s={14} />
                 <span onClick={(e) => onPhoneMenu(pedido.telefono || pedido.tel, e)} style={{ color: "#1B1C39", cursor: "pointer" }}>
-                  {mostrarDatos ? (pedido.telefono || pedido.tel) : "\u2022\u2022\u2022"}
+                  {pedido.telefono || pedido.tel}
                 </span>
               </div>
             )}
