@@ -8,8 +8,10 @@ import { computeDateSuggestions } from "../utils/helpers.js";
 import { labelStyle, inputStyle, formSectionStyle } from "../styles/shared.js";
 import ParseWhatsAppModal from "./ParseWhatsAppModal.jsx";
 import ListeningPopup from "./ListeningPopup.jsx";
+import { useVynia } from "../context/VyniaContext.jsx";
 
-export default function TabNuevo({ isDesktop, apiMode, catalogo, notify, onCreatePedido, onViewOrder }) {
+export default function TabNuevo({ onCreatePedido, onViewOrder }) {
+  const { isDesktop, apiMode, catalogo, notify } = useVynia();
   // ─── State ───
   const [cliente, setCliente] = useState("");
   const [clienteSuggestions, setClienteSuggestions] = useState([]);

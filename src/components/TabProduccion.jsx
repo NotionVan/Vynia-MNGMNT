@@ -5,21 +5,20 @@ import { ESTADOS, effectiveEstado } from "../constants/estados.js";
 import { FRECUENTES } from "../constants/catalogo.js";
 import { fmt } from "../utils/fmt.js";
 import { cleanOldSurplus, loadSurplusPlan, saveSurplusPlan } from "../utils/surplus.js";
+import { useVynia } from "../context/VyniaContext.jsx";
 
 export default function TabProduccion({
-  isDesktop,
   produccionData,
   produccionFecha,
   setProduccionFecha,
   loadProduccion,
-  catalogo,
   onSelectPedido,
-  onRequestPagadoChange,
-  renderGlassCal,
-  openGlassCal,
-  setGlassCalTarget,
-  glassCalTarget,
 }) {
+  const {
+    isDesktop, catalogo,
+    requestPagadoChange: onRequestPagadoChange,
+    renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
+  } = useVynia();
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [expandAll, setExpandAll] = useState(false);
   const [ocultarRecogidos, setOcultarRecogidos] = useState(true);

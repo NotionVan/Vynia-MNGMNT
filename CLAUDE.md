@@ -686,3 +686,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-09**: Extraer TabPedidos de App.jsx — noveno paso del desacoplamiento del monolito (2201→1396 lineas, -805). Nuevo componente `TabPedidos.jsx` (~854 lineas) internaliza 12 estados (renderLimit, sentinelRef, mostrarPrecios, busqueda, searchResults, fichaCliente, fichaClientePedidos, fichaClienteLoading, editingClienteData, savingCliente, busquedaTimer, clienteWrapperRef), 4 handlers (onBusquedaChange, openFichaCliente, closeFicha, saveClienteData), 4 valores computados (pedidosFiltrados, hasMorePedidos, groups/sortedDates, IntersectionObserver) y 2 efectos (renderLimit reset, progressive rendering). `parseProductsStr` movido de App.jsx a `utils/helpers.js` como export compartido. Eliminada referencia a `setBusqueda("")` inexistente en bottom nav. Eliminado import de `EstadoGauge` en App.jsx (solo usado por TabPedidos). Sin cambios de comportamiento
+
+## Changelog v2.4.2
+
+### Refactor
+- **REFACTOR-10**: Introducir VyniaContext — decimo paso del desacoplamiento del monolito. Nuevo `context/VyniaContext.jsx` con `VyniaProvider` y hook `useVynia()`. El estado compartido (pedidos, apiMode, catalogo, filtros, stats, bulk, glass calendar, handlers) se expone via Context en lugar de prop drilling. Reduccion total de props: 56→15 (73%). TabPedidos: 24→1 prop, TabNuevo: 6→2 props, TabProduccion: 13→5 props, OrderDetailModal: 13→7 props. Sin cambios de comportamiento

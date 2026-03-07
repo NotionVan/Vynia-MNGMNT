@@ -4,21 +4,23 @@ import I from "./Icons.jsx";
 import { ESTADOS, ESTADO_TRANSITIONS, ESTADO_ACTION } from "../constants/estados.js";
 import { PRICE_MAP } from "../constants/catalogo.js";
 import { fmt } from "../utils/fmt.js";
+import { useVynia } from "../context/VyniaContext.jsx";
 
 export default function OrderDetailModal({
   pedido,
-  isDesktop,
   pedidoFromFicha,
-  catalogo,
   onClose,
-  onEstadoChange,
-  onPagadoChange,
   onSaveProducts,
   onSaveNotas,
   onChangeFecha,
   onCancel,
-  onPhoneMenu,
 }) {
+  const {
+    isDesktop, catalogo,
+    requestEstadoChange: onEstadoChange,
+    requestPagadoChange: onPagadoChange,
+    openPhoneMenu: onPhoneMenu,
+  } = useVynia();
   const [editingFecha, setEditingFecha] = useState(null);
   const [editingNotas, setEditingNotas] = useState(null);
   const [editingProductos, setEditingProductos] = useState(false);

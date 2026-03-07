@@ -7,29 +7,18 @@ import { esTarde, parseProductsStr } from "../utils/helpers.js";
 import I from "./Icons.jsx";
 import EstadoGauge from "./EstadoGauge.jsx";
 import PipelineRing from "./PipelineRing.jsx";
+import { useVynia } from "../context/VyniaContext.jsx";
 
-export default function TabPedidos({
-  pedidos,
-  filtro, setFiltro,
-  filtroFecha, setFiltroFecha,
-  isDesktop, isTablet,
-  headerH,
-  apiMode,
-  statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger,
-  bulkMode, setBulkMode,
-  bulkSelected, setBulkSelected,
-  loadPedidos,
-  requestEstadoChange,
-  requestPagadoChange,
-  openPhoneMenu,
-  onSelectPedido,
-  setEstadoPicker,
-  renderGlassCal,
-  openGlassCal,
-  setGlassCalTarget,
-  glassCalTarget,
-  notify,
-}) {
+export default function TabPedidos({ onSelectPedido }) {
+  const {
+    pedidos, filtro, setFiltro, filtroFecha, setFiltroFecha,
+    isDesktop, isTablet, headerH, apiMode,
+    statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger,
+    bulkMode, setBulkMode, bulkSelected, setBulkSelected,
+    loadPedidos, requestEstadoChange, requestPagadoChange, openPhoneMenu,
+    setEstadoPicker, renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
+    notify,
+  } = useVynia();
   const [renderLimit, setRenderLimit] = useState(30);
   const sentinelRef = useRef(null);
   const [mostrarPrecios, setMostrarPrecios] = useState(false);

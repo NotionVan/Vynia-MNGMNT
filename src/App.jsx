@@ -17,6 +17,7 @@ import OrderDetailModal from "./components/OrderDetailModal.jsx";
 import TabNuevo from "./components/TabNuevo.jsx";
 import TabProduccion from "./components/TabProduccion.jsx";
 import TabPedidos from "./components/TabPedidos.jsx";
+import { VyniaProvider } from "./context/VyniaContext.jsx";
 
 // ═══════════════════════════════════════════════════════════
 //  MAIN APP COMPONENT
@@ -817,9 +818,31 @@ export default function VyniaApp() {
   }, [bulkSelected, pedidos]);
 
   // ═══════════════════════════════════════════════════════════
+  //  CONTEXT VALUE
+  // ═══════════════════════════════════════════════════════════
+  const ctx = {
+    // Layout
+    isDesktop, isTablet, headerH,
+    // Core data
+    pedidos, apiMode, catalogo,
+    // Filters
+    filtro, setFiltro, filtroFecha, setFiltroFecha,
+    // Stats
+    statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger,
+    // Bulk
+    bulkMode, setBulkMode, bulkSelected, setBulkSelected,
+    // Handlers
+    notify, loadPedidos, requestEstadoChange, requestPagadoChange, openPhoneMenu,
+    setEstadoPicker,
+    // Glass calendar
+    renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
+  };
+
+  // ═══════════════════════════════════════════════════════════
   //  RENDER
   // ═══════════════════════════════════════════════════════════
   return (
+    <VyniaProvider value={ctx}>
     <div style={{
       minHeight: "100vh",
       background: "#EFE9E4",
@@ -1098,67 +1121,35 @@ export default function VyniaApp() {
 
         {tab === "pedidos" && (
           <TabPedidos
-            pedidos={pedidos}
-            filtro={filtro} setFiltro={setFiltro}
-            filtroFecha={filtroFecha} setFiltroFecha={setFiltroFecha}
-            isDesktop={isDesktop} isTablet={isTablet}
-            headerH={headerH}
-            apiMode={apiMode}
-            statsTotal={statsTotal} statsPendientes={statsPendientes} statsRecogidos={statsRecogidos}
-            statsPorPreparar={statsPorPreparar} statsListoRecoger={statsListoRecoger}
-            bulkMode={bulkMode} setBulkMode={setBulkMode}
-            bulkSelected={bulkSelected} setBulkSelected={setBulkSelected}
-            loadPedidos={loadPedidos}
-            requestEstadoChange={requestEstadoChange}
-            requestPagadoChange={requestPagadoChange}
-            openPhoneMenu={openPhoneMenu}
             onSelectPedido={(pedido, fromFicha) => {
               setSelectedPedido(pedido);
               if (fromFicha) setPedidoFromFicha(true);
             }}
-            setEstadoPicker={setEstadoPicker}
-            renderGlassCal={renderGlassCal}
-            openGlassCal={openGlassCal}
-            setGlassCalTarget={setGlassCalTarget}
-            glassCalTarget={glassCalTarget}
-            notify={notify}
           />
         )}
 
 
-        {tab === "nuevo" && <TabNuevo isDesktop={isDesktop} apiMode={apiMode} catalogo={catalogo} notify={notify} onCreatePedido={crearPedido} onViewOrder={verPedidoCreado} />}
+        {tab === "nuevo" && <TabNuevo onCreatePedido={crearPedido} onViewOrder={verPedidoCreado} />}
 
         {tab === "produccion" && (
           <TabProduccion
-            isDesktop={isDesktop}
             produccionData={produccionData}
             produccionFecha={produccionFecha}
             setProduccionFecha={setProduccionFecha}
             loadProduccion={loadProduccion}
-            catalogo={catalogo}
             onSelectPedido={setSelectedPedido}
-            onRequestPagadoChange={requestPagadoChange}
-            renderGlassCal={renderGlassCal}
-            openGlassCal={openGlassCal}
-            setGlassCalTarget={setGlassCalTarget}
-            glassCalTarget={glassCalTarget}
           />
         )}
 
         {selectedPedido && (
           <OrderDetailModal
             pedido={selectedPedido}
-            isDesktop={isDesktop}
             pedidoFromFicha={pedidoFromFicha}
-            catalogo={catalogo}
             onClose={() => { setSelectedPedido(null); setPedidoFromFicha(false); }}
-            onEstadoChange={requestEstadoChange}
-            onPagadoChange={requestPagadoChange}
             onSaveProducts={guardarModificacion}
             onSaveNotas={cambiarNotas}
             onChangeFecha={cambiarFechaPedido}
             onCancel={cancelarPedido}
-            onPhoneMenu={openPhoneMenu}
           />
         )}
 
@@ -1391,6 +1382,7 @@ export default function VyniaApp() {
         </div>
       )}
     </div>
+    </VyniaProvider>
   );
 }
 
