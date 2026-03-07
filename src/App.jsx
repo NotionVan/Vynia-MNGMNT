@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { notion, invalidateApiCache, invalidatePedidosCache } from "./api.js";
 import { VYNIA_LOGO, VYNIA_LOGO_MD } from "./constants/brand.js";
-import { CATALOGO_FALLBACK, PRICE_MAP, rebuildPriceMap } from "./constants/catalogo.js";
+import { CATALOGO_FALLBACK, rebuildPriceMap } from "./constants/catalogo.js";
 import { ESTADOS, ESTADO_PROGRESS, ESTADO_NEXT, ESTADO_ACTION, ESTADO_TRANSITIONS, effectiveEstado } from "./constants/estados.js";
 import { fmt } from "./utils/fmt.js";
 import { esTarde, parseProductsStr } from "./utils/helpers.js";
@@ -128,6 +128,7 @@ export default function VyniaApp() {
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkSelected, setBulkSelected] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [mostrarDatos, setMostrarDatos] = useState(false);
 
   // Glass calendar
   const [glassCalTarget, setGlassCalTarget] = useState(null); // null | "pedidos" | "produccion"
@@ -137,6 +138,7 @@ export default function VyniaApp() {
   // Refs
   const toastTimer = useRef(null);
   const pendingViewPedidoId = useRef(null);
+  const registrosCache = useRef({}); // { [pedidoId]: { ts, data } }
 
   // ─── TOAST ───
   const notify = useCallback((type, msg) => {
@@ -211,27 +213,6 @@ export default function VyniaApp() {
 
       setPedidos(mapped);
       notify("ok", `${mapped.length} pedido${mapped.length !== 1 ? "s" : ""} cargado${mapped.length !== 1 ? "s" : ""}`);
-      // Enrich pedidos with importe in background (single setState after all batches)
-      // Cap at 50 pedidos to avoid hundreds of API calls when loading "Todos"
-      const MAX_ENRICH = 50;
-      const toEnrich = mapped.slice(0, MAX_ENRICH);
-      if (toEnrich.length > 0) {
-        (async () => {
-          const allUpdates = {};
-          for (let i = 0; i < toEnrich.length; i += 5) {
-            await Promise.all(toEnrich.slice(i, i + 5).map(async (ped) => {
-              try {
-                const prods = await notion.loadRegistros(ped.id);
-                if (!Array.isArray(prods)) return;
-                const imp = prods.reduce((s, pr) => s + (pr.unidades || 0) * (PRICE_MAP[(pr.nombre || "").toLowerCase().trim()] || 0), 0);
-                const str = prods.map(pr => `${pr.unidades}x ${pr.nombre}`).join(", ");
-                allUpdates[ped.id] = { importe: imp, productos: str };
-              } catch { /* ignore */ }
-            }));
-          }
-          setPedidos(ps => ps.map(p => allUpdates[p.id] ? { ...p, ...allUpdates[p.id] } : p));
-        })();
-      }
     } catch (err) {
       notify("err", "Error cargando: " + (err.message || "desconocido").substring(0, 100));
     } finally {
@@ -272,14 +253,27 @@ export default function VyniaApp() {
     return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); };
   }, []);
 
-  // ─── Load product catalog from Notion (source of truth) ───
+  // ─── Load product catalog (localStorage SWR + API refresh) ───
   useEffect(() => {
     if (apiMode === "demo") { setCatalogo(CATALOGO_FALLBACK); return; }
+    // Immediate: use localStorage cache if fresh enough (<2h)
+    try {
+      const raw = localStorage.getItem("vynia-catalogo");
+      if (raw) {
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts < 7200000 && Array.isArray(data) && data.length > 0) {
+          setCatalogo(data);
+          rebuildPriceMap(data);
+        }
+      }
+    } catch { /* ignore corrupt cache */ }
+    // Background: fetch fresh catalog and update localStorage
     notion.loadProductos()
       .then(prods => {
         if (Array.isArray(prods) && prods.length > 0) {
           setCatalogo(prods);
           rebuildPriceMap(prods);
+          try { localStorage.setItem("vynia-catalogo", JSON.stringify({ ts: Date.now(), data: prods })); } catch {}
         }
       })
       .catch(() => { /* fallback silently */ });
@@ -389,16 +383,23 @@ export default function VyniaApp() {
     );
   };
 
-  // ─── LOAD PRODUCTS FOR SELECTED PEDIDO ───
+  // ─── LOAD PRODUCTS FOR SELECTED PEDIDO (with in-memory cache) ───
   useEffect(() => {
     if (!selectedPedido || apiMode === "demo") return;
     const hasIds = Array.isArray(selectedPedido.productos) && selectedPedido.productos.length > 0 && selectedPedido.productos[0]?.id;
     if (hasIds) return;
+    // Check registros cache (60s TTL)
+    const cached = registrosCache.current[selectedPedido.id];
+    if (cached && Date.now() - cached.ts < 60000) {
+      setSelectedPedido(prev => prev && prev.id === selectedPedido.id ? { ...prev, productos: cached.data } : prev);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
         const prods = await notion.loadRegistros(selectedPedido.id);
         if (!cancelled && Array.isArray(prods) && prods.length > 0) {
+          registrosCache.current[selectedPedido.id] = { ts: Date.now(), data: prods };
           setSelectedPedido(prev => prev && prev.id === selectedPedido.id ? { ...prev, productos: prods } : prev);
         }
       } catch { /* ignore */ }
@@ -689,8 +690,12 @@ export default function VyniaApp() {
           deleteWarning = true;
         }
       }
-      // Reload fresh registros (with new IDs)
+      // Reload fresh registros (with new IDs) and update cache
       const freshProds = await notion.loadRegistros(pedido.id);
+      delete registrosCache.current[pedido.id];
+      if (Array.isArray(freshProds) && freshProds.length > 0) {
+        registrosCache.current[pedido.id] = { ts: Date.now(), data: freshProds };
+      }
       setSelectedPedido(prev => prev ? { ...prev, productos: Array.isArray(freshProds) ? freshProds : [] } : prev);
       setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, importe: newImporte, productos: newProdsStr } : p));
       invalidateProduccion(pedido.fecha); invalidateSearchCache();
@@ -840,6 +845,8 @@ export default function VyniaApp() {
     // Handlers
     notify, loadPedidos, requestEstadoChange, requestPagadoChange, openPhoneMenu,
     setEstadoPicker,
+    // Privacy toggle
+    mostrarDatos, setMostrarDatos,
     // Glass calendar
     renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
   };

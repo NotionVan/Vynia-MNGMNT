@@ -3,14 +3,15 @@ const API_BASE = "/api";
 // ─── Request deduplication (GET only) ───
 const _inflight = new Map();
 
-// ─── In-memory cache with 30s TTL (GET only) ───
+// ─── In-memory cache with SWR (GET only) ───
 const _cache = new Map();
 const CACHE_TTL = 45000;
 
 function getCached(key) {
   const entry = _cache.get(key);
-  if (!entry || Date.now() - entry.ts > CACHE_TTL) { _cache.delete(key); return null; }
-  return entry.data;
+  if (!entry) return null;
+  const fresh = Date.now() - entry.ts <= CACHE_TTL;
+  return { data: entry.data, fresh };
 }
 
 export function invalidateApiCache() { _cache.clear(); }
@@ -21,20 +22,8 @@ export function invalidatePedidosCache() {
   }
 }
 
-async function apiCall(path, options = {}) {
-  const method = (options.method || "GET").toUpperCase();
-  const key = method === "GET" ? `GET:${path}` : null;
-
-  // Dedup: return existing in-flight promise for same GET
-  if (key && _inflight.has(key)) return _inflight.get(key);
-
-  // Cache: return cached data if fresh
-  if (key) {
-    const cached = getCached(key);
-    if (cached) return cached;
-  }
-
-  const promise = (async () => {
+function doFetch(path, options) {
+  return (async () => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
       ...options,
@@ -45,6 +34,30 @@ async function apiCall(path, options = {}) {
     }
     return res.json();
   })();
+}
+
+async function apiCall(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const key = method === "GET" ? `GET:${path}` : null;
+
+  // Dedup: return existing in-flight promise for same GET
+  if (key && _inflight.has(key)) return _inflight.get(key);
+
+  // Cache: return fresh data or stale data with background revalidation (SWR)
+  if (key) {
+    const cached = getCached(key);
+    if (cached) {
+      if (cached.fresh) return cached.data;
+      // Stale: return immediately, revalidate in background
+      const bgFetch = doFetch(path, options);
+      bgFetch
+        .then(data => _cache.set(key, { data, ts: Date.now() }))
+        .catch(() => {}); // fire-and-forget
+      return cached.data;
+    }
+  }
+
+  const promise = doFetch(path, options);
 
   if (key) {
     _inflight.set(key, promise);

@@ -1,6 +1,4 @@
-import { notion, delay, cached, PROP_UNIDADES, DB_PRODUCTOS, loadCatalog } from "./_notion.js";
-
-const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
+import { notion, delay, cached, PROP_UNIDADES, DB_PRODUCTOS, DB_REGISTROS, loadCatalog } from "./_notion.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -77,11 +75,11 @@ async function handleDelete(req, res) {
   }
 
   try {
-    for (let i = 0; i < registroIds.length; i += 3) {
-      await Promise.all(registroIds.slice(i, i + 3).map(id =>
+    for (let i = 0; i < registroIds.length; i += 10) {
+      await Promise.all(registroIds.slice(i, i + 10).map(id =>
         notion.pages.update({ page_id: id, archived: true })
       ));
-      if (i + 3 < registroIds.length) await delay(200);
+      if (i + 10 < registroIds.length) await delay(200);
     }
     return res.status(200).json({ ok: true });
   } catch (error) {

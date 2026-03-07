@@ -17,11 +17,10 @@ export default function TabPedidos({ onSelectPedido }) {
     bulkMode, setBulkMode, bulkSelected, setBulkSelected,
     loadPedidos, requestEstadoChange, requestPagadoChange, openPhoneMenu,
     setEstadoPicker, renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
-    notify,
+    notify, mostrarDatos, setMostrarDatos,
   } = useVynia();
   const [renderLimit, setRenderLimit] = useState(30);
   const sentinelRef = useRef(null);
-  const [mostrarPrecios, setMostrarPrecios] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [fichaCliente, setFichaCliente] = useState(null);
@@ -289,7 +288,7 @@ export default function TabPedidos({ onSelectPedido }) {
                   >
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#1B1C39" }}>{c.nombre}</div>
                     <div style={{ fontSize: 12, color: "#4F6867", marginTop: 2 }}>
-                      {[c.telefono, c.email].filter(Boolean).join(" \u00b7 ") || "Sin datos de contacto"}
+                      {mostrarDatos ? ([c.telefono, c.email].filter(Boolean).join(" \u00b7 ") || "Sin datos de contacto") : "Cliente"}
                     </div>
                   </div>
                 ))}
@@ -297,7 +296,7 @@ export default function TabPedidos({ onSelectPedido }) {
             </div>
           )}
         </div>
-        <div title={mostrarPrecios ? "Ocultar importes" : "Ver importes"} onClick={() => setMostrarPrecios(v => !v)}
+        <div title={mostrarDatos ? "Ocultar datos" : "Ver datos"} onClick={() => setMostrarDatos(v => !v)}
           role="button" tabIndex={0}
           style={{
             display: "flex", alignItems: "center", gap: 8, flexShrink: 0, cursor: "pointer",
@@ -306,11 +305,11 @@ export default function TabPedidos({ onSelectPedido }) {
             fontSize: 11, fontWeight: 500, color: "#4F6867",
             fontFamily: "'Roboto Condensed', sans-serif",
             whiteSpace: "nowrap",
-          }}>{mostrarPrecios ? "Ocultar importes" : "Ver importes"}</span>
+          }}>{mostrarDatos ? "Ocultar datos" : "Ver datos"}</span>
           <div style={{
             width: 44, height: 24, padding: 2, borderRadius: 12,
-            background: mostrarPrecios ? "#4F6867" : "rgba(162,194,208,0.35)",
-            border: `1px solid ${mostrarPrecios ? "#4F6867" : "rgba(162,194,208,0.5)"}`,
+            background: mostrarDatos ? "#4F6867" : "rgba(162,194,208,0.35)",
+            border: `1px solid ${mostrarDatos ? "#4F6867" : "rgba(162,194,208,0.5)"}`,
             transition: "all 0.3s cubic-bezier(0.23,1,0.32,1)",
             display: "flex", alignItems: "center",
           }}>
@@ -318,11 +317,11 @@ export default function TabPedidos({ onSelectPedido }) {
               width: 18, height: 18, borderRadius: 9,
               background: "#fff",
               display: "flex", alignItems: "center", justifyContent: "center",
-              transform: mostrarPrecios ? "translateX(20px)" : "translateX(0)",
+              transform: mostrarDatos ? "translateX(20px)" : "translateX(0)",
               transition: "transform 0.3s cubic-bezier(0.23,1,0.32,1)",
               boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
             }}>
-              <I.Euro />
+              {mostrarDatos ? <I.Eye s={13} /> : <I.EyeOff s={13} />}
             </div>
           </div>
         </div>
@@ -453,12 +452,12 @@ export default function TabPedidos({ onSelectPedido }) {
               <div style={{ display: "flex", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
                 {fichaCliente.telefono && (
                   <span style={{ fontSize: 13, color: "#4F6867", display: "flex", alignItems: "center", gap: 4 }}>
-                    <I.Phone /> {fichaCliente.telefono}
+                    <I.Phone /> {mostrarDatos ? fichaCliente.telefono : "\u2022\u2022\u2022"}
                   </span>
                 )}
                 {fichaCliente.email && (
                   <span style={{ fontSize: 13, color: "#4F6867", display: "flex", alignItems: "center", gap: 4 }}>
-                    <I.Mail s={13} /> {fichaCliente.email}
+                    <I.Mail s={13} /> {mostrarDatos ? fichaCliente.email : "\u2022\u2022\u2022"}
                   </span>
                 )}
                 {!fichaCliente.telefono && !fichaCliente.email && (
@@ -685,7 +684,7 @@ export default function TabPedidos({ onSelectPedido }) {
                                   fontSize: 12, color: "#1B1C39", display: "flex", alignItems: "center", gap: 3,
                                   cursor: "pointer",
                                 }}>
-                                  <I.Phone /> {p.tel}
+                                  <I.Phone /> {mostrarDatos ? p.tel : "\u2022\u2022\u2022"}
                                 </span>
                               )}
                             </div>
@@ -714,7 +713,7 @@ export default function TabPedidos({ onSelectPedido }) {
                           </div>
 
                           {/* Amount */}
-                          {mostrarPrecios && <div style={{ textAlign: "right", minWidth: 60 }}>
+                          {mostrarDatos && <div style={{ textAlign: "right", minWidth: 60 }}>
                             <span style={{
                               fontSize: 18, fontWeight: 800,
                               fontFamily: "'Roboto Condensed', sans-serif",

@@ -25,7 +25,20 @@
       "Bash(gh api:*)",
       "Bash(grep:*)",
       "Bash(node_modules/.bin/vite build:*)",
-      "Bash(rsync:*)"
+      "Bash(rsync:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(git show:*)",
+      "mcp__claude_ai_Notion__notion-search",
+      "Bash(curl:*)",
+      "mcp__notion__API-query-data-source",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:docs.mistral.ai)",
+      "WebFetch(domain:mistral.ai)",
+      "WebFetch(domain:developer.sumup.com)",
+      "WebFetch(domain:developer.chrome.com)"
     ]
   }
 }

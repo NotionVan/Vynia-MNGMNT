@@ -1,4 +1,4 @@
-import { notion, cached, PROP_UNIDADES } from "./_notion.js";
+import { notion, cached, PROP_UNIDADES, DB_REGISTROS } from "./_notion.js";
 
 // ─── Rate limiter in-memory (per Vercel instance) ───
 const _rl = new Map();
@@ -21,8 +21,6 @@ setInterval(() => {
 
 const DB_CLIENTES = "1c418b3a-38b1-811f-b3ab-ea7a5e513ace";
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
-const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
-
 function extractTitle(prop) {
   if (!prop || prop.type !== "title") return "";
   return (prop.title || []).map((t) => t.plain_text).join("");

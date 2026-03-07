@@ -1,4 +1,4 @@
-import { notion, cached } from "./_notion.js";
+import { notion, cached, PROP_UNIDADES, DB_REGISTROS, loadCatalog } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 // Data source ID for API 2025-09-03 (required for template support)
@@ -89,7 +89,7 @@ async function handleGet(req, res) {
       } while (cursor);
 
       // Build pedido list (client name from rollup — no extra API calls)
-      return allResults.map((page) => {
+      const pedidoList = allResults.map((page) => {
         const p = page.properties;
         const clientRelation = p["Clientes"]?.relation || [];
         const clientId = clientRelation.length > 0 ? clientRelation[0].id : null;
@@ -115,6 +115,66 @@ async function handleGet(req, res) {
           cliente,
         };
       });
+
+      // ── Bulk fetch registros + importe (same pattern as produccion.js) ──
+      if (pedidoList.length === 0) return pedidoList;
+
+      const pedidoIds = pedidoList.map(p => p.id);
+      const OR_BATCH = 100;
+      let allRegistros = [];
+
+      for (let i = 0; i < pedidoIds.length; i += OR_BATCH) {
+        const chunk = pedidoIds.slice(i, i + OR_BATCH);
+        const orCond = chunk.map(id => ({
+          property: "Pedidos",
+          relation: { contains: id },
+        }));
+        let cursor;
+        do {
+          const regRes = await notion.databases.query({
+            database_id: DB_REGISTROS,
+            filter: orCond.length === 1 ? orCond[0] : { or: orCond },
+            start_cursor: cursor,
+            page_size: 100,
+          });
+          allRegistros = allRegistros.concat(regRes.results);
+          cursor = regRes.has_more ? regRes.next_cursor : undefined;
+        } while (cursor);
+      }
+
+      // Build price map from catalog (cached 30min)
+      const catalog = await loadCatalog();
+      const priceMap = {};
+      for (const c of catalog) {
+        priceMap[c.nombre.toLowerCase().trim()] = c.precio;
+      }
+
+      // Group registros by pedido
+      const pedidoProducts = {};
+      for (const reg of allRegistros) {
+        const regPedidoIds = (reg.properties["Pedidos"]?.relation || []).map(r => r.id);
+        const auxProd = reg.properties["AUX Producto Texto"];
+        const nombre = (auxProd?.formula?.string || "").trim()
+          || extractTitle(reg.properties["Nombre"]);
+        const unidades = reg.properties[PROP_UNIDADES]?.number || 0;
+        if (!nombre || unidades === 0) continue;
+        for (const pid of regPedidoIds) {
+          if (!pedidoProducts[pid]) pedidoProducts[pid] = [];
+          pedidoProducts[pid].push({ nombre, unidades });
+        }
+      }
+
+      // Attach productos string + importe to each pedido
+      for (const ped of pedidoList) {
+        const prods = pedidoProducts[ped.id] || [];
+        ped.productos = prods.map(p => `${p.unidades}x ${p.nombre}`).join(", ");
+        ped.importe = prods.reduce(
+          (s, p) => s + p.unidades * (priceMap[p.nombre.toLowerCase().trim()] || 0),
+          0,
+        );
+      }
+
+      return pedidoList;
     });
 
     return res.status(200).json(pedidos);

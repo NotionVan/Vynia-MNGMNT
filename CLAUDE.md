@@ -113,9 +113,10 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 
 ### GET /api/pedidos
 - Query params: `filter=todos|pendientes|recogidos`
-- Devuelve array de pedidos con: id, titulo, fecha, **estado**, recogido, noAcude, pagado, incidencia, notas, numPedido, **cliente**, **telefono**, clienteId
+- Devuelve array de pedidos con: id, titulo, fecha, **estado**, recogido, noAcude, pagado, incidencia, notas, numPedido, **cliente**, **telefono**, clienteId, **productos** (string, ej: "2x Brownie, 1x Cookie"), **importe** (number, calculado server-side)
 - Resuelve nombres de clientes via rollup `"AUX Nombre Cliente"` en Pedidos
 - Resuelve telefono via rollup `"Telefono"` en Pedidos
+- Bulk fetch de registros + calculo de importe server-side (OR query por chunks de 100, precio via `loadCatalog()` cached 30min)
 - Paginacion automatica via cursor
 
 ### POST /api/pedidos
@@ -314,7 +315,7 @@ Al marcar un pedido como "Listo para recoger", si el pedido tiene telefono, se m
 - **Responsive**: Mobile-first, full-width (sin max-width). Grid de cards auto-fill con `minmax(320px, 1fr)` (columnas automaticas segun ancho). Tablet: 2 cols fijas. Mobile: 1 col
 - **Tooltips**: Todos los botones tienen `title` para hover (desktop) + sistema de tooltip tactil por long-press ~0.4s (movil) con popup animado que desaparece tras 1.5s
 - **Cards de pedido**: Cabecera prominente estilo glass-button con semicirculo SVG animado (`EstadoGauge`) que muestra progreso del pipeline (0%/33%/66%/100%), titulo del estado (13px bold), subtitulo con porcentaje, fondo degradado con color del estado, shimmer overlay. Constantes: `ESTADO_PROGRESS` (mapa estado→progreso 0-1). Boton pipeline secundario (fondo semitransparente, texto coloreado, sin sombra). Boton picker `···` para cambio manual
-- **Toggle precios**: Boton `€ ON/OFF` a la derecha de la barra de busqueda, oculto por defecto (`mostrarPrecios` state). Controla visibilidad del importe en cards
+- **Toggle datos sensibles**: Toggle switch "Ver/Ocultar datos" a la derecha de la barra de busqueda, oculto por defecto (`mostrarDatos` state en VyniaContext). Controla visibilidad de importes y telefonos en cards, ficha de cliente, resultados de busqueda y modal de detalle. Iconos `I.Eye`/`I.EyeOff` en el knob del switch
 - **Changelog popup**: Click en numero de version en header abre popup con fecha del commit y mensaje de cambios (inyectados en build time via `__APP_CHANGELOG__` desde `git log`)
 - **Update banner**: Chequeo automatico de `/version.json` cada 2 min + al volver a la pestaña. Si hay nueva version desplegada, muestra banner flotante "Nueva version disponible" con boton "Actualizar" (reload). Plugin Vite `version-json` genera el fichero en build y lo sirve en dev
 - **Print**: CSS @media print para imprimir lista de pedidos/produccion
@@ -748,3 +749,19 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Cleanup
 - **FIX-21**: Eliminados `src/middleware.ts` y `src/api/_middleware.ts` — dead code de Next.js Edge Middleware no ejecutable en Vercel Hobby plan con Vite. El rate limiting real ahora vive directamente en `api/tracking.js`
+
+## Changelog v2.6.0
+
+### Mejoras
+- **FEAT-37**: Toggle de privacidad "Ver/Ocultar datos" — el toggle de importes se convierte en un toggle global que oculta tanto precios como numeros de telefono. Estado `mostrarPrecios` renombrado a `mostrarDatos` y elevado a VyniaContext (accesible desde TabPedidos y OrderDetailModal). Nuevos iconos SVG `I.Eye` e `I.EyeOff` reemplazan el icono euro en el switch. Telefonos y emails ocultos muestran "\u2022\u2022\u2022" pero mantienen el click para llamar/WhatsApp. Afecta: cards de pedido, ficha de cliente, resultados de busqueda, modal de detalle. Help content actualizado
+
+### Performance
+- **PERF-04**: Server-side enrich de pedidos — `GET /api/pedidos` ahora trae registros y calcula importe en el servidor (OR query unico por chunks de 100, mismo patron que `produccion.js`). Elimina el loop N+1 de enrich client-side (hasta 50 llamadas individuales a `/api/registros`). Precio calculado via `loadCatalog()` (cached 30min). Cada pedido devuelve `productos` (string) e `importe` (number) directamente
+- **PERF-05**: SWR (stale-while-revalidate) en `api.js` — las respuestas GET cacheadas se devuelven inmediatamente aunque esten stale, y se revalidan en background. Reduce latencia percibida en navegacion entre tabs y filtros
+- **PERF-06**: Catalogo con cache localStorage SWR — `App.jsx` carga catalogo desde `localStorage("vynia-catalogo")` al instante si tiene <2h, y refresca en background. Elimina flash de CATALOGO_FALLBACK en la primera carga
+- **PERF-07**: Cache in-memory de registros por pedido — `registrosCache` ref con TTL 60s evita refetch de productos al re-abrir un pedido reciente. Se invalida al guardar modificaciones
+
+### Refactor
+- **REFACTOR-12**: `DB_REGISTROS` centralizado — constante movida de `registros.js`, `produccion.js` y `tracking.js` a `_notion.js` como export compartido. Elimina duplicacion del ID
+- **REFACTOR-13**: Batch de borrado de registros — `handleDelete` en `registros.js` sube de 3 a 10 registros en paralelo por batch, reduce tiempo de eliminacion
+- **REFACTOR-14**: Catalog TTL server-side — `loadCatalog()` cache TTL subido de 5min a 30min (el catalogo cambia raramente)

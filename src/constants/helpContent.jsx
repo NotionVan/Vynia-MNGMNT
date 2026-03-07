@@ -61,9 +61,9 @@ const HELP_CONTENT = [
         tip: "Al marcar un pedido como Listo para recoger, se ofrece enviar un aviso automatico por WhatsApp",
       },
       {
-        title: "Toggle de precios",
-        content: "El toggle 'Ver/Ocultar importes' junto a la barra de busqueda muestra u oculta los importes en las tarjetas.",
-        tip: "Los precios estan ocultos por defecto",
+        title: "Toggle de datos sensibles",
+        content: "El toggle 'Ver/Ocultar datos' junto a la barra de busqueda muestra u oculta los importes y numeros de telefono en las tarjetas y modales.",
+        tip: "Los datos estan ocultos por defecto para proteger la privacidad de los clientes",
       },
       {
         title: "Marcar como pagado",
