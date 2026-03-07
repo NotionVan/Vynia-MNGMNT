@@ -646,3 +646,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-01**: Extraer constantes y utilidades de App.jsx — primer paso del desacoplamiento del monolito (5644→5410 lineas, -234). Nuevos modulos: `constants/estados.js` (ESTADOS, ESTADO_PROGRESS, ESTADO_NEXT, ESTADO_ACTION, ESTADO_TRANSITIONS, effectiveEstado), `constants/catalogo.js` (CATALOGO_FALLBACK, PRICE_MAP, rebuildPriceMap, FRECUENTES), `constants/brand.js` (VYNIA_LOGO, VYNIA_LOGO_MD), `utils/fmt.js` (fmt, DAY_NAMES), `utils/helpers.js` (esTarde, computeDateSuggestions), `utils/surplus.js` (SURPLUS_KEY, loadSurplusPlan, saveSurplusPlan, cleanOldSurplus). Sin cambios de comportamiento
+
+## Changelog v2.3.4
+
+### Refactor
+- **REFACTOR-02**: Extraer Icons y HelpContent de App.jsx — segundo paso del desacoplamiento del monolito (5410→5132 lineas, -278). Nuevos modulos: `components/Icons.jsx` (objeto I con ~37 iconos SVG inline), `constants/helpContent.jsx` (HELP_CONTENT, 5 categorias de ayuda con JSX). Sin cambios de comportamiento
