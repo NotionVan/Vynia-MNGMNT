@@ -11,6 +11,13 @@ export function esTarde(p) {
   return false;
 }
 
+// ─── WHATSAPP LINK ───
+export function waLink(tel) {
+  const clean = (tel || "").replace(/[\s\-().]/g, "");
+  const num = clean.startsWith("+") ? clean.slice(1) : clean.startsWith("34") ? clean : `34${clean}`;
+  return `https://wa.me/${num}`;
+}
+
 // ─── DATE SUGGESTIONS (scoring for delivery date optimization) ───
 export function computeDateSuggestions(produccionRango, lineas) {
   if (!produccionRango || !lineas || lineas.length === 0) return [];

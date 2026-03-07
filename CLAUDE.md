@@ -661,3 +661,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-04**: Extraer EstadoGauge, PipelineRing y useBreakpoint de App.jsx — cuarto paso del desacoplamiento del monolito (4893→4826 lineas, -67). Nuevos modulos: `hooks/useBreakpoint.js` (responsive breakpoint hook), `components/EstadoGauge.jsx` (semicirculo SVG de progreso de estado), `components/PipelineRing.jsx` (anillo SVG de pipeline). Sin cambios de comportamiento
+
+## Changelog v2.3.7
+
+### Refactor
+- **REFACTOR-05**: Extraer modales y popovers de App.jsx — quinto paso del desacoplamiento del monolito (4826→4112 lineas, -714). 7 nuevos componentes: `ConfirmEstadoDialog.jsx`, `ConfirmPagadoDialog.jsx`, `WhatsAppPrompt.jsx`, `PhoneMenuPopover.jsx`, `ListeningPopup.jsx`, `HelpOverlay.jsx` (internaliza helpExpanded/helpActiveCategory state), `ParseWhatsAppModal.jsx`. Funcion `waLink` extraida a `utils/helpers.js`. Sin cambios de comportamiento
