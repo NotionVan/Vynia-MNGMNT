@@ -1,7 +1,7 @@
 # Vynia MNGMNT — Sistema de Gestion de Pedidos
 
 ## Stack
-- **Frontend**: React 19 + Vite 6 (single-file UI en `src/App.jsx`)
+- **Frontend**: React 19 + Vite 6 (arquitectura modular, ~20 ficheros en `src/`)
 - **Backend**: Vercel Serverless Functions (directorio `api/`)
 - **Database**: Notion API via `@notionhq/client@2.3.0`
 - **Deploy**: Vercel (proyecto `vynia-mngmnt`, repo `javintnvn/Vynia-MNGMNT`)
@@ -11,27 +11,58 @@
 
 ```
 Vynia-MNGMNT/
-├── api/                    # Vercel Serverless Functions
-│   ├── _notion.js          # Notion client, retry, cache, shared constants (PROP_UNIDADES)
-│   ├── pedidos.js          # GET (listar con filtro) + POST (crear pedido)
-│   ├── pedidos/[id].js     # PATCH (cambiar estado, propiedades)
-│   ├── clientes.js         # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
-│   ├── registros.js        # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
-│   ├── produccion.js       # GET (produccion diaria agregada con clientes)
-│   ├── tracking.js         # GET (seguimiento publico por telefono)
-│   └── parse-order.js      # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
-├── __tests__/              # Vitest test suite (77 tests, 16 files)
+├── api/                          # Vercel Serverless Functions
+│   ├── _notion.js                # Notion client, retry, cache, shared constants (PROP_UNIDADES)
+│   ├── pedidos.js                # GET (listar con filtro) + POST (crear pedido)
+│   ├── pedidos/[id].js           # PATCH (cambiar estado, propiedades)
+│   ├── clientes.js               # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
+│   ├── registros.js              # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
+│   ├── produccion.js             # GET (produccion diaria agregada con clientes)
+│   ├── tracking.js               # GET (seguimiento publico por telefono)
+│   └── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
+├── __tests__/                    # Vitest test suite (77 tests, 16 files)
 ├── public/
-│   ├── seguimiento.html    # Pagina publica de seguimiento de pedidos (standalone, sin React)
-│   └── logovynia2_azul.png # Logo Vynia usado en seguimiento
+│   ├── seguimiento.html          # Pagina publica de seguimiento (standalone, sin React)
+│   └── logovynia2_azul.png       # Logo Vynia usado en seguimiento
 ├── src/
-│   ├── App.jsx             # Componente principal (toda la UI, ~5100 lineas)
-│   └── api.js              # Cliente API frontend (wrapper fetch)
-├── main.jsx                # Entry point React
+│   ├── App.jsx                   # Shell principal (~1400 lineas): provider, effects, layout
+│   ├── api.js                    # Cliente API frontend (wrapper fetch)
+│   ├── constants/
+│   │   ├── estados.js            # ESTADOS, ESTADO_NEXT, ESTADO_TRANSITIONS, effectiveEstado
+│   │   ├── catalogo.js           # CATALOGO_FALLBACK, PRICE_MAP, FRECUENTES
+│   │   ├── brand.js              # VYNIA_LOGO, VYNIA_LOGO_MD
+│   │   └── helpContent.jsx       # HELP_CONTENT (5 categorias de ayuda con JSX)
+│   ├── utils/
+│   │   ├── fmt.js                # fmt object (todayISO, localISO, etc.), DAY_NAMES
+│   │   ├── helpers.js            # esTarde, computeDateSuggestions, waLink, parseProductsStr
+│   │   └── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
+│   ├── hooks/
+│   │   └── useBreakpoint.js      # isDesktop / isTablet responsive hook
+│   ├── styles/
+│   │   ├── global.css            # Keyframes, clases CSS, media queries, print
+│   │   └── shared.js             # labelStyle, inputStyle, formSectionStyle
+│   ├── context/
+│   │   └── VyniaContext.jsx      # VyniaProvider + useVynia() hook (estado compartido)
+│   └── components/
+│       ├── Icons.jsx             # Objeto I con ~37 iconos SVG inline
+│       ├── EstadoGauge.jsx       # Semicirculo SVG de progreso de estado
+│       ├── PipelineRing.jsx      # Anillo SVG de pipeline
+│       ├── TabPedidos.jsx        # Tab de lista de pedidos (~854 lineas)
+│       ├── TabNuevo.jsx          # Tab de crear pedido (~870 lineas)
+│       ├── TabProduccion.jsx     # Tab de produccion diaria (~638 lineas)
+│       ├── OrderDetailModal.jsx  # Modal de detalle de pedido (~460 lineas)
+│       ├── ParseWhatsAppModal.jsx # Modal de parseo WhatsApp con IA
+│       ├── ListeningPopup.jsx    # Popup fullscreen de dictado por voz
+│       ├── ConfirmEstadoDialog.jsx # Dialogo de confirmacion de cambio de estado
+│       ├── ConfirmPagadoDialog.jsx # Dialogo de confirmacion de pago
+│       ├── PhoneMenuPopover.jsx  # Popover de acciones de telefono
+│       ├── WhatsAppPrompt.jsx    # Prompt de envio de WhatsApp
+│       └── HelpOverlay.jsx       # Overlay de ayuda con bento grid
+├── main.jsx                      # Entry point React (importa global.css)
 ├── index.html
 ├── vite.config.js
-├── vercel.json             # Rewrites: /seguimiento → tracking page, /api/* → serverless, /* → SPA
-├── .env.local              # NOTION_TOKEN, ANTHROPIC_API_KEY (gitignored)
+├── vercel.json                   # Rewrites: /seguimiento, /api/*, /* → SPA
+├── .env.local                    # NOTION_TOKEN, ANTHROPIC_API_KEY (gitignored)
 └── package.json
 ```
 
@@ -323,7 +354,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
 - Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
-- Toda la UI esta en un solo componente `App.jsx` (~5100 lineas) — no hay componentes separados
+- La UI esta descompuesta en ~20 modulos bajo `src/` (ver Estructura). `App.jsx` (~1400 lineas) actua como shell: provider (`VyniaProvider`), effects globales, layout (header + tabs + bottom nav). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` hook
 - El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en App.jsx, con carga dinamica via `/api/registros?productos=true`
 - `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
@@ -696,3 +727,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-11**: Actualizar tests para importar de modulos extraidos — paso final del desacoplamiento del monolito. `estado-resolution.test.js` importa ESTADOS/ESTADO_NEXT/ESTADO_TRANSITIONS/effectiveEstado desde `constants/estados.js` (eliminadas re-implementaciones inline). `date-suggestions.test.js` importa computeDateSuggestions desde `utils/helpers.js`. `surplus-plan.test.js` importa loadSurplusPlan/saveSurplusPlan/cleanOldSurplus desde `utils/surplus.js`. Corregido mismatch de acentos en tests: `"En preparacion"` → `"En preparación"` para coincidir con las constantes reales. 77/77 tests pasan
+
+## Changelog v2.4.4
+
+### Docs
+- **DOCS-01**: Actualizar CLAUDE.md con arquitectura modular — seccion Estructura actualizada con arbol completo de ~20 modulos (`constants/`, `utils/`, `hooks/`, `styles/`, `context/`, `components/`). Descripcion de Stack actualizada de "single-file UI" a "arquitectura modular". Nota tecnica de "toda la UI en un solo App.jsx" reemplazada por descripcion de la arquitectura shell+context+components
