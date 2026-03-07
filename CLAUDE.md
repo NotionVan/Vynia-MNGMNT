@@ -107,7 +107,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 
 ### Productos
 - title — nombre del producto (ej: "Brownie", "Cookies de chocolate y avellanas")
-- El catalogo completo esta hardcodeado en `src/App.jsx` como `CATALOGO[]`
+- El catalogo completo esta hardcodeado en `constants/catalogo.js` como `CATALOGO_FALLBACK[]`, con carga dinamica via `/api/registros?productos=true`
 
 ## API Endpoints
 
@@ -288,7 +288,7 @@ Al cambiar estado desde la app, se escribe en una sola PATCH:
 ### Legacy fallback (`effectiveEstado`)
 Para pedidos que no tienen la propiedad Estado asignada, se deriva el estado desde los checkboxes: recogido → "Recogido", noAcude → "No acude", incidencia → "Incidencia", ninguno → "Sin empezar".
 
-### Constantes en App.jsx
+### Constantes en `constants/estados.js`
 - `ESTADOS` — mapa de config (group, color, bg, label, icon) por cada estado
 - `ESTADO_NEXT` — siguiente estado en el pipeline lineal (para boton 1-tap)
 - `ESTADO_TRANSITIONS` — todos los estados posibles desde cualquier estado (excluye el estado actual). Permite cambiar a cualquier estado sin restricciones
@@ -355,7 +355,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
 - Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
 - La UI esta descompuesta en ~20 modulos bajo `src/` (ver Estructura). `App.jsx` (~1400 lineas) actua como shell: provider (`VyniaProvider`), effects globales, layout (header + tabs + bottom nav). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` hook
-- El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en App.jsx, con carga dinamica via `/api/registros?productos=true`
+- El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js`, con carga dinamica via `/api/registros?productos=true`
 - `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
 - **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
@@ -732,3 +732,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Docs
 - **DOCS-01**: Actualizar CLAUDE.md con arquitectura modular — seccion Estructura actualizada con arbol completo de ~20 modulos (`constants/`, `utils/`, `hooks/`, `styles/`, `context/`, `components/`). Descripcion de Stack actualizada de "single-file UI" a "arquitectura modular". Nota tecnica de "toda la UI en un solo App.jsx" reemplazada por descripcion de la arquitectura shell+context+components
+
+## Changelog v2.4.5
+
+### Docs
+- **FIX-18**: Corregir referencias obsoletas en CLAUDE.md — 3 menciones a "en App.jsx" actualizadas: catalogo de productos ahora referencia `constants/catalogo.js`, constantes de estado ahora referencia `constants/estados.js`. Evita confusion de Claude Code al buscar definiciones en fichero incorrecto
