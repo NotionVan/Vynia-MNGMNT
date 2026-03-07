@@ -651,3 +651,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-02**: Extraer Icons y HelpContent de App.jsx — segundo paso del desacoplamiento del monolito (5410→5132 lineas, -278). Nuevos modulos: `components/Icons.jsx` (objeto I con ~37 iconos SVG inline), `constants/helpContent.jsx` (HELP_CONTENT, 5 categorias de ayuda con JSX). Sin cambios de comportamiento
+
+## Changelog v2.3.5
+
+### Refactor
+- **REFACTOR-03**: Extraer CSS y estilos compartidos de App.jsx — tercer paso del desacoplamiento del monolito (5132→4893 lineas, -239). Bloque `<style>` completo (216 lineas: CSS variables, keyframes, media queries, print styles) movido a `styles/global.css` e importado en `main.jsx`. Constantes de estilo inline (labelStyle, inputStyle, formSectionStyle) movidas a `styles/shared.js`. Sin cambios de comportamiento
