@@ -666,3 +666,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-05**: Extraer modales y popovers de App.jsx — quinto paso del desacoplamiento del monolito (4826→4112 lineas, -714). 7 nuevos componentes: `ConfirmEstadoDialog.jsx`, `ConfirmPagadoDialog.jsx`, `WhatsAppPrompt.jsx`, `PhoneMenuPopover.jsx`, `ListeningPopup.jsx`, `HelpOverlay.jsx` (internaliza helpExpanded/helpActiveCategory state), `ParseWhatsAppModal.jsx`. Funcion `waLink` extraida a `utils/helpers.js`. Sin cambios de comportamiento
+
+## Changelog v2.3.8
+
+### Refactor
+- **REFACTOR-06**: Extraer OrderDetailModal de App.jsx — sexto paso del desacoplamiento del monolito (4112→3680 lineas, -432). Nuevo componente `OrderDetailModal.jsx` (~460 lineas) internaliza 6 estados (editingFecha, editingNotas, editingProductos, editLineas, editSearchProd, confirmCancel) y 3 funciones (addEditProducto, updateEditQty, editProductosFiltrados). Los handlers `guardarModificacion`, `cambiarNotas`, `cambiarFechaPedido` ahora retornan `true` al completar; el componente resetea su estado local al recibir confirmacion. Sin cambios de comportamiento
