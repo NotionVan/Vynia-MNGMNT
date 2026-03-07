@@ -691,3 +691,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-10**: Introducir VyniaContext — decimo paso del desacoplamiento del monolito. Nuevo `context/VyniaContext.jsx` con `VyniaProvider` y hook `useVynia()`. El estado compartido (pedidos, apiMode, catalogo, filtros, stats, bulk, glass calendar, handlers) se expone via Context en lugar de prop drilling. Reduccion total de props: 56→15 (73%). TabPedidos: 24→1 prop, TabNuevo: 6→2 props, TabProduccion: 13→5 props, OrderDetailModal: 13→7 props. Sin cambios de comportamiento
+
+## Changelog v2.4.3
+
+### Refactor
+- **REFACTOR-11**: Actualizar tests para importar de modulos extraidos — paso final del desacoplamiento del monolito. `estado-resolution.test.js` importa ESTADOS/ESTADO_NEXT/ESTADO_TRANSITIONS/effectiveEstado desde `constants/estados.js` (eliminadas re-implementaciones inline). `date-suggestions.test.js` importa computeDateSuggestions desde `utils/helpers.js`. `surplus-plan.test.js` importa loadSurplusPlan/saveSurplusPlan/cleanOldSurplus desde `utils/surplus.js`. Corregido mismatch de acentos en tests: `"En preparacion"` → `"En preparación"` para coincidir con las constantes reales. 77/77 tests pasan

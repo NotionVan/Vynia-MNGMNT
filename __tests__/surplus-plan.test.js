@@ -1,32 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { loadSurplusPlan, saveSurplusPlan, cleanOldSurplus } from "../src/utils/surplus.js";
 
-// ─── Inline surplus helpers (same logic as App.jsx) ───
-const SURPLUS_KEY = "vynia-surplus:";
-
-function loadSurplusPlan(fecha) {
-  try { return JSON.parse(localStorage.getItem(SURPLUS_KEY + fecha) || "{}"); }
-  catch { return {}; }
-}
-
-function saveSurplusPlan(fecha, plan) {
-  const clean = Object.fromEntries(Object.entries(plan).filter(([, v]) => v > 0));
-  if (Object.keys(clean).length) {
-    localStorage.setItem(SURPLUS_KEY + fecha, JSON.stringify(clean));
-  } else {
-    localStorage.removeItem(SURPLUS_KEY + fecha);
-  }
-}
-
-function cleanOldSurplus() {
-  const cutoff = Date.now() - 7 * 86400000;
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i);
-    if (k?.startsWith(SURPLUS_KEY) && new Date(k.slice(SURPLUS_KEY.length)) < cutoff)
-      localStorage.removeItem(k);
-  }
-}
-
-// ─── Inline surplusView computation (same logic as App.jsx) ───
+// ─── Inline surplusView computation (same logic as TabProduccion.jsx) ───
 function computeSurplusView(produccionData, surplusPlan, catalogo) {
   const items = new Map();
   for (const prod of produccionData) {

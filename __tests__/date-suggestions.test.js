@@ -1,20 +1,5 @@
 import { describe, it, expect } from "vitest";
-
-// Inline the scoring function (same logic as App.jsx) to test in isolation
-function computeDateSuggestions(produccionRango, lineas) {
-  if (!produccionRango || !lineas || lineas.length === 0) return [];
-  const selected = new Set(lineas.map(l => l.nombre.toLowerCase().trim()));
-  return Object.entries(produccionRango)
-    .map(([date, productos]) => {
-      const overlapping = productos.filter(p => selected.has(p.nombre.toLowerCase().trim()));
-      const overlapCount = overlapping.length;
-      const overlapUnits = overlapping.reduce((s, p) => s + p.totalUnidades, 0);
-      const score = overlapCount * 3 + overlapUnits;
-      return { date, score, overlapCount, overlapUnits, overlapping };
-    })
-    .filter(s => s.score > 0)
-    .sort((a, b) => b.score - a.score || a.date.localeCompare(b.date));
-}
+import { computeDateSuggestions } from "../src/utils/helpers.js";
 
 describe("computeDateSuggestions", () => {
   it("returns empty array for null/undefined inputs", () => {

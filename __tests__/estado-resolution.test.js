@@ -1,37 +1,5 @@
 import { describe, it, expect } from "vitest";
-
-// Re-implement effectiveEstado logic from App.jsx for testing
-function effectiveEstado(pedido) {
-  if (pedido.estado) return pedido.estado;
-  if (pedido.recogido) return "Recogido";
-  if (pedido.noAcude) return "No acude";
-  if (pedido.incidencia) return "Incidencia";
-  return "Sin empezar";
-}
-
-const ESTADOS = {
-  "Sin empezar":          { group: "to_do" },
-  "En preparacion":       { group: "in_progress" },
-  "Listo para recoger":   { group: "in_progress" },
-  "Recogido":             { group: "complete" },
-  "No acude":             { group: "complete" },
-  "Incidencia":           { group: "complete" },
-};
-
-const ESTADO_NEXT = {
-  "Sin empezar": "En preparacion",
-  "En preparacion": "Listo para recoger",
-  "Listo para recoger": "Recogido",
-};
-
-const ESTADO_TRANSITIONS = {
-  "Sin empezar":        ["En preparacion", "Incidencia"],
-  "En preparacion":     ["Listo para recoger", "Sin empezar", "Incidencia"],
-  "Listo para recoger": ["Recogido", "No acude", "En preparacion", "Incidencia"],
-  "Recogido":           ["Listo para recoger", "Incidencia"],
-  "No acude":           ["Sin empezar", "Incidencia"],
-  "Incidencia":         ["Sin empezar"],
-};
+import { ESTADOS, ESTADO_NEXT, ESTADO_TRANSITIONS, effectiveEstado } from "../src/constants/estados.js";
 
 describe("effectiveEstado", () => {
   it("returns estado when set", () => {
@@ -70,12 +38,12 @@ describe("effectiveEstado", () => {
 });
 
 describe("ESTADO_NEXT pipeline", () => {
-  it("Sin empezar -> En preparacion", () => {
-    expect(ESTADO_NEXT["Sin empezar"]).toBe("En preparacion");
+  it("Sin empezar -> En preparación", () => {
+    expect(ESTADO_NEXT["Sin empezar"]).toBe("En preparación");
   });
 
-  it("En preparacion -> Listo para recoger", () => {
-    expect(ESTADO_NEXT["En preparacion"]).toBe("Listo para recoger");
+  it("En preparación -> Listo para recoger", () => {
+    expect(ESTADO_NEXT["En preparación"]).toBe("Listo para recoger");
   });
 
   it("Listo para recoger -> Recogido", () => {
