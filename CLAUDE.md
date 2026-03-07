@@ -656,3 +656,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-03**: Extraer CSS y estilos compartidos de App.jsx — tercer paso del desacoplamiento del monolito (5132→4893 lineas, -239). Bloque `<style>` completo (216 lineas: CSS variables, keyframes, media queries, print styles) movido a `styles/global.css` e importado en `main.jsx`. Constantes de estilo inline (labelStyle, inputStyle, formSectionStyle) movidas a `styles/shared.js`. Sin cambios de comportamiento
+
+## Changelog v2.3.6
+
+### Refactor
+- **REFACTOR-04**: Extraer EstadoGauge, PipelineRing y useBreakpoint de App.jsx — cuarto paso del desacoplamiento del monolito (4893→4826 lineas, -67). Nuevos modulos: `hooks/useBreakpoint.js` (responsive breakpoint hook), `components/EstadoGauge.jsx` (semicirculo SVG de progreso de estado), `components/PipelineRing.jsx` (anillo SVG de pipeline). Sin cambios de comportamiento

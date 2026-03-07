@@ -10,76 +10,9 @@ import { SURPLUS_KEY, loadSurplusPlan, saveSurplusPlan, cleanOldSurplus } from "
 import I from "./components/Icons.jsx";
 import HELP_CONTENT from "./constants/helpContent.jsx";
 import { labelStyle, inputStyle, formSectionStyle } from "./styles/shared.js";
-
-// ════════════════════════════════════════════════════════════
-//  VYNIA — Sistema de Gestión de Pedidos
-//  Backend: Vercel Serverless → Notion API (direct)
-//  Design: Vynia brand palette, desktop-first
-// ════════════════════════════════════════════════════════════
-
-// ─── RESPONSIVE BREAKPOINTS ───
-function useBreakpoint() {
-  const get = () => {
-    const w = window.innerWidth;
-    if (w >= 1024) return "desktop";
-    if (w >= 768) return "tablet";
-    return "mobile";
-  };
-  const [bp, setBp] = useState(get);
-  useEffect(() => {
-    let timer;
-    const onResize = () => { clearTimeout(timer); timer = setTimeout(() => setBp(get()), 80); };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return bp;
-}
-
-// ─── ESTADO GAUGE (half-circle SVG) ───
-function EstadoGauge({ estado, size = 44 }) {
-  const cfg = ESTADOS[estado] || ESTADOS["Sin empezar"];
-  const progress = ESTADO_PROGRESS[estado] ?? 0;
-  const h = Math.round(size * 0.6);
-  const r = Math.round(size * 0.36);
-  const cx = size / 2;
-  const cy = h - 2;
-  const semi = Math.PI * r;
-  const offset = semi * (1 - progress);
-  return (
-    <svg width={size} height={h} viewBox={`0 0 ${size} ${h}`} style={{ flexShrink: 0 }}>
-      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-        fill="none" stroke={cfg.bg} strokeWidth="4" strokeLinecap="round" />
-      {progress > 0 && (
-        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke={cfg.color} strokeWidth="4" strokeLinecap="round"
-          strokeDasharray={semi} strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.65, 0, 0.35, 1)" }} />
-      )}
-    </svg>
-  );
-}
-
-function PipelineRing({ count, total, color, bg }) {
-  const size = 68;
-  const sw = 5;
-  const r = (size - sw) / 2;
-  const cx = size / 2;
-  const circ = 2 * Math.PI * r;
-  const pct = total > 0 ? count / total : 0;
-  const offset = circ * (1 - pct);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke={bg} strokeWidth={sw} />
-      {pct > 0 && (
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={sw}
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.65, 0, 0.35, 1)" }}
-        />
-      )}
-    </svg>
-  );
-}
+import useBreakpoint from "./hooks/useBreakpoint.js";
+import EstadoGauge from "./components/EstadoGauge.jsx";
+import PipelineRing from "./components/PipelineRing.jsx";
 
 // ═══════════════════════════════════════════════════════════
 //  MAIN APP COMPONENT
