@@ -671,3 +671,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Refactor
 - **REFACTOR-06**: Extraer OrderDetailModal de App.jsx — sexto paso del desacoplamiento del monolito (4112→3680 lineas, -432). Nuevo componente `OrderDetailModal.jsx` (~460 lineas) internaliza 6 estados (editingFecha, editingNotas, editingProductos, editLineas, editSearchProd, confirmCancel) y 3 funciones (addEditProducto, updateEditQty, editProductosFiltrados). Los handlers `guardarModificacion`, `cambiarNotas`, `cambiarFechaPedido` ahora retornan `true` al completar; el componente resetea su estado local al recibir confirmacion. Sin cambios de comportamiento
+
+## Changelog v2.3.9
+
+### Refactor
+- **REFACTOR-07**: Extraer TabNuevo de App.jsx — septimo paso del desacoplamiento del monolito (3680→2826 lineas, -854). Nuevo componente `TabNuevo.jsx` (~870 lineas) internaliza 24 estados (cliente, telefono, fecha, hora, notas, pagado, lineas, nuevoPaso, createResult, showParseModal, parseText/Image/Loading/Result/Error, isListening, listenText/Error, etc.), 5 refs, y 13 funciones (resetForm, onClienteChange, selectCliente, addProducto, updateQty, handleParse*, toggleListening, stopListening, aplicarParseo, crearPedido wrapper, verPedidoCreado wrapper). Incluye renderizado de ParseWhatsAppModal y ListeningPopup. `crearPedido` en App.jsx refactorizado para aceptar params object y retornar resultado. `verPedidoCreado` acepta `(pedidoId, resultData)` en lugar de leer estado local. Sin cambios de comportamiento
