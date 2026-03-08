@@ -565,3 +565,8 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 ### Mejoras
 - **FEAT-45**: Preset "proximo dia abierto" — cuando Hoy/Manana/Pasado estan todos cerrados, aparece un 4o chip verde con el proximo dia abierto (ej: "Mie 12 — Prox. abierto"). Usa `getOpenDaysInRange` buscando hasta 14 dias adelante
 - **FIX-31**: HorarioEditor centrado en pantalla (antes bottom sheet cortado) con border radius completo. Indicador de guardado verde con icono check en lugar de texto gris
+
+## Changelog v2.12.2
+
+### Fixes
+- **FIX-32**: Dropdown autocompletado de clientes cortado en TabNuevo — el desplegable quedaba recortado dentro de la seccion del formulario (solo se veian ~2 resultados) porque `formSectionStyle` aplica `overflow: "hidden"`. Override `overflow: "visible"` solo en la seccion Cliente para que el dropdown flote correctamente sobre el resto de la interfaz

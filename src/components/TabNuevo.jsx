@@ -423,7 +423,7 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
               {/* ── Left column (desktop) ── */}
               <div>
                 {/* ── Cliente ── */}
-              <section style={{ ...formSectionStyle, marginBottom: 12 }}>
+              <section style={{ ...formSectionStyle, marginBottom: 12, overflow: "visible" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #4F6867, #A2C2D0)", borderRadius: "20px 20px 0 0" }} />
                 <label style={labelStyle}>
                   <I.User s={13} /> Cliente
