@@ -12,12 +12,12 @@
 ```
 Vynia-MNGMNT/
 ├── api/                          # Vercel Serverless Functions
-│   ├── _notion.js                # Notion client, retry, cache, shared constants (PROP_UNIDADES)
+│   ├── _notion.js                # Notion client, retry, cached/clearCached, shared constants (PROP_UNIDADES, DB_REGISTROS, DB_PRODUCTOS, DB_PLANIFICACION), extractors (extractTitle/RichText/DateStart), loadCatalog
 │   ├── pedidos.js                # GET (listar con filtro) + POST (crear pedido)
 │   ├── pedidos/[id].js           # PATCH (cambiar estado, propiedades)
 │   ├── clientes.js               # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
 │   ├── registros.js              # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
-│   ├── produccion.js             # GET (produccion diaria agregada con clientes)
+│   ├── produccion.js             # GET (produccion diaria agregada) + GET/POST ?surplus=true (planificacion Notion)
 │   ├── tracking.js               # GET (seguimiento publico por telefono)
 │   ├── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
 │   └── health.js                 # GET (health check — conectividad Notion, monitorizable)
@@ -26,7 +26,7 @@ Vynia-MNGMNT/
 │   ├── seguimiento.html          # Pagina publica de seguimiento (standalone, sin React)
 │   └── logovynia2_azul.png       # Logo Vynia usado en seguimiento
 ├── src/
-│   ├── App.jsx                   # Shell principal (~1400 lineas): provider, effects, layout
+│   ├── App.jsx                   # Shell principal (~700 lineas): providers, effects, layout
 │   ├── api.js                    # Cliente API frontend (wrapper fetch)
 │   ├── constants/
 │   │   ├── estados.js            # ESTADOS, ESTADO_NEXT, ESTADO_TRANSITIONS, effectiveEstado
@@ -39,12 +39,19 @@ Vynia-MNGMNT/
 │   │   ├── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
 │   │   └── stats.js             # computePedidoStats, computeBulkTransitions
 │   ├── hooks/
-│   │   └── useBreakpoint.js      # isDesktop / isTablet responsive hook
+│   │   ├── useBreakpoint.js      # isDesktop / isTablet responsive hook
+│   │   ├── useCatalog.js         # localStorage SWR + background fetch de catalogo
+│   │   ├── useGlassCalendar.jsx  # Glass calendar state, click-outside, scroll, render
+│   │   ├── usePedidos.js         # Estado de pedidos, CRUD, bulk, stats (~370 lineas)
+│   │   ├── useProduccion.js      # Estado de produccion, load, invalidate (~55 lineas)
+│   │   ├── useTooltip.js         # Tooltip state + event listeners touch/mouse/scroll
+│   │   └── useVersionCheck.js    # Polling version.json + visibilitychange
 │   ├── styles/
 │   │   ├── global.css            # Keyframes, clases CSS, media queries, print
 │   │   └── shared.js             # labelStyle, inputStyle, formSectionStyle
 │   ├── context/
-│   │   └── VyniaContext.jsx      # VyniaProvider + useVynia() hook (estado compartido)
+│   │   ├── VyniaContext.jsx      # VyniaProvider + useVynia() hook (layout, handlers, catalogo, calendar, privacy)
+│   │   └── PedidosContext.jsx    # PedidosProvider + usePedidosCtx() hook (pedidos, stats, filtros, bulk)
 │   └── components/
 │       ├── Icons.jsx             # Objeto I con ~37 iconos SVG inline
 │       ├── EstadoGauge.jsx       # Semicirculo SVG de progreso de estado
@@ -141,8 +148,8 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Devuelve `{ ok: true }`
 
 ### POST /api/registros
-- Body: `{ pedidoPageId, productoNombre, cantidad }`
-- Busca producto por nombre en BD Productos y crea registro en BD Registros
+- **Modo single**: Body `{ pedidoPageId, productoNombre, cantidad }` — busca producto por nombre y crea 1 registro
+- **Modo batch**: Body `{ pedidoPageId, lineas: [{ productoNombre, cantidad }] }` — resuelve nombres via `loadCatalog()` cache, crea registros en batches paralelos de 10 con 200ms delay. Usado por `crearPedido` (1 request en vez de N secuenciales)
 - Vincula registro a pedido y producto
 
 ### GET /api/produccion
@@ -260,12 +267,14 @@ Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()`
 - `loadProduccionRango(fecha, rango)` — GET /api/produccion?fecha=...&rango=N (produccion ligera multi-dia para sugerencias de fecha)
 - `loadProductos()` — GET /api/registros?productos=true
 - `parseWhatsApp(text?, senderName?, senderPhone?, imageBase64?)` — POST /api/parse-order (texto, imagen, o ambos)
+- `loadSurplus(fecha)` — GET /api/produccion?surplus=true&fecha=... (planificacion desde Notion)
+- `saveSurplus(fecha, plan)` — POST /api/produccion (surplus write-through a Notion)
 
 ## Tabs de la app
 
 1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado prominente como cabecera de cada card, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple, toggle de visibilidad de precios (boton `€ ON/OFF` junto a barra de busqueda, oculto por defecto). Fila de fecha: botones Hoy/Manana/Pasado a la izquierda + datepicker al extremo derecho. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
 2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. Boton "Pegar pedido" (card premium con shine effect) abre modal para importar pedidos de WhatsApp via: texto pegado, captura de pantalla (drag-drop/clipboard/file), o dictado por voz (Web Speech API, boton "Dictar" con pulso animado). Parseo con Claude Haiku 4.5 (vision), preview con confianza, matching contra catalogo, lookup de cliente por telefono. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas)` — logica pura sin IA. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
-3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Seccion "Disponible para venta": flujo de 3 estados — boton CTA "Planificar produccion" → modo edicion (steppers, busqueda catalogo, pills frecuentes) → resumen compacto con totales plan/pedidos/disponibles y badges de excedente/deficit. Datos en localStorage por fecha (`vynia-surplus:YYYY-MM-DD`), limpieza >7 dias. Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
+3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Seccion "Disponible para venta": flujo de 3 estados — boton CTA "Planificar produccion" → modo edicion (steppers, busqueda catalogo, pills frecuentes) → resumen compacto con totales plan/pedidos/disponibles y badges de excedente/deficit. Datos persistidos en Notion (BD Planificacion) con write-through a localStorage para carga instantanea; fallback a localStorage si API falla (modo offline). Limpieza >7 dias. Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
 
 ## Sistema de Estado
 
@@ -358,20 +367,20 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
 - El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
 - Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
-- La UI esta descompuesta en ~20 modulos bajo `src/` (ver Estructura). `App.jsx` (~1400 lineas) actua como shell: provider (`VyniaProvider`), effects globales, layout (header + tabs + bottom nav). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` hook
+- La UI esta descompuesta en ~25 modulos bajo `src/` (ver Estructura). `App.jsx` (~700 lineas) actua como shell: providers (`VyniaProvider` + `PedidosProvider`), effects globales, layout (header + tabs + bottom nav). La logica de negocio vive en 2 custom hooks (`usePedidos`, `useProduccion`). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` y `usePedidosCtx()` hooks
 - El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js`, con carga dinamica via `/api/registros?productos=true`
 - `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
 - `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
 - **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
 - **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras la pestaña esta activa, (3) boton recargar manual. Los polls automaticos y visibility usan `skipEnrich: true` (no re-fetchan registros, preservan datos de productos/importe del estado previo). Carga inicial y reload manual hacen enrichment completo. El cache de `api.js` (`CACHE_TTL = 45000`) evita llamadas duplicadas. `invalidatePedidosCache()` invalida solo claves de pedidos (no registros/produccion/catalogo) — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads completos
-- **Server-side cache** — `api/_notion.js` exporta `cached(key, ttlMs, fn)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: `/api/pedidos` GET 10s, `/api/produccion` 60s, `/api/registros?productos=true` 300s (5min), `/api/tracking` 15s
+- **Server-side cache** — `api/_notion.js` exporta `cached(key, ttlMs, fn)` y `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: `/api/pedidos` GET 10s, `/api/produccion` 60s, `/api/registros?productos=true` 300s (5min), `/api/tracking` 15s, surplus 15s, `/api/health` 30s. `clearCached` invalida cache tras escritura (usado por surplus POST)
 - **Renderizado progresivo** — La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Al hacer scroll, carga automaticamente mas cards. Se resetea al cambiar filtro/datos. Muestra "Mostrando X de Y pedidos" cuando hay mas por cargar
 
 ## Tests
 
 - **Framework**: Vitest 4.x con jsdom
 - **Ejecutar**: `npm test` (o `npx vitest run`)
-- **16 archivos de test**, 77 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit
+- **20 archivos de test**, 125 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
 ## Changelog v1.4.0
@@ -821,3 +830,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 - **TEST-01**: Cobertura completa de `fmt.js` — 19 tests para localISO (padding, timezone), isToday, isTomorrow, isPast (null safety), date (formato español), time (extraccion HH:MM), DAY_NAMES
 - **TEST-02**: Cobertura completa de `helpers.js` — 15 tests para waLink (normalizacion telefono, codigo pais, formateo), parseProductsStr (parsing, doble digito, ñ/ó, malformados), esTarde (notas, hora, fecha, heuristica multi-fallback)
 - **TEST-03**: Tests de stats y bulk transitions — 7 tests para computePedidoStats (6 estados, mix completo, estado desconocido) + 2 tests para computeBulkTransitions (seleccion vacia, interseccion multi-estado). Total: 82 → 125 tests (+43, +52%), 20 ficheros de test
+
+## Changelog v2.10.1
+
+### Docs
+- **DOCS-03**: Sincronizar CLAUDE.md con estado actual v2.10.0 — App.jsx actualizado de ~1400 a ~700 lineas. Estructura: hooks/ expandido de 1 a 7 hooks (usePedidos, useProduccion, useCatalog, useGlassCalendar, useTooltip, useVersionCheck, useBreakpoint). context/ añadido PedidosContext.jsx. _notion.js: documentados extractors, DB IDs, clearCached, loadCatalog. produccion.js: documentadas rutas surplus GET/POST. POST /api/registros: documentado modo batch. Tab Produccion: surplus hybrid Notion sync. API client: añadidos loadSurplus/saveSurplus. Server-side cache: añadidos TTLs de surplus (15s) y health (30s), documentado clearCached. Tests: 16→20 ficheros, 77→125 tests
