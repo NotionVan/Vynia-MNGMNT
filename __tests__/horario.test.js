@@ -207,22 +207,22 @@ describe("loadHorario (async hybrid)", () => {
   });
 });
 
-describe("saveHorarioDia (write-through)", () => {
+describe("saveHorarioDia (async write-through)", () => {
   beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); });
 
-  it("writes to localStorage and fires API call", () => {
+  it("writes to localStorage and awaits Notion API", async () => {
     notion.saveHorarioDia.mockResolvedValue({ ok: true });
-    const result = saveHorarioDia(SAMPLE_HORARIO, 0, { apertura: "08:00" });
+    const result = await saveHorarioDia(SAMPLE_HORARIO, 0, { apertura: "08:00" });
     expect(result[0].apertura).toBe("08:00");
     const stored = JSON.parse(localStorage.getItem(HORARIO_KEY));
     expect(stored.horario[0].apertura).toBe("08:00");
     expect(notion.saveHorarioDia).toHaveBeenCalledWith(0, { apertura: "08:00" });
   });
 
-  it("handles API failure gracefully (localStorage still updated)", () => {
+  it("propagates API failure to caller", async () => {
     notion.saveHorarioDia.mockRejectedValue(new Error("Timeout"));
-    const result = saveHorarioDia(SAMPLE_HORARIO, 5, { abierto: true });
-    expect(result[5].abierto).toBe(true);
+    await expect(saveHorarioDia(SAMPLE_HORARIO, 5, { abierto: true })).rejects.toThrow("Timeout");
+    // localStorage is still updated (optimistic)
     const stored = JSON.parse(localStorage.getItem(HORARIO_KEY));
     expect(stored.horario[5].abierto).toBe(true);
   });

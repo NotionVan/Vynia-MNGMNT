@@ -570,3 +570,8 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Fixes
 - **FIX-32**: Dropdown autocompletado de clientes cortado en TabNuevo — el desplegable quedaba recortado dentro de la seccion del formulario (solo se veian ~2 resultados) porque `formSectionStyle` aplica `overflow: "hidden"`. Override `overflow: "visible"` solo en la seccion Cliente para que el dropdown flote correctamente sobre el resto de la interfaz
+
+## Changelog v2.12.3
+
+### Fixes
+- **FIX-33**: Horario sync fiable con Notion — `saveHorarioDia` ahora es async y await la respuesta de Notion en lugar de fire-and-forget. HorarioEditor muestra estado real de sincronizacion (guardando/guardado/error) con debounce 600ms. Si Notion falla, el usuario ve el error en lugar de un falso "guardado". Notion es source of truth: todos los dispositivos ven el mismo horario

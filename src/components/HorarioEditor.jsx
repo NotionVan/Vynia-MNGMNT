@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import I from "./Icons.jsx";
 import { saveHorarioDia } from "../utils/horario.js";
 
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
+// status: "idle" | "saving" | "saved" | "error"
 export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) {
   const [local, setLocal] = useState(() => {
     if (!horario || Object.keys(horario).length === 0) {
@@ -11,11 +12,14 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
       for (let i = 0; i < 7; i++) def[i] = { abierto: i < 5, apertura: "09:00", cierre: "14:00", apertura2: null, cierre2: null };
       return def;
     }
-    // Deep copy to avoid mutating parent state
     const copy = {};
     for (const [k, v] of Object.entries(horario)) copy[k] = { ...v };
     return copy;
   });
+
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
+  const pendingRef = useRef(null); // { dia, changes, localSnapshot }
+  const timerRef = useRef(null);
 
   // Sync when parent horario changes (e.g., from Notion fetch)
   useEffect(() => {
@@ -26,10 +30,42 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
     }
   }, [horario]);
 
+  // Flush pending save to Notion (debounced 600ms)
+  const flushSave = useCallback(async () => {
+    const pending = pendingRef.current;
+    if (!pending) return;
+    pendingRef.current = null;
+
+    setSaveStatus("saving");
+    try {
+      await saveHorarioDia(pending.localSnapshot, pending.dia, pending.changes);
+      setSaveStatus("saved");
+    } catch (err) {
+      console.warn("Failed to save horario to Notion:", err.message);
+      setSaveStatus("error");
+    }
+  }, []);
+
+  // Cleanup timer on unmount + flush pending
+  useEffect(() => {
+    return () => {
+      clearTimeout(timerRef.current);
+      // Flush on unmount if pending
+      if (pendingRef.current) flushSave();
+    };
+  }, [flushSave]);
+
   const updateDay = (dia, changes) => {
-    const updated = saveHorarioDia(local, dia, changes);
+    // Optimistic local update
+    const updated = { ...local };
+    updated[dia] = { ...(updated[dia] || {}), ...changes };
     setLocal(updated);
     onSave(updated);
+
+    // Queue debounced save
+    pendingRef.current = { dia, changes, localSnapshot: updated };
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flushSave, 600);
   };
 
   const formatLastEdited = () => {
@@ -40,6 +76,14 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
       });
     } catch { return null; }
   };
+
+  const statusConfig = {
+    idle:   { bg: "rgba(162,194,208,0.1)", border: "rgba(162,194,208,0.2)", color: "#A2C2D0", icon: <I.Clock s={14} c="#A2C2D0" />, text: "Guardado automatico" },
+    saving: { bg: "rgba(21,101,192,0.08)", border: "rgba(21,101,192,0.2)", color: "#1565C0", icon: <I.Clock s={14} c="#1565C0" />, text: "Guardando en Notion..." },
+    saved:  { bg: "rgba(46,125,50,0.08)", border: "rgba(46,125,50,0.2)", color: "#2E7D32", icon: <I.Check s={14} c="#2E7D32" />, text: "Guardado en Notion" },
+    error:  { bg: "rgba(198,40,40,0.08)", border: "rgba(198,40,40,0.2)", color: "#C62828", icon: <I.AlertTri s={14} c="#C62828" />, text: "Error al guardar — reintenta" },
+  };
+  const st = statusConfig[saveStatus];
 
   return (
     <div style={{
@@ -197,17 +241,17 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
             })}
           </div>
 
-          {/* Footer */}
+          {/* Footer — dynamic save status */}
           <div style={{
             marginTop: 16, padding: "10px 14px", borderRadius: 10,
-            background: "rgba(46,125,50,0.08)",
-            border: "1px solid rgba(46,125,50,0.2)",
-            fontSize: 11, color: "#2E7D32", fontWeight: 600,
+            background: st.bg, border: `1px solid ${st.border}`,
+            fontSize: 11, color: st.color, fontWeight: 600,
             textAlign: "center",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            transition: "all 0.2s",
           }}>
-            <I.Check s={14} c="#2E7D32" />
-            Guardado automatico — los cambios se sincronizan al instante
+            {st.icon}
+            {st.text}
           </div>
         </div>
       </div>

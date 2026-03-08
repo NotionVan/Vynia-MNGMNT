@@ -30,17 +30,13 @@ export async function loadHorario() {
   }
 }
 
-export function saveHorarioDia(horarioState, dia, changes) {
-  // Update local state immediately
+export async function saveHorarioDia(horarioState, dia, changes) {
   const updated = { ...horarioState };
   updated[dia] = { ...(updated[dia] || {}), ...changes };
   saveHorarioLocal({ horario: updated });
 
-  // Fire-and-forget to Notion
-  notion.saveHorarioDia(dia, changes).catch(err => {
-    console.warn("Failed to save horario to Notion:", err.message);
-  });
-
+  // Await Notion sync — caller handles success/failure
+  await notion.saveHorarioDia(dia, changes);
   return updated;
 }
 
