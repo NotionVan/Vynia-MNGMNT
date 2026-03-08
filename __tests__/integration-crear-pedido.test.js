@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 describe("Integration: full pedido creation flow", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("creates pedido with properties and registros", async () => {
+  it("creates pedido with properties and registros batch", async () => {
     const fetchMock = vi.fn().mockImplementation((url) => {
       if (url.includes("/api/pedidos")) {
         return Promise.resolve({
@@ -13,7 +13,7 @@ describe("Integration: full pedido creation flow", () => {
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ ok: true }),
+        json: () => Promise.resolve({ ok: true, created: 1, failed: [] }),
       });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -34,11 +34,12 @@ describe("Integration: full pedido creation flow", () => {
     expect(pedidoBody.properties["Pagado al reservar"].checkbox).toBe(true);
     expect(pedidoBody.properties.Notas.rich_text[0].text.content).toBe("Notas test");
 
-    // Verify registro
+    // Verify registros batch
     const registroBody = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(registroBody.productoNombre).toBe("Brownie");
-    expect(registroBody.cantidad).toBe(2);
     expect(registroBody.pedidoPageId).toBe("pedido-integration");
+    expect(registroBody.lineas).toHaveLength(1);
+    expect(registroBody.lineas[0].productoNombre).toBe("Brownie");
+    expect(registroBody.lineas[0].cantidad).toBe(2);
   });
 });
 

@@ -770,3 +770,12 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Bug fixes
 - **FIX-22**: Telefono siempre visible en modal de detalle de pedido — al abrir un pedido (click en card), el numero de telefono se muestra siempre independientemente del estado del toggle "Ver/Ocultar datos". El toggle sigue ocultando telefonos en la lista de pedidos, ficha de cliente y resultados de busqueda. Eliminado `mostrarDatos` del destructuring de `OrderDetailModal.jsx` (ya no se usa en el componente)
+
+## Changelog v2.7.0
+
+### Refactor
+- **REFACTOR-15**: Extraer 4 custom hooks de App.jsx — `hooks/useTooltip.js` (tooltip state + event listeners touch/mouse/scroll, ~74 lineas), `hooks/useVersionCheck.js` (polling version.json + visibilitychange, ~19 lineas), `hooks/useCatalog.js` (localStorage SWR + background fetch de catalogo, ~34 lineas), `hooks/useGlassCalendar.js` (state + click-outside + scroll + renderGlassCal, ~105 lineas). App.jsx reducido de ~1396 a ~1340 lineas, eliminados 5 useState, 4 useEffect, 1 useRef. Sin cambios de comportamiento
+- **REFACTOR-16**: Mover extractors duplicados a `api/_notion.js` — `extractTitle`, `extractRichText`, `extractDateStart` estaban definidas identicas en `pedidos.js`, `produccion.js` y `tracking.js`. Ahora son exports compartidos de `_notion.js`. Eliminadas 42 lineas duplicadas (14 por archivo x 3)
+
+### Mejoras
+- **FEAT-38**: Batch endpoint para registros — `POST /api/registros` acepta modo batch `{ pedidoPageId, lineas: [{ productoNombre, cantidad }] }` ademas del modo single existente. Resuelve nombres de producto via `loadCatalog()` cache (0 queries extra), crea registros en batches paralelos de 10 con 200ms delay. `src/api.js` `crearPedido` actualizado para usar batch (1 request en vez de N secuenciales). Campo `id` anadido a `loadCatalog()` para resolver nombre→id sin queries adicionales

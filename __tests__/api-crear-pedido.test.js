@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 describe("crearPedido", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("creates pedido then registros in correct order", async () => {
+  it("creates pedido then registros batch in correct order", async () => {
     const calls = [];
     vi.stubGlobal("fetch", vi.fn().mockImplementation((url, opts) => {
       calls.push({ url, method: opts?.method || "GET" });
@@ -15,7 +15,7 @@ describe("crearPedido", () => {
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ ok: true }),
+        json: () => Promise.resolve({ ok: true, created: 2, failed: [] }),
       });
     }));
 
@@ -29,11 +29,16 @@ describe("crearPedido", () => {
     );
 
     expect(result.id).toBe("pedido-new");
-    expect(calls).toHaveLength(3);
-    expect(calls[0].method).toBe("POST"); // pedido
+    expect(calls).toHaveLength(2); // 1 POST pedido + 1 POST registros batch
+    expect(calls[0].method).toBe("POST");
     expect(calls[0].url).toContain("/api/pedidos");
     expect(calls[1].url).toContain("/api/registros");
-    expect(calls[2].url).toContain("/api/registros");
+    // Verify batch body
+    const regBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1].body);
+    expect(regBody.pedidoPageId).toBe("pedido-new");
+    expect(regBody.lineas).toHaveLength(2);
+    expect(regBody.lineas[0].productoNombre).toBe("Brownie");
+    expect(regBody.lineas[1].productoNombre).toBe("Cookie Oreo");
   });
 
   it("builds fecha with hora when provided", async () => {
@@ -76,21 +81,16 @@ describe("crearPedido", () => {
     ).rejects.toThrow("No se pudo crear el pedido");
   });
 
-  it("BUG-13 FIX: partial registro failure reports missing products", async () => {
+  it("partial batch failure reports missing products", async () => {
     let callCount = 0;
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
+        // POST pedido OK
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "p-partial" }) });
       }
-      if (callCount === 2) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) });
-      }
-      // 3rd call (2nd registro) fails
-      return Promise.resolve({
-        ok: false, status: 429,
-        json: () => Promise.resolve({ error: "Rate limited" }),
-      });
+      // POST registros batch — partial failure reported by server
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, created: 1, failed: ["Cookie"] }) });
     }));
 
     const { notion } = await import("../src/api.js");
@@ -101,17 +101,17 @@ describe("crearPedido", () => {
       ])
     ).rejects.toThrow("Pedido creado pero faltan productos: Cookie");
 
-    // Pedido exists with Brownie only — user sees which product failed
-    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(fetch).toHaveBeenCalledTimes(2); // 1 pedido + 1 batch
   });
 
-  it("BUG-13 FIX: all registros fail reports all missing products", async () => {
+  it("batch failure propagates server error", async () => {
     let callCount = 0;
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "p-allfail" }) });
       }
+      // Batch registros call fails entirely
       return Promise.resolve({
         ok: false, status: 500,
         json: () => Promise.resolve({ error: "Server error" }),
@@ -124,6 +124,6 @@ describe("crearPedido", () => {
         { nombre: "Brownie", cantidad: 2, precio: 4 },
         { nombre: "Cookie", cantidad: 3, precio: 2.3 },
       ])
-    ).rejects.toThrow("Pedido creado pero faltan productos: Brownie, Cookie");
+    ).rejects.toThrow("Server error");
   });
 });

@@ -13,8 +13,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { pedidoPageId, productoNombre, cantidad } = req.body;
+  const { pedidoPageId, lineas, productoNombre, cantidad } = req.body;
 
+  // Batch mode: { pedidoPageId, lineas: [{ productoNombre, cantidad }] }
+  if (lineas) {
+    return handlePostBatch(req, res, pedidoPageId, lineas);
+  }
+
+  // Single mode (legacy): { pedidoPageId, productoNombre, cantidad }
   if (!pedidoPageId || !productoNombre || !cantidad) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -150,5 +156,66 @@ async function handleGetProductos(_req, res) {
     res.status(200).json(productos);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+async function handlePostBatch(_req, res, pedidoPageId, lineas) {
+  if (!pedidoPageId) {
+    return res.status(400).json({ error: "Missing pedidoPageId" });
+  }
+  if (!Array.isArray(lineas) || lineas.length === 0) {
+    return res.status(400).json({ error: "lineas must be a non-empty array" });
+  }
+
+  try {
+    // Use cached catalog to resolve product names → IDs (avoids N queries)
+    const catalog = await loadCatalog();
+    const nameToId = {};
+    for (const c of catalog) {
+      nameToId[c.nombre.toLowerCase().trim()] = c.id;
+    }
+
+    const failed = [];
+    const toCreate = [];
+    for (const linea of lineas) {
+      const { productoNombre, cantidad } = linea;
+      if (!productoNombre || !cantidad || typeof cantidad !== "number" || cantidad <= 0) {
+        failed.push(productoNombre || "?");
+        continue;
+      }
+      const productoPageId = nameToId[productoNombre.toLowerCase().trim()];
+      if (!productoPageId) {
+        failed.push(productoNombre);
+        continue;
+      }
+      toCreate.push({ productoNombre, cantidad, productoPageId });
+    }
+
+    // Create registros in parallel batches of 10
+    let created = 0;
+    for (let i = 0; i < toCreate.length; i += 10) {
+      const batch = toCreate.slice(i, i + 10);
+      const results = await Promise.allSettled(batch.map(item =>
+        notion.pages.create({
+          parent: { database_id: DB_REGISTROS },
+          properties: {
+            title: { title: [{ text: { content: item.productoNombre } }] },
+            [PROP_UNIDADES]: { number: item.cantidad },
+            Pedidos: { relation: [{ id: pedidoPageId }] },
+            Productos: { relation: [{ id: item.productoPageId }] },
+          },
+        })
+      ));
+      for (let j = 0; j < results.length; j++) {
+        if (results[j].status === "fulfilled") created++;
+        else failed.push(batch[j].productoNombre);
+      }
+      if (i + 10 < toCreate.length) await delay(200);
+    }
+
+    return res.status(201).json({ ok: true, created, failed });
+  } catch (error) {
+    console.error("Error creating registros batch:", error);
+    return res.status(500).json({ error: error.message });
   }
 }

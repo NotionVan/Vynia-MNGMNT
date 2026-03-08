@@ -1,21 +1,6 @@
-import { notion, cached, PROP_UNIDADES, DB_REGISTROS } from "./_notion.js";
+import { notion, cached, PROP_UNIDADES, DB_REGISTROS, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
-
-function extractTitle(prop) {
-  if (!prop || prop.type !== "title") return "";
-  return (prop.title || []).map((t) => t.plain_text).join("");
-}
-
-function extractRichText(prop) {
-  if (!prop || prop.type !== "rich_text") return "";
-  return (prop.rich_text || []).map((t) => t.plain_text).join("");
-}
-
-function extractDateStart(prop) {
-  if (!prop || prop.type !== "date" || !prop.date) return "";
-  return prop.date.start || "";
-}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {

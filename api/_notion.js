@@ -51,6 +51,22 @@ export const PROP_UNIDADES = "Unidades ";
 export const DB_PRODUCTOS = "1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2";
 export const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
 
+// ─── Notion property extractors (shared across API handlers) ───
+export function extractTitle(prop) {
+  if (!prop || prop.type !== "title") return "";
+  return (prop.title || []).map((t) => t.plain_text).join("");
+}
+
+export function extractRichText(prop) {
+  if (!prop || prop.type !== "rich_text") return "";
+  return (prop.rich_text || []).map((t) => t.plain_text).join("");
+}
+
+export function extractDateStart(prop) {
+  if (!prop || prop.type !== "date" || !prop.date) return "";
+  return prop.date.start || "";
+}
+
 // ─── Shared catalog loader (cached 5min, used by registros.js + parse-order.js) ───
 export async function loadCatalog() {
   return cached("productos", 1800000, async () => {
@@ -68,7 +84,7 @@ export async function loadCatalog() {
         const precio = p["Precio"]?.number;
         const cat = p["Categoría"]?.select?.name || "";
         if (nombre && precio != null) {
-          result.push({ nombre, precio, cat });
+          result.push({ id: page.id, nombre, precio, cat });
         }
       }
       cursor = resp.has_more ? resp.next_cursor : undefined;

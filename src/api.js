@@ -174,24 +174,16 @@ export const notion = {
 
     if (!pedidoRes?.id) throw new Error("No se pudo crear el pedido");
 
-    // Create line items (track partial failures — Notion has no transactions)
-    const failed = [];
-    for (const linea of lineas) {
-      try {
-        await apiCall("/registros", {
-          method: "POST",
-          body: JSON.stringify({
-            pedidoPageId: pedidoRes.id,
-            productoNombre: linea.nombre,
-            cantidad: linea.cantidad,
-          }),
-        });
-      } catch {
-        failed.push(linea.nombre);
-      }
-    }
-    if (failed.length > 0) {
-      throw new Error(`Pedido creado pero faltan productos: ${failed.join(", ")}`);
+    // Create line items in a single batch request
+    const regResult = await apiCall("/registros", {
+      method: "POST",
+      body: JSON.stringify({
+        pedidoPageId: pedidoRes.id,
+        lineas: lineas.map(l => ({ productoNombre: l.nombre, cantidad: l.cantidad })),
+      }),
+    });
+    if (regResult.failed?.length > 0) {
+      throw new Error(`Pedido creado pero faltan productos: ${regResult.failed.join(", ")}`);
     }
 
     return pedidoRes;
