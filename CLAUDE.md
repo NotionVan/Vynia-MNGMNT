@@ -359,22 +359,83 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 8 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
 - **OBLIGATORIO en cada commit**: 1) Actualizar `"version"` en `package.json` (semver: patch para fixes/perf, minor para features, major para breaking changes). 2) Documentar los cambios en la seccion `## Changelog vX.Y.Z` al final de este archivo (CLAUDE.md) con ID de cambio (FIX-xx, FEAT-xx, PERF-xx) y descripcion concisa
 
-## Notas tecnicas
+## Reglas de desarrollo
 
-- `@notionhq/client` debe ser v2.x (v5.x elimino `databases.query`, NO actualizar). Excepcion: `handlePost` en `api/pedidos.js` usa `fetch` directo con `Notion-Version: 2025-09-03` y `parent: { type: "data_source_id", data_source_id: DS_PEDIDOS }` para soportar `template: { type: "default" }` (aplica la plantilla de la BD al crear pedido). `DS_PEDIDOS` (`1c418b3a-38b1-8176-a42b-000b33f3b1aa`) es el data_source_id (diferente del database_id). La plantilla se aplica asincronamente por Notion tras la creacion
-- El campo `"Unidades "` en Registros tiene un espacio trailing — definido como `PROP_UNIDADES` en `api/_notion.js` y exportado. Usar siempre la constante, nunca el string literal
-- El campo `"Nombre"` (title) en Registros contiene solo `" "` — usar `"AUX Producto Texto"` (formula) para el nombre real del producto
-- `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
-- El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
-- Nombre de cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
-- La UI esta descompuesta en ~25 modulos bajo `src/` (ver Estructura). `App.jsx` (~700 lineas) actua como shell: providers (`VyniaProvider` + `PedidosProvider`), effects globales, layout (header + tabs + bottom nav). La logica de negocio vive en 2 custom hooks (`usePedidos`, `useProduccion`). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` y `usePedidosCtx()` hooks
-- El catalogo de productos esta hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js`, con carga dinamica via `/api/registros?productos=true`
-- `api/productos.js` fue consolidado en `api/registros.js` para respetar el limite de 12 Serverless Functions del Hobby plan de Vercel
-- `@number-flow/react` se usa para animaciones de cantidad en steppers del carrito
-- **Estado es la source of truth** — NO usar checkboxes para determinar estado. Usar `effectiveEstado()` que resuelve Estado o fallback desde checkboxes para legacy
-- **Sync con Notion** — La app se sincroniza con Notion de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras la pestaña esta activa, (3) boton recargar manual. Los polls automaticos y visibility usan `skipEnrich: true` (no re-fetchan registros, preservan datos de productos/importe del estado previo). Carga inicial y reload manual hacen enrichment completo. El cache de `api.js` (`CACHE_TTL = 45000`) evita llamadas duplicadas. `invalidatePedidosCache()` invalida solo claves de pedidos (no registros/produccion/catalogo) — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads completos
-- **Server-side cache** — `api/_notion.js` exporta `cached(key, ttlMs, fn)` y `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: `/api/pedidos` GET 10s, `/api/produccion` 60s, `/api/registros?productos=true` 300s (5min), `/api/tracking` 15s, surplus 15s, `/api/health` 30s. `clearCached` invalida cache tras escritura (usado por surplus POST)
-- **Renderizado progresivo** — La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Al hacer scroll, carga automaticamente mas cards. Se resetea al cambiar filtro/datos. Muestra "Mostrando X de Y pedidos" cuando hay mas por cargar
+### NUNCA
+- Actualizar `@notionhq/client` a v5+ (rompe `databases.query`). Debe permanecer en v2.x
+- Crear nuevos ficheros en `api/` sin consolidar primero (limite 12 Serverless Functions Hobby plan, actualmente 8)
+- Usar emojis Unicode en la UI — solo SVG inline via objeto `I` en `components/Icons.jsx`
+- Usar el string `"Unidades "` directamente — siempre `PROP_UNIDADES` de `api/_notion.js`
+- Usar checkboxes (Recogido/No acude/Incidencia) para determinar estado — usar `effectiveEstado()` de `constants/estados.js`
+- Usar `toISOString()` para fechas locales — siempre `fmt.localISO()` de `utils/fmt.js` (evita desfase UTC)
+- Hardcodear IDs de BDs de Notion — usar constantes de `api/_notion.js` (`DB_REGISTROS`, `DB_PRODUCTOS`, `DB_PLANIFICACION`)
+- Usar `"Nombre"` (title) de Registros para nombre de producto — siempre `"AUX Producto Texto"` (formula)
+
+### SIEMPRE
+- Bump version en `package.json` en cada commit (patch: fix/perf, minor: feat, major: breaking)
+- Añadir entrada en Changelog al final de este archivo (FIX-xx / FEAT-xx / PERF-xx / REFACTOR-xx)
+- Tests: copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` antes de ejecutar (Google Drive es lento)
+- Dual-write al cambiar estado: `Estado` status + checkboxes sincronizados en una sola PATCH
+- Iconos nuevos: añadir como funcion en objeto `I` de `Icons.jsx` (props: `s` size, `c` color)
+- Estilos inline (no CSS modules ni styled-components). CSS global solo en `styles/global.css`. Constantes compartidas en `styles/shared.js`
+- Funciones puras en `utils/` — testeables, sin side effects, sin imports de React
+- Acceder a telefono del cliente via rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
+- Acceder a nombre de cliente via rollup `"AUX Nombre Cliente"` en Pedidos (no requiere llamadas extra a la API)
+- Acceder a `"N Pedido"` via `.unique_id.number`
+
+## Patrones de arquitectura
+
+### Estructura de la UI
+`App.jsx` (~700 lineas) actua como shell: providers (`VyniaProvider` + `PedidosProvider`), effects globales, layout (header + tabs + bottom nav). La logica de negocio vive en 2 custom hooks (`usePedidos`, `useProduccion`). Cada tab y modal es un componente independiente que accede al estado compartido via `useVynia()` y `usePedidosCtx()` hooks
+
+### Contextos React
+| Contexto | Contenido | Frecuencia de cambio |
+|----------|-----------|---------------------|
+| `VyniaContext` | layout, handlers genericos, catalogo, glass calendar, privacy toggle | Rara vez |
+| `PedidosContext` | pedidos[], stats, filtros, bulk selection | Cada 120s (polling) |
+
+Separados para evitar re-renders innecesarios. TabPedidos usa ambos; TabNuevo, TabProduccion y OrderDetailModal solo usan VyniaContext
+
+### Añadir un componente
+1. Crear en `src/components/NombreComponente.jsx`
+2. Acceder a estado compartido via `useVynia()` (layout, catalogo, calendar) o `usePedidosCtx()` (pedidos, stats, bulk)
+3. Props solo para datos locales que el padre controla directamente
+4. Internalizar estado local que no necesita salir del componente
+
+### Añadir un hook
+1. Crear en `src/hooks/useNombreHook.js` (`.jsx` si contiene JSX — Vite lo requiere)
+2. Estado y efectos internos; exponer API minima
+3. Comunicacion entre hooks via callbacks (ver `onInvalidateProduccion` y `onUpdateProduccionPagado` en App.jsx)
+
+### Añadir logica pura
+1. Crear en `src/utils/` como funcion exportada
+2. Sin imports de React, sin side effects
+3. Añadir tests en `__tests__/nombre.test.js`
+
+### Añadir endpoint API
+1. PRIMERO verificar si se puede consolidar en un endpoint existente (param/query switch). Ejemplo: surplus se consolido en `produccion.js` via `?surplus=true`
+2. Si es nuevo fichero: comprobar que no excede 12 serverless functions (actualmente 8)
+3. Patron: import `notion`, `cached`, extractors de `api/_notion.js`
+4. Cache server-side via `cached(key, ttlMs, fn)` — invalidar con `clearCached(key)` tras escrituras
+5. Paginacion: usar `start_cursor` para queries >100 resultados. Para registros: OR query en chunks de 100 (limite compound filter de Notion)
+6. Endpoints publicos: rate limiting obligatorio (ver `tracking.js`: 10 req/min por IP + 3 req/min por telefono)
+
+### Catalogo de productos
+Hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js` como fallback. Carga dinamica via `/api/registros?productos=true`. Server-side: `loadCatalog()` en `api/_notion.js` (cached 30min). Frontend: `useCatalog` hook con localStorage SWR
+
+## Notas de implementacion
+
+### Creacion de pedidos (handlePost en pedidos.js)
+`handlePost` usa `fetch` directo (no el SDK) con `Notion-Version: 2025-09-03` y `parent: { type: "data_source_id", data_source_id: DS_PEDIDOS }` para soportar `template: { type: "default" }`. `DS_PEDIDOS` = `1c418b3a-38b1-8176-a42b-000b33f3b1aa` (diferente del database_id). La plantilla se aplica asincronamente por Notion tras la creacion
+
+### Sync con Notion
+La app se sincroniza de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras activa, (3) boton recargar manual. Polls y visibility usan `skipEnrich: true` (preservan datos previos). Carga inicial y reload manual hacen enrichment completo. `invalidatePedidosCache()` invalida solo claves de pedidos — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads
+
+### Server-side cache
+`api/_notion.js` exporta `cached(key, ttlMs, fn)` y `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: pedidos GET 10s, produccion 60s, catalogo 300s (5min), tracking 15s, surplus 15s, health 30s. `clearCached` invalida cache tras escritura
+
+### Renderizado progresivo
+La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se resetea al cambiar filtro/datos
 
 ## Tests
 
@@ -383,455 +444,38 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - **20 archivos de test**, 125 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
-## Changelog v1.4.0
-
-### Bug fixes
-- **BUG-01**: `effectiveEstado` no resolvia correctamente estados legacy
-- **BUG-02**: `toISOString()` generaba fecha UTC en lugar de local (fijo via `fmt.localISO()`)
-- **BUG-03**: `produccion.js` no paginaba pedidos (max 100). Añadida paginacion con cursor
-- **BUG-04**: `"Unidades "` hardcodeado como string literal en 3 archivos. Extraido a constante `PROP_UNIDADES` en `_notion.js`
-- **BUG-05**: `registros.js` no validaba si el producto existe antes de crear registro
-- **BUG-06**: `clientes.js` no validaba telefono (min 6 digitos) al crear cliente
-- **BUG-07**: Busqueda de cliente en POST `/api/clientes` usaba `equals` (case-sensitive). Cambiado a `contains` + filtro client-side case-insensitive
-- **BUG-08**: `tracking.js` no priorizaba match exacto de telefono cuando hay multiples resultados
-- **BUG-09**: Filtro "pendientes" en `pedidos.js` no excluia Incidencias
-- **BUG-10**: `effectiveEstado` sobrescribia estados desconocidos. Simplificado para confiar en Estado como source of truth
-- **BUG-11**: Propiedad `telefono`/`tel` inconsistente en `setSelectedPedido` — normalizado en todos los call sites
-- **BUG-12**: Cache de `api.js` no deduplicaba llamadas en vuelo
-- **BUG-13**: Creacion de registros sin rollback — `crearPedido()` ahora reporta productos fallidos; `guardarModificacion()` crea antes de borrar
-- **BUG-14**: `cambiarEstadoBulk()` sin rollback — añadido `prevEstados` Map + rollback automatico de fallos
-
-### Mejoras
-- **CHAOS-01**: Fechas locales — nuevo helper `fmt.localISO()` reemplaza todos los `toISOString().split("T")[0]`
-- **CHAOS-08**: Renderizado progresivo — IntersectionObserver con lotes de 30 cards para listas largas de pedidos
-
-## Changelog v1.4.1
-
-### Mejoras
-- **FEAT-01**: Toggle "Pagado" interactivo — el badge €/PAGADO es clickable en cards de pedidos, ficha de cliente, modal de detalle y vista de produccion. Permite marcar/desmarcar pago en cualquier momento del ciclo de vida del pedido via `togglePagado()` → `updatePage()` → Notion API. Actualiza estado local (pedidos, selectedPedido, produccionData) de forma optimista
-
-## Changelog v1.4.2
-
-### Mejoras
-- **FEAT-02**: Boton "€ Pago / Pagado" grande en la zona de acciones de cada card de pedido (junto a pipeline y picker), siempre visible. Confirmacion obligatoria via popup glass-morphism antes de cambiar el estado de pago (patron identico a `pendingEstadoChange`). Los badges pequeños en la fila del nombre quedan como indicadores informativos (solo lectura)
-- **FIX-01**: Corregido `vercel.json` — patron `/*` invalido en headers reemplazado por `/(.*)`; rewrite SPA normalizado al formato oficial de Vercel
-
-## Changelog v1.4.3
-
-### Bug fixes
-- **FIX-02**: Ruta dinamica `/api/pedidos/[id]` devuelve 404 en produccion — el rewrite SPA `/(.*) → /index.html` interceptaba rutas dinamicas de la API. Restaurado negative lookahead `/((?!api/).*) → /index.html` para excluir `/api/*` del SPA fallback. Afectaba a todas las operaciones PATCH: pagado, cambio de estado, notas, archivar
-
-### Mejoras
-- **PERF-01**: Optimistic UI para toggle de pagado — la UI se actualiza al instante al confirmar, sin esperar respuesta de Notion (~1-2s). Rollback automatico si la API falla (mismo patron que `cambiarEstadoBulk`)
-
-## Changelog v1.4.4
-
-### Mejoras
-- **PERF-02**: Eliminar N+1 queries en `/api/produccion` — reemplazado loop de 1 query por pedido (batches de 5, con 200ms delay) por OR query unico que trae todos los registros de golpe. Mismo patron que ya usa `tracking.js`. Para >100 pedidos, divide en chunks de 100 (limite de compound filter de Notion). Reduce latencia de ~12s a ~600ms con 100 pedidos, eliminando riesgo de timeout en Vercel
-
-## Changelog v1.4.5
-
-### Bug fixes
-- **FIX-03**: "Ver pedido" tras crear no abria modal de detalle — race condition entre `loadPedidos()` async (sin await) y `pedidos.find()` en `verPedidoCreado()`. Fix: `pendingViewPedidoId` ref + useEffect que selecciona el pedido cuando `pedidos` se actualiza con los datos nuevos
-
-## Changelog v1.5.0
-
-### Mejoras
-- **FEAT-03**: Boton CTA de resena Google en pagina de seguimiento (`seguimiento.html`) — aparece debajo de las cards de pedido tras consultar por telefono. Estilo gradient Vynia (#4F6867) con efecto shine sweep en hover, glow radial, scale transitions y animacion de entrada staggered. Estrella dorada SVG (Google brand), titulo "Dejanos tu opinion", subtitulo "Tu resena nos ayuda a crecer". Abre `g.page/r/Ceetj32kIx45EBM/review` en nueva pestana. Oculto en print. Compatible con modo iframe (vynia.es/mi-pedido/)
-
-## Changelog v1.5.1
-
-### Bug fixes
-- **FIX-04**: Pagina de seguimiento bloqueada en iframe (vynia.es/mi-pedido/) — `X-Frame-Options: DENY` del catch-all `/(.*)`  en `vercel.json` sobreescribia los headers de `/seguimiento`. Fix: mover bloque `/seguimiento` DESPUES del catch-all para que sus headers ganen. CSP combinado con `frame-ancestors 'self' https://vynia.es https://www.vynia.es` + permisos para Google Fonts. `X-Frame-Options: SAMEORIGIN` (ignorado por browsers modernos cuando CSP frame-ancestors esta presente)
-
-## Changelog v1.5.2
-
-### Mejoras
-- **PERF-03**: "Ver pedido" instantaneo tras crear — en lugar de esperar a que `loadPedidos()` termine el roundtrip a Notion, construye el pedido inmediatamente con los datos de creacion (cliente, productos, fecha, estado "Sin empezar") y abre el modal al instante. Se actualiza silenciosamente cuando llegan los datos completos (numPedido, etc.)
-
-## Changelog v1.5.3
-
-### Bug fixes
-- **FIX-05**: Seguimiento no encuentra pedidos cuando hay clientes duplicados con mismo telefono — `tracking.js` solo buscaba pedidos del primer cliente encontrado. Fix: recopilar TODOS los client IDs que coinciden con el telefono y usar OR filter para buscar pedidos de todos ellos (mismo patron que ya usa registros). El nombre mostrado sigue siendo el del mejor match
-
-## Changelog v1.5.4
-
-### Mejoras
-- **FEAT-04**: CTA de resena Google movido encima de la lista de pedidos (debajo de la barra de busqueda) en lugar de al final, para mayor visibilidad
-
-## Changelog v1.5.5
-
-### Mejoras
-- **FEAT-05**: CTA de resena Google rediseñado — fondo glass-morphism blanco (diferenciado del boton de busqueda verde). Logo oficial de Google Review (`google-review.png`) en lugar del SVG de estrella. Texto oscuro sobre fondo claro para contraste con la seccion de busqueda
-
-## Changelog v1.6.0
-
-### Mejoras
-- **FEAT-06**: Sugerencia inteligente de fecha de entrega — al crear un pedido, el sistema analiza la produccion de los proximos 7 dias y sugiere fechas optimas basandose en solapamiento de productos. Nuevo param `rango` en `GET /api/produccion` para consulta multi-dia ligera (1 API call en lugar de 7). Scoring: `overlapCount * 3 + overlapUnits`, desempate por fecha mas cercana. UI: seccion de sugerencias en Paso 2 del formulario "Nuevo" con chips clickables que muestran productos en comun y unidades. El usuario siempre tiene la ultima palabra. 11 tests nuevos en `date-suggestions.test.js`
-
-## Changelog v1.7.0
-
-### Mejoras
-- **FEAT-07**: Boton "Pegar pedido" en tab Nuevo — parsea mensajes de WhatsApp con IA (Claude Haiku 4.5) y pre-rellena el formulario. Modal glass-morphism con textarea, preview de resultado con badge de confianza (alta/media/baja), lista de productos detectados con indicador matched/no-matched, y warnings para productos no encontrados. Nuevo endpoint `api/parse-order.js` (7/12 serverless functions). Catalogo de productos extraido a `_notion.js` como funcion compartida `loadCatalog()` (reutilizada por `registros.js` y `parse-order.js`). Env var: `ANTHROPIC_API_KEY`
-
-## Changelog v1.7.1
-
-### Mejoras
-- **FEAT-08**: Modal "Pegar pedido" acepta capturas de pantalla de WhatsApp ademas de texto. Zona unificada: drop zone para arrastrar imagenes, pegar desde clipboard (Cmd+V / Ctrl+V), o boton de seleccion de archivo. Claude Haiku 4.5 (vision) analiza la captura y extrae el pedido. Preview de imagen con boton para quitar. El textarea sigue disponible debajo para contexto adicional. Endpoint `parse-order.js` extendido con soporte multimodal (content array con bloques image + text)
-
-## Changelog v1.7.2
-
-### Mejoras
-- **FEAT-09**: Identificacion de cliente por telefono en parseo de pedidos. Tras extraer el telefono del mensaje/captura, el backend busca en BD Clientes por numero (formato XXXXXXXXX, sin codigo de pais). Si existe: devuelve `clienteId` + nombre verificado de la BD, el frontend lo selecciona directamente sin autocomplete. Si no existe: badge "NUEVO" en preview, pre-rellena nombre + telefono para crear nuevo cliente al submit. Prompt actualizado para priorizar extraccion de telefono en formato limpio
-
-## Changelog v1.7.3
-
-### Mejoras
-- **FEAT-10**: Rediseno visual del boton "Pegar pedido" — estilo premium card con gradiente, contenedor de icono con backdrop-blur, titulo+subtitulo, flecha chevron, efecto shine sweep en hover (CSS animation). Modal header con icono SVG en contenedor gradiente (#4F6867→#1B1C39). Drop zone con icono SVG imagen. Prompt WhatsApp con icono en contenedor gradiente verde
-- **FEAT-11**: Eliminacion total de emojis Unicode del sistema — reemplazados por iconos SVG inline via objeto `I` (nuevos: Clipboard, Img, AlertTri, Mail, Gear). Afecta: boton pegar, modal parse (header, drop zone, warnings, prompt WhatsApp), ficha cliente (email), badge PASADO, y las 5 categorias de HELP_CONTENT (bento cards)
-
-## Changelog v1.8.0
-
-### Mejoras
-- **FEAT-12**: Seccion "Disponible para venta" en tab Produccion — el panadero introduce las unidades planificadas por producto y el sistema calcula el excedente disponible para venta directa (plan - pedidos). Datos en localStorage por fecha (key `vynia-surplus:YYYY-MM-DD`), limpieza automatica de entradas >7 dias. Stepper con NumberFlow, busqueda de catalogo para productos sin pedidos, pills de acceso rapido (FRECUENTES), resumen agregado (planificadas/pedidos/disponibles). Badge verde (excedente), rojo (deficit), gris (justo). Seccion colapsable con estado persistente. Soporte print. 15 tests nuevos en `surplus-plan.test.js`
-
-## Changelog v1.8.1
-
-### Mejoras
-- **FEAT-13**: Dictado por voz en modal "Pegar pedido" — boton "Dictar" que usa la Web Speech API del navegador (`SpeechRecognition`, `es-ES`) para transcribir audio en tiempo real. El staff reproduce un audio de WhatsApp y la app lo escucha via microfono del dispositivo. Transcripcion en vivo al textarea, con resultado editable antes de analizar. Animacion de pulso (CSS `micPulse`) mientras escucha. Cleanup automatico al cerrar modal. Coste $0 (API del navegador, sin backend). Compatible con Chrome y Safari (desktop/movil). Muestra error informativo en navegadores sin soporte (Firefox). Nuevo icono SVG `I.Mic`
-
-## Changelog v1.8.2
-
-### Bug fixes
-- **FIX-06**: Modificar productos de un pedido duplicaba todos los registros — al abrir un pedido desde la lista o ficha de cliente, los productos se cargaban via `parseProductsStr` como `{nombre, unidades}` sin campo `id` del registro de Notion. El useEffect que carga registros frescos (con IDs) se saltaba la recarga al ver que el array ya tenia items. Al guardar, `guardarModificacion` no encontraba IDs para borrar los registros viejos, creando nuevos sin eliminar los anteriores. Fix: (1) useEffect ahora verifica que los productos tengan `id` antes de saltarse la recarga, (2) safety net en `guardarModificacion` que carga registros frescos de la API si los productos no tienen IDs
-
-## Changelog v1.8.3
-
-### Mejoras
-- **FEAT-14**: Rediseno de la seccion "Disponible para venta" en tab Produccion — movida encima de los filtros (Pendiente/Todo el dia) con flujo de 3 estados: (1) boton CTA "Planificar produccion" cuando no hay plan, (2) modo edicion con busqueda, pills frecuentes y steppers al pulsar el boton, (3) resumen compacto con totales (plan/pedidos/disponibles) y lista de productos con badges de excedente al pulsar "Listo". Boton "Editar" para volver al modo edicion. Reemplazado `surplusCollapsed` por `surplusEditing` (sin persistencia en localStorage del estado colapsado). Ayuda actualizada con el nuevo flujo
-
-## Changelog v1.8.4
-
-### Bug fixes
-- **FIX-07**: Mensajes de error de microfono accionables — `not-allowed` ahora indica al usuario que vaya a Ajustes del navegador > Permisos > Microfono. `no-speech` indica que acerque el audio al microfono. Errores genericos siguen mostrando el codigo de error
-
-## Changelog v1.8.5
-
-### Mejoras
-- **FEAT-15**: Seccion de planificacion convertida en desplegable — el header con gradiente Vynia actua como toggle (chevron animado arriba/abajo). Unifica las 3 vistas (CTA, edicion, resumen) en una sola card con header consistente. Nuevo icono `I.Info` y boton circular en el header que despliega un panel informativo inline (fondo `#E1F2FC`, animacion `popoverIn`) con instrucciones detalladas: como funciona, como usar busqueda/steppers, significado de badges (verde/rojo/gris) y persistencia en localStorage. Las filas del editor ahora muestran badge de excedente junto al stepper y texto "X en pedidos" para contexto inmediato. Estado `surplusInfoOpen` se resetea al cambiar de fecha
-
-## Changelog v1.8.6
-
-### Bug fixes
-- **FIX-08**: El navegador no mostraba el dialogo de permiso de microfono — `SpeechRecognition.start()` no siempre dispara el prompt del navegador. Fix: llamar a `navigator.mediaDevices.getUserMedia({ audio: true })` antes de iniciar el reconocimiento de voz para forzar el dialogo de permisos. El stream se libera inmediatamente (SpeechRecognition gestiona el suyo propio). Si el usuario deniega, se muestra mensaje accionable con instrucciones para el candado de la barra de direcciones
-
-## Changelog v1.8.7
-
-### Mejoras
-- **FEAT-16**: Seccion de ayuda de planificacion ampliada — la entrada unica "Planificar produccion" se divide en 6 secciones detalladas: (1) como abrir/cerrar el desplegable y el chevron, (2) anadir productos via buscador y pills frecuentes, (3) ajustar cantidades con steppers e info "X en pedidos", (4) interpretar badges de excedente (verde/rojo/gris con ejemplos), (5) resumen compacto visible con desplegable cerrado, (6) persistencia de datos en localStorage por dia con retencion de 7 dias y advertencia sobre cambio de dispositivo
-
-## Changelog v1.8.8
-
-### Mejoras
-- **FEAT-17**: Popup fullscreen de escucha con visualizador de audio — al pulsar "Dictar", se abre overlay fullscreen (z-index 500) con: icono de microfono con anillo pulsante (`listenRingPulse`, `micBreath`), 32 barras de frecuencia reactivas en canvas via Web Audio API (`AnalyserNode.getByteFrequencyData`, `requestAnimationFrame`), preview del texto transcrito en tiempo real, y boton "Parar" rojo. El stream de `getUserMedia` se mantiene vivo para alimentar el `AudioContext` (visualizacion) mientras `SpeechRecognition` gestiona su propio stream (transcripcion). Cleanup completo al parar: cierra AudioContext, detiene stream, cancela animationFrame. Mejor deteccion de errores: HTTP sin mediaDevices muestra mensaje de HTTPS requerido, `NotAllowedError` muestra instrucciones del candado
-
-## Changelog v1.8.9
-
-### Bug fixes
-- **FIX-09**: Dictado por voz no funcionaba — reescrito el flujo de inicio: (1) `SpeechRecognition.start()` se ejecuta PRIMERO y gestiona sus propios permisos de micro (antes `getUserMedia` bloqueaba el micro y `SpeechRecognition` no podia acceder), (2) `getUserMedia` se lanza DESPUES de forma asincrona y no-bloqueante solo para la visualizacion del canvas, (3) `rec.start()` envuelto en try-catch para capturar errores sincronos, (4) `rec.onend` auto-reinicia el reconocimiento en vez de parar (Chrome corta tras ~10s de silencio con `continuous=true`), (5) `no-speech` ya no se trata como error fatal (silencio normal), (6) errores visibles dentro del popup fullscreen via `listenError` (antes se mostraban detras del overlay), (7) `isListeningRef` ref para closures fiables en `onend`/`drawWaveform`
-
-## Changelog v1.8.10
-
-### Bug fixes
-- **FIX-10**: Dictado bloqueado incluso con permiso de micro concedido — Chrome tiene permiso de "reconocimiento de voz" SEPARADO del permiso de microfono. Fixes: (1) revertido a `getUserMedia` PRIMERO para forzar el prompt del navegador, luego `SpeechRecognition` despues (el stream se mantiene para visualizacion), (2) flag `fatalError` local evita bucle infinito de auto-reinicio cuando `rec.onerror` con `not-allowed` disparaba `rec.onend` que intentaba `rec.start()` otra vez, (3) deteccion de Safari (existe `webkitSpeechRecognition` pero no funciona de forma fiable) con mensaje al usuario, (4) mensajes de error especificos para `not-allowed` (enlace a Ajustes Chrome > Reconocimiento de voz), `network` (sin conexion), `service-not-allowed`, (5) errores mostrados tanto en popup fullscreen (`listenError`) como en modal (`parseError`)
-
-## Changelog v1.8.11
-
-### Bug fixes
-- **FIX-11**: Dictado por voz bloqueado a nivel HTTP — `vercel.json` enviaba header `Permissions-Policy: microphone=()` que prohibe el acceso al microfono antes de que el JavaScript se ejecute. Cambiado a `microphone=(self)`. Eliminado `getUserMedia` completamente (conflicto con `SpeechRecognition` por bug de Chromium #41083534: ambos intentan acceder al mic y se bloquean mutuamente). `SpeechRecognition.start()` gestiona su propio acceso al mic y muestra el prompt nativo de Chrome. Canvas waveform (Web Audio API) reemplazado por ecualizador CSS puro (8 barras con `@keyframes eqBar` staggered). Eliminados refs innecesarios: `audioCtxRef`, `analyserRef`, `animFrameRef`, `streamRef`, `canvasRef` y funcion `drawWaveform()`
-
-## Changelog v1.9.0
-
-### Mejoras
-- **FEAT-18**: Layout full-width con columnas auto-fill — eliminadas restricciones max-width (1400px/960px), la app ahora usa 100% del ancho del navegador. Grid de cards cambiado de `repeat(3, 1fr)` a `repeat(auto-fill, minmax(320px, 1fr))` para ajustar automaticamente el numero de columnas segun el ancho disponible (~5 columnas en 1920px, ~3-4 en laptops, sin cambios en tablet/movil). Padding horizontal aumentado de 32px a 48px en desktop. Gap entre cards aumentado de 12px a 16px. Bottom nav y bulk bar ajustados para full-width
-
-## Changelog v1.9.1
-
-### Mejoras
-- **FEAT-19**: Menu hamburguesa en header — los 5 botones del header (LIVE/DEMO, Imprimir, Escoba, Ayuda, Recargar) agrupados en un unico boton hamburguesa con dropdown glass-morphism. Cada opcion con icono + texto descriptivo. Toggle LIVE/DEMO al final con separador visual. Click fuera cierra el menu. Nuevo icono `I.Menu`. Estado: `showMenu`, ref: `menuRef`
-
-## Changelog v1.9.2
-
-### Mejoras
-- **FEAT-20**: Efecto tubelight en pills de filtro — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendientes/Recogidos/Todos) envueltos en contenedores glass-morphism con fondo sutil y backdrop-blur. El pill activo muestra una barra luminosa ("tubelight") de 24x3px con glow via box-shadow en la parte superior, animada con pulso sutil (`tubelightGlow`). Pills sin borde propio, fondo transparente cuando inactivos. Boton "Seleccionar" queda fuera del contenedor. Nueva keyframe `tubelightGlow`
-
-## Changelog v1.9.3
-
-### Mejoras
-- **FEAT-21**: Boton "Seleccionar" estilo flow-button — borde redondeado pill (border-radius 100px), circulo expandible al hover que llena el boton de color Vynia (#4F6867) con texto blanco, transicion cubic-bezier suave (0.6s), efecto active scale(0.95). En modo bulk activo, fondo rojo (#C62828) con circulo ya expandido. Iconos SVG inline (check/X) en vez de Unicode
-
-## Changelog v1.9.4
-
-### Mejoras
-- **FEAT-22**: Efecto tubelight en filtros de tab Produccion — los pills de fecha (Hoy/Mañana/Pasado) y estado (Pendiente/Todo el dia) envueltos en contenedores glass-morphism con backdrop-blur, identico patron visual que los filtros de tab Pedidos. Barra tubelight con glow en pill activo. Pills sin borde propio, fondo transparente cuando inactivos
-
-## Changelog v1.9.5
-
-### Mejoras
-- **FEAT-23**: Toggle "Ver/Ocultar importes" estilo switch — reemplazado el boton "€ ON/OFF" por un toggle switch deslizante (44x24px) con knob circular que contiene icono €, animacion cubic-bezier suave (0.3s), track verde Vynia (#4F6867) cuando activo. Etiqueta textual "Ver importes"/"Ocultar importes" junto al switch. Help content actualizado
-
-## Changelog v1.9.6
-
-### Mejoras
-- **FEAT-24**: Iconos de bottom nav con fondo activo — los tabs Pedidos y Produccion ahora tienen un contenedor (36x36px, borderRadius 10) con fondo `#E1F2FC` cuando estan activos, igual que el tab Nuevo. Transicion suave de 0.25s. Inactivos: fondo transparente, color `#A2C2D0`
-
-## Changelog v1.9.7
-
-### Mejoras
-- **FEAT-25**: Iconos dock-style en bottom nav — Pedidos cambiado de `I.List` (lista generica) a `I.ClipboardList` (portapapeles con lista, strokeWidth 1.5). Produccion cambiado de `I.Store` (tienda) a `I.ChefHat` (gorro de chef, strokeWidth 1.5). Dot indicator (5px circulo verde Vynia) debajo del label del tab activo, inspirado en el dock de referencia. Los iconos originales `I.List` e `I.Store` se mantienen disponibles en el objeto `I`
-
-## Changelog v1.9.8
-
-### Mejoras
-- **FEAT-26**: Header rebranding — logo sustituido de base64 inline (`VYNIA_LOGO`) a `/logovynia2_azul.png` (mismo que pagina de seguimiento). Titulo cambiado de "PEDIDOS" a "Gestion de Pedidos de Vynia". Titulo "Produccion Diaria" en tab Produccion centrado (`textAlign: "center"`)
-
-## Changelog v1.10.0
-
-### Mejoras
-- **FEAT-27**: Glass Calendar — los date pickers nativos de Pedidos y Produccion reemplazados por un calendario glass-morphism horizontal. Fondo oscuro translucido (`rgba(27,28,57,0.88)`) con `backdrop-filter: blur(20px)`, strip horizontal scrollable con todos los dias del mes, dia seleccionado con gradient pill (`#4F6867→#A2C2D0`), dot indicator para "hoy", navegacion de meses con chevrons, auto-scroll al dia seleccionado. Boton "Fecha" reemplaza el input nativo, mostrando la fecha formateada cuando es una fecha custom. Se cierra al seleccionar dia, click fuera, o cambiar de tab. CSS `.scrollbar-hide` para ocultar scrollbar del strip
-- **FEAT-28**: Luma-spin loader — los 3 spinners circulares (principal 44px, ficha cliente 28px, boton Analizar 14px) reemplazados por el efecto luma-spin: dos rectangulos con bordes redondeados que se metamorfosean con `@keyframes loaderAnim` (inset porcentual, funciona en cualquier tamaño). Colores Vynia (`#4F6867`) para spinners sobre fondo claro, blanco para el spinner inline del boton. Duracion 2.5s con delay -1.25s para el segundo rectangulo
-
-## Changelog v1.10.1
-
-### Mejoras
-- **FIX-12**: Logo del header corregido — cambiado de `logovynia2_azul.png` (logo azul texto) a `Logo Vynia redondo.png` (logo circular con "Obrador Artesano / Sin Gluten"). Contenedor ajustado a `borderRadius: "50%"` e imagen a `objectFit: "cover"` para encajar el logo circular. Fichero copiado a `public/logo-vynia-redondo.png`
-
-## v2.0.0 — Rediseno visual completo
-
-Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
-
-- **Layout**: Full-width sin max-width, columnas auto-fill responsive `minmax(320px, 1fr)`
-- **Header**: Menu hamburguesa (agrupa LIVE/Print/Broom/Help/Refresh), logo circular Vynia, titulo "Gestion de Pedidos de Vynia"
-- **Filtros**: Efecto tubelight en pills de fecha y estado (Pedidos + Produccion), glow bar animada en pill activo, contenedor glass-morphism
-- **Seleccionar**: Estilo flow-button con circulo expandible en hover y estado activo
-- **Importes**: Toggle switch deslizante con icono euro (reemplaza boton "€ ON/OFF")
-- **Bottom nav**: Iconos dock-style (ClipboardList, ChefHat), fondo activo con dot indicator
-- **Calendario**: Glass calendar horizontal (paleta Vynia, blur, strip scrollable, gradient pill, dot "hoy", navegacion de meses, domingos en rojo)
-- **Loaders**: Efecto luma-spin (rectangulos metamorficos) en los 3 spinners
-- **Produccion**: Titulo "Produccion Diaria" centrado
-
-## Changelog v2.0.1
-
-### Mejoras
-- **FIX-13**: Glass calendar refinado — (1) Boton "Fecha" integrado dentro del contenedor tubelight como un pill mas (mismos estilos, tubelight glow cuando activo), en vez de ser un boton separado con borde propio. (2) Fondo del calendario cambiado de oscuro translucido (`rgba(27,28,57,0.88)`) a paleta Vynia clara (`rgba(239,233,228,0.95)`) con `backdrop-filter: blur(16px)`, borde `rgba(162,194,208,0.3)`, textos en `#1B1C39`, botones nav en `#4F6867`. (3) Domingos en rojo (`#C62828`): letra del dia de la semana en rojo semi-transparente, numero en rojo, margen izquierdo extra (6px) para separar visualmente las semanas. Seleccionar un preset (Hoy/Manana/Pasado) cierra el calendario si estaba abierto
-
-## Changelog v2.1.0
-
-### Mejoras
-- **FEAT-29**: Pipeline summary card en tab Pedidos — seccion visual con 3 anillos circulares SVG (`PipelineRing`) mostrando la distribucion de pedidos por fase del pipeline: "Por preparar" (azul #1565C0, agrupa Sin empezar + En preparacion), "Listo para recoger" (naranja #E65100), "Recogido" (verde #2E7D32). Cada anillo muestra el conteo en el centro, porcentaje de llenado proporcional al total, label y texto descriptivo debajo. Card glass-morphism con backdrop-blur. Nuevas stats `statsPorPreparar` y `statsListoRecoger` en el useMemo de stats existente. Componente `PipelineRing` con SVG circle + stroke-dasharray animado (transicion cubic-bezier 0.8s)
-- **FEAT-30**: Hover shadow en cards de pedidos — reemplazado el efecto shimmer animado (radial-gradient border con `shine-pulse` 14s) por un efecto hover limpio: `transform: translateY(-2px)` + sombra `::before` que aparece con `opacity` transition 0.3s. Border color se acentua en hover (`rgba(79,104,103,0.35)`). Eliminada keyframe `shine-pulse` (ya no usada). Respetuoso con `prefers-reduced-motion`
-
-## Changelog v2.1.1
-
-### Mejoras
-- **FIX-14**: Logo del header un 15% mas grande — contenedor e imagen de 42px a 48px
-
-## Changelog v2.1.2
-
-### Mejoras
-- **FIX-15**: Logo del header un 25% mas grande — contenedor e imagen de 48px a 60px
-
-## Changelog v2.2.0
-
-### Mejoras
-- **FEAT-31**: Loader de panaderia — reemplazado el luma-spin geometrico (dos rectangulos con `inset` morph) por un circulo que pulsa suavemente (`doughRise`). Un unico elemento circular que alterna entre `scale(1) opacity(0.6)` y `scale(1.15) opacity(1)`. CSS puro, sin SVG. Aplicado a los 3 loaders: principal (44px, color Vynia), ficha cliente (28px), y boton Analizar (14px, blanco). Animacion 2.5s `ease-in-out` infinita
-
-## Changelog v2.2.1
-
-### Mejoras
-- **FIX-16**: Loader simplificado — eliminada rotacion, deformacion de escala y morph de border-radius. Ahora solo pulso circular minimalista (scale + opacity)
-
-## Changelog v2.1.3
-
-### Mejoras
-- **FEAT-31**: Boton "Pagado" prominente en modal de detalle de pedido — el badge minusculo (9px) reemplazado por un boton full-width entre la seccion de info y productos. Estilo: gradiente Vynia (#4F6867→#3D5655) con sombra cuando pagado, borde semitransparente cuando no pagado. Icono SVG de moneda, texto "Pagado"/"Marcar como pagado", font 14px Roboto Condensed. El badge informativo "PAGADO" se mantiene en la fila de estado (solo lectura). Funcionalidad sin cambios (requestPagadoChange)
-
-## Changelog v2.2.2
-
-### Mejoras
-- **FEAT-32**: Stats cards estilo dot-card — las tarjetas de estadisticas (Total/Pendientes/Recogidos) rediseñadas con 4 lineas de esquina decorativas (L-brackets), gradiente radial "ray" desde el borde superior, fondo glass-morphism con backdrop-blur. Colores distintivos por tipo: Total (#4F6867 Vynia), Pendientes (#1565C0 azul pipeline), Recogidos (#2E7D32 verde pipeline). Estado activo: fondo accent azul claro, borde coloreado, ray mas intenso. Hover: lift -2px + sombra. Aplicado a ambas versiones: desktop (header inline) y mobile (barra de stats). Clase `.dot-card`
-
-## Changelog v2.2.3
-
-### Bug fixes
-- **FIX-17**: Eliminado punto animado (moveDot) de las stats cards — el dot luminoso que recorria el borde de cada tarjeta eliminado junto con la keyframe `moveDot`. Se mantiene el resto del diseno: L-brackets, ray gradient, glass-morphism, colores distintivos y hover lift
-
-## Changelog v2.2.4
-
-### Mejoras
-- **FEAT-33**: Loader con batidora manual (whisk) — reemplazado el circulo pulsante por un icono SVG de batidora manual (`I.Whisk`) con animacion de balanceo (`whiskRock`, ±12deg, transform-origin en la parte superior del mango, 1.2s ease-in-out infinite). Aplicado a los 3 loaders: principal (44px), ficha cliente (28px), boton Analizar (14px, blanco). Eliminada keyframe `doughRise`
-
-## Changelog v2.3.0
-
-### Mejoras
-- **FEAT-34**: Rediseno de secciones del formulario "Nuevo Pedido"
-
-## Changelog v2.3.1
-
-### Mejoras
-- **FEAT-35**: Logo loader animado
-
-## Changelog v2.3.2
-
-### Mejoras
-- **FEAT-36**: Filtros sticky en mobile (tab Pedidos) — la barra de filtros (selector de fecha, pills de estado, buscador de cliente, toggle de importes) se queda fija debajo del header en dispositivos moviles. Solo las cards de pedidos hacen scroll. Implementado con `position: sticky` + `top: headerH` (medido dinamicamente via `ResizeObserver` en el header). Fondo solido `#EFE9E4` con borde inferior sutil para separar de las cards. En desktop no cambia (scroll normal). Nuevos: `headerRef`, `headerH` state, ResizeObserver useEffect — los 3 loaders (principal 56px, ficha cliente 32px, boton Analizar 16px) ahora usan la imagen del logo de la manga pastelera (`Logo loader.png`) con rotacion continua (`logoSpin`, 360deg, 2s linear infinite). El logo circular con su arco incompleto crea un efecto de spinner natural al girar. Boton Analizar usa `filter: brightness(2.5)` para visibilidad sobre fondo oscuro. Eliminados icono `I.Whisk` de los loaders y keyframe `whiskRock`. Imagen copiada a `public/logo-loader.png` — inspirado en profile-card premium. Secciones (Cliente, Notas+Pagado, Productos, Sugerencias, Entrega) con fondo radial-gradient claro, borderRadius 20px, sombra por capas (4px+1px), borde semi-transparente. Barra de acento gradiente (3px) en la parte superior de cada seccion: verde Vynia (Cliente), azul muted (Notas), oscuro (Productos/Entrega), accent (Sugerencias). Inputs con fondo translucido `rgba(239,233,228,0.35)`, borderRadius 14px, padding ampliado, transicion a fondo blanco en focus con glow verde. Labels con fontSize 11px y spacing mejorado. Pills de productos frecuentes con sombra sutil y hover elevado. Estilo compartido via constante `formSectionStyle`
-
-## Changelog v2.3.3
-
-### Refactor
-- **REFACTOR-01**: Extraer constantes y utilidades de App.jsx — primer paso del desacoplamiento del monolito (5644→5410 lineas, -234). Nuevos modulos: `constants/estados.js` (ESTADOS, ESTADO_PROGRESS, ESTADO_NEXT, ESTADO_ACTION, ESTADO_TRANSITIONS, effectiveEstado), `constants/catalogo.js` (CATALOGO_FALLBACK, PRICE_MAP, rebuildPriceMap, FRECUENTES), `constants/brand.js` (VYNIA_LOGO, VYNIA_LOGO_MD), `utils/fmt.js` (fmt, DAY_NAMES), `utils/helpers.js` (esTarde, computeDateSuggestions), `utils/surplus.js` (SURPLUS_KEY, loadSurplusPlan, saveSurplusPlan, cleanOldSurplus). Sin cambios de comportamiento
-
-## Changelog v2.3.4
-
-### Refactor
-- **REFACTOR-02**: Extraer Icons y HelpContent de App.jsx — segundo paso del desacoplamiento del monolito (5410→5132 lineas, -278). Nuevos modulos: `components/Icons.jsx` (objeto I con ~37 iconos SVG inline), `constants/helpContent.jsx` (HELP_CONTENT, 5 categorias de ayuda con JSX). Sin cambios de comportamiento
-
-## Changelog v2.3.5
-
-### Refactor
-- **REFACTOR-03**: Extraer CSS y estilos compartidos de App.jsx — tercer paso del desacoplamiento del monolito (5132→4893 lineas, -239). Bloque `<style>` completo (216 lineas: CSS variables, keyframes, media queries, print styles) movido a `styles/global.css` e importado en `main.jsx`. Constantes de estilo inline (labelStyle, inputStyle, formSectionStyle) movidas a `styles/shared.js`. Sin cambios de comportamiento
-
-## Changelog v2.3.6
-
-### Refactor
-- **REFACTOR-04**: Extraer EstadoGauge, PipelineRing y useBreakpoint de App.jsx — cuarto paso del desacoplamiento del monolito (4893→4826 lineas, -67). Nuevos modulos: `hooks/useBreakpoint.js` (responsive breakpoint hook), `components/EstadoGauge.jsx` (semicirculo SVG de progreso de estado), `components/PipelineRing.jsx` (anillo SVG de pipeline). Sin cambios de comportamiento
-
-## Changelog v2.3.7
-
-### Refactor
-- **REFACTOR-05**: Extraer modales y popovers de App.jsx — quinto paso del desacoplamiento del monolito (4826→4112 lineas, -714). 7 nuevos componentes: `ConfirmEstadoDialog.jsx`, `ConfirmPagadoDialog.jsx`, `WhatsAppPrompt.jsx`, `PhoneMenuPopover.jsx`, `ListeningPopup.jsx`, `HelpOverlay.jsx` (internaliza helpExpanded/helpActiveCategory state), `ParseWhatsAppModal.jsx`. Funcion `waLink` extraida a `utils/helpers.js`. Sin cambios de comportamiento
-
-## Changelog v2.3.8
-
-### Refactor
-- **REFACTOR-06**: Extraer OrderDetailModal de App.jsx — sexto paso del desacoplamiento del monolito (4112→3680 lineas, -432). Nuevo componente `OrderDetailModal.jsx` (~460 lineas) internaliza 6 estados (editingFecha, editingNotas, editingProductos, editLineas, editSearchProd, confirmCancel) y 3 funciones (addEditProducto, updateEditQty, editProductosFiltrados). Los handlers `guardarModificacion`, `cambiarNotas`, `cambiarFechaPedido` ahora retornan `true` al completar; el componente resetea su estado local al recibir confirmacion. Sin cambios de comportamiento
-
-## Changelog v2.3.9
-
-### Refactor
-- **REFACTOR-07**: Extraer TabNuevo de App.jsx — septimo paso del desacoplamiento del monolito (3680→2826 lineas, -854). Nuevo componente `TabNuevo.jsx` (~870 lineas) internaliza 24 estados (cliente, telefono, fecha, hora, notas, pagado, lineas, nuevoPaso, createResult, showParseModal, parseText/Image/Loading/Result/Error, isListening, listenText/Error, etc.), 5 refs, y 13 funciones (resetForm, onClienteChange, selectCliente, addProducto, updateQty, handleParse*, toggleListening, stopListening, aplicarParseo, crearPedido wrapper, verPedidoCreado wrapper). Incluye renderizado de ParseWhatsAppModal y ListeningPopup. `crearPedido` en App.jsx refactorizado para aceptar params object y retornar resultado. `verPedidoCreado` acepta `(pedidoId, resultData)` en lugar de leer estado local. Sin cambios de comportamiento
-
-## Changelog v2.4.0
-
-### Refactor
-- **REFACTOR-08**: Extraer TabProduccion de App.jsx — octavo paso del desacoplamiento del monolito (2826→2201 lineas, -625). Nuevo componente `TabProduccion.jsx` (~638 lineas) internaliza 7 estados (expandedProduct, expandAll, ocultarRecogidos, surplusPlan, surplusSearch, surplusEditing, surplusInfoOpen), 2 efectos (cleanOldSurplus al montar, loadSurplusPlan al cambiar fecha), y 5 valores computados (prodView, surplusView, surplusTotals, surplusSearchResults, updateSurplus). Eliminados imports no usados de App.jsx: NumberFlow, FRECUENTES, SURPLUS_KEY, loadSurplusPlan, saveSurplusPlan, cleanOldSurplus. Corregidas 4 referencias a funciones inexistentes del Phase 6a (setCreateResult, resetForm en bottom nav) y Phase 5 (setHelpActiveCategory, setHelpExpanded en menu, setClienteSuggestions en click-outside handler). Sin cambios de comportamiento
-
-## Changelog v2.4.1
-
-### Refactor
-- **REFACTOR-09**: Extraer TabPedidos de App.jsx — noveno paso del desacoplamiento del monolito (2201→1396 lineas, -805). Nuevo componente `TabPedidos.jsx` (~854 lineas) internaliza 12 estados (renderLimit, sentinelRef, mostrarPrecios, busqueda, searchResults, fichaCliente, fichaClientePedidos, fichaClienteLoading, editingClienteData, savingCliente, busquedaTimer, clienteWrapperRef), 4 handlers (onBusquedaChange, openFichaCliente, closeFicha, saveClienteData), 4 valores computados (pedidosFiltrados, hasMorePedidos, groups/sortedDates, IntersectionObserver) y 2 efectos (renderLimit reset, progressive rendering). `parseProductsStr` movido de App.jsx a `utils/helpers.js` como export compartido. Eliminada referencia a `setBusqueda("")` inexistente en bottom nav. Eliminado import de `EstadoGauge` en App.jsx (solo usado por TabPedidos). Sin cambios de comportamiento
-
-## Changelog v2.4.2
-
-### Refactor
-- **REFACTOR-10**: Introducir VyniaContext — decimo paso del desacoplamiento del monolito. Nuevo `context/VyniaContext.jsx` con `VyniaProvider` y hook `useVynia()`. El estado compartido (pedidos, apiMode, catalogo, filtros, stats, bulk, glass calendar, handlers) se expone via Context en lugar de prop drilling. Reduccion total de props: 56→15 (73%). TabPedidos: 24→1 prop, TabNuevo: 6→2 props, TabProduccion: 13→5 props, OrderDetailModal: 13→7 props. Sin cambios de comportamiento
-
-## Changelog v2.4.3
-
-### Refactor
-- **REFACTOR-11**: Actualizar tests para importar de modulos extraidos — paso final del desacoplamiento del monolito. `estado-resolution.test.js` importa ESTADOS/ESTADO_NEXT/ESTADO_TRANSITIONS/effectiveEstado desde `constants/estados.js` (eliminadas re-implementaciones inline). `date-suggestions.test.js` importa computeDateSuggestions desde `utils/helpers.js`. `surplus-plan.test.js` importa loadSurplusPlan/saveSurplusPlan/cleanOldSurplus desde `utils/surplus.js`. Corregido mismatch de acentos en tests: `"En preparacion"` → `"En preparación"` para coincidir con las constantes reales. 77/77 tests pasan
-
-## Changelog v2.4.4
+## Troubleshooting
+
+| Problema | Causa | Solucion |
+|----------|-------|----------|
+| Build falla con "invalid JS syntax" | Fichero `.js` contiene JSX | Renombrar a `.jsx` (Vite lo requiere) |
+| PATCH `/api/pedidos/:id` devuelve 404 en prod | Rewrite SPA `/(.*) → /index.html` intercepta rutas API | Verificar negative lookahead `/((?!api/).*)` en `vercel.json` |
+| Notion API devuelve 400 en campo | Nombre de propiedad incorrecto (tildes, espacios trailing) | Verificar contra seccion "Propiedades Notion importantes". Ej: `"Unidades "` tiene espacio |
+| Tests lentos (>30s) | Ejecutando en Google Drive | `rsync -a --exclude='node_modules' --exclude='.git' . /tmp/vynia-test && cd /tmp/vynia-test && npx vitest run` |
+| Pedido creado sin numPedido | Template Notion se aplica asincronamente | Normal — llega via polling (120s) o al recargar |
+| Micro bloqueado en Chrome | Permisos separados: microfono + reconocimiento de voz | chrome://settings > Content > Speech recognition. Verificar `Permissions-Policy: microphone=(self)` en `vercel.json` |
+| Seguimiento no carga en iframe | Headers X-Frame-Options/CSP sobreescritos | Verificar orden de bloques en `vercel.json`: `/seguimiento` debe ir DESPUES del catch-all para que sus headers ganen |
+| `getUserMedia` y `SpeechRecognition` se bloquean mutuamente | Bug Chromium #41083534 | NO usar `getUserMedia` junto con `SpeechRecognition`. El speech API gestiona su propio acceso al mic |
+| Registros duplicados al modificar productos | Productos sin campo `id` (cargados desde string, no desde API) | Verificar que useEffect carga registros frescos cuando los items no tienen `id` |
+
+## Changelog
+
+### Historial resumido
+- **v1.4.x**: Bug fixes fundacionales (effectiveEstado, timezone UTC→local, paginacion, PROP_UNIDADES, cache dedup, rollback en bulk/registros). Renderizado progresivo (IntersectionObserver). Toggle pagado interactivo con optimistic UI
+- **v1.5.x**: Seguimiento publico con gauge SVG, CTA resena Google, iframe embed en vynia.es. Fix clientes duplicados por telefono
+- **v1.6.0**: Sugerencias inteligentes de fecha (scoring por solapamiento de productos, endpoint rango multi-dia)
+- **v1.7.x**: Parseo WhatsApp con IA (Claude Haiku 4.5 vision: texto, captura, multimodal). Lookup de cliente por telefono. Catalogo compartido via `loadCatalog()`. `ANTHROPIC_API_KEY`
+- **v1.8.x**: Surplus planning (plan vs pedidos = disponible). Dictado por voz (Web Speech API). Popup fullscreen con ecualizador CSS. Multiples fixes de permisos micro (getUserMedia vs SpeechRecognition, Permissions-Policy)
+- **v1.9.x–v1.10.x**: Full-width layout, menu hamburguesa, tubelight pills, flow-button, toggle switch, dock-style nav, glass calendar horizontal, logo circular, luma-spin loaders
+- **v2.0.0**: Rediseno visual completo (agrupacion de v1.9–v1.10)
+- **v2.1.x–v2.3.x**: Pipeline rings SVG, dot-cards stats, logo loader animado, filtros sticky mobile, formulario profile-card premium. Inicio del refactoring del monolito
+- **v2.3.3–v2.4.3**: Refactoring monolito completo en 11 pasos (App.jsx de 5644→1396 lineas). Extraidos: constants/, utils/, hooks/, styles/, context/, 14 componentes. VyniaContext + prop drilling reduction (56→15 props)
+- **v2.5.0–v2.6.1**: Rate limiting tracking (10/IP + 3/tel por min). Toggle privacidad global (importes + telefonos). Server-side enrich pedidos (elimina N+1). SWR cache frontend. DB_REGISTROS centralizado
+- **v2.7.0–v2.8.0**: Batch endpoint registros. Extractors centralizados en _notion.js. usePedidos/useProduccion hooks. Split VyniaContext/PedidosContext (elimina re-renders)
+- **v2.9.0**: Surplus persistido en Notion (BD Planificacion). Health endpoint. Lazy eviction rate limiter
+- **v2.10.0–v2.10.1**: 43 tests nuevos (fmt, helpers, stats). computePedidoStats/computeBulkTransitions extraidos a utils/stats.js. Sync CLAUDE.md
+
+## Changelog v2.10.2
 
 ### Docs
-- **DOCS-01**: Actualizar CLAUDE.md con arquitectura modular — seccion Estructura actualizada con arbol completo de ~20 modulos (`constants/`, `utils/`, `hooks/`, `styles/`, `context/`, `components/`). Descripcion de Stack actualizada de "single-file UI" a "arquitectura modular". Nota tecnica de "toda la UI en un solo App.jsx" reemplazada por descripcion de la arquitectura shell+context+components
-
-## Changelog v2.4.5
-
-### Docs
-- **FIX-18**: Corregir referencias obsoletas en CLAUDE.md — 3 menciones a "en App.jsx" actualizadas: catalogo de productos ahora referencia `constants/catalogo.js`, constantes de estado ahora referencia `constants/estados.js`. Evita confusion de Claude Code al buscar definiciones en fichero incorrecto
-
-## Changelog v2.5.0
-
-### Security
-- **FIX-19**: Rate limiting en `/api/tracking` — endpoint publico ahora protegido con doble capa de rate limiting in-memory: 10 req/min por IP (previene brute force) + 3 req/min por telefono (previene enumeracion de clientes). Respuesta 429 con header `Retry-After: 60`. Limpieza automatica de entradas stale cada 60s. Limitacion: store se resetea en cold start (~15 min), aceptable para el volumen actual
-
-### Bug fixes
-- **FIX-20**: Hardening `guardarModificacion` — eliminacion de registros antiguos envuelta en try-catch separado. Si la creacion de nuevos registros tiene exito pero la eliminacion de los antiguos falla, el usuario recibe un warning naranja ("Pedido modificado, pero la limpieza fallo") en lugar de un error rojo que oculta que los nuevos ya estan creados. Nuevo tipo de toast `"warn"` con fondo naranja (#E65100)
-
-### Cleanup
-- **FIX-21**: Eliminados `src/middleware.ts` y `src/api/_middleware.ts` — dead code de Next.js Edge Middleware no ejecutable en Vercel Hobby plan con Vite. El rate limiting real ahora vive directamente en `api/tracking.js`
-
-## Changelog v2.6.0
-
-### Mejoras
-- **FEAT-37**: Toggle de privacidad "Ver/Ocultar datos" — el toggle de importes se convierte en un toggle global que oculta tanto precios como numeros de telefono. Estado `mostrarPrecios` renombrado a `mostrarDatos` y elevado a VyniaContext (accesible desde TabPedidos y OrderDetailModal). Nuevos iconos SVG `I.Eye` e `I.EyeOff` reemplazan el icono euro en el switch. Telefonos y emails ocultos muestran "\u2022\u2022\u2022" pero mantienen el click para llamar/WhatsApp. Afecta: cards de pedido, ficha de cliente, resultados de busqueda, modal de detalle. Help content actualizado
-
-### Performance
-- **PERF-04**: Server-side enrich de pedidos — `GET /api/pedidos` ahora trae registros y calcula importe en el servidor (OR query unico por chunks de 100, mismo patron que `produccion.js`). Elimina el loop N+1 de enrich client-side (hasta 50 llamadas individuales a `/api/registros`). Precio calculado via `loadCatalog()` (cached 30min). Cada pedido devuelve `productos` (string) e `importe` (number) directamente
-- **PERF-05**: SWR (stale-while-revalidate) en `api.js` — las respuestas GET cacheadas se devuelven inmediatamente aunque esten stale, y se revalidan en background. Reduce latencia percibida en navegacion entre tabs y filtros
-- **PERF-06**: Catalogo con cache localStorage SWR — `App.jsx` carga catalogo desde `localStorage("vynia-catalogo")` al instante si tiene <2h, y refresca en background. Elimina flash de CATALOGO_FALLBACK en la primera carga
-- **PERF-07**: Cache in-memory de registros por pedido — `registrosCache` ref con TTL 60s evita refetch de productos al re-abrir un pedido reciente. Se invalida al guardar modificaciones
-
-### Refactor
-- **REFACTOR-12**: `DB_REGISTROS` centralizado — constante movida de `registros.js`, `produccion.js` y `tracking.js` a `_notion.js` como export compartido. Elimina duplicacion del ID
-- **REFACTOR-13**: Batch de borrado de registros — `handleDelete` en `registros.js` sube de 3 a 10 registros en paralelo por batch, reduce tiempo de eliminacion
-- **REFACTOR-14**: Catalog TTL server-side — `loadCatalog()` cache TTL subido de 5min a 30min (el catalogo cambia raramente)
-
-## Changelog v2.6.1
-
-### Bug fixes
-- **FIX-22**: Telefono siempre visible en modal de detalle de pedido — al abrir un pedido (click en card), el numero de telefono se muestra siempre independientemente del estado del toggle "Ver/Ocultar datos". El toggle sigue ocultando telefonos en la lista de pedidos, ficha de cliente y resultados de busqueda. Eliminado `mostrarDatos` del destructuring de `OrderDetailModal.jsx` (ya no se usa en el componente)
-
-## Changelog v2.7.0
-
-### Refactor
-- **REFACTOR-15**: Extraer 4 custom hooks de App.jsx — `hooks/useTooltip.js` (tooltip state + event listeners touch/mouse/scroll, ~74 lineas), `hooks/useVersionCheck.js` (polling version.json + visibilitychange, ~19 lineas), `hooks/useCatalog.js` (localStorage SWR + background fetch de catalogo, ~34 lineas), `hooks/useGlassCalendar.js` (state + click-outside + scroll + renderGlassCal, ~105 lineas). App.jsx reducido de ~1396 a ~1340 lineas, eliminados 5 useState, 4 useEffect, 1 useRef. Sin cambios de comportamiento
-- **REFACTOR-16**: Mover extractors duplicados a `api/_notion.js` — `extractTitle`, `extractRichText`, `extractDateStart` estaban definidas identicas en `pedidos.js`, `produccion.js` y `tracking.js`. Ahora son exports compartidos de `_notion.js`. Eliminadas 42 lineas duplicadas (14 por archivo x 3)
-
-### Mejoras
-- **FEAT-38**: Batch endpoint para registros — `POST /api/registros` acepta modo batch `{ pedidoPageId, lineas: [{ productoNombre, cantidad }] }` ademas del modo single existente. Resuelve nombres de producto via `loadCatalog()` cache (0 queries extra), crea registros en batches paralelos de 10 con 200ms delay. `src/api.js` `crearPedido` actualizado para usar batch (1 request en vez de N secuenciales). Campo `id` anadido a `loadCatalog()` para resolver nombre→id sin queries adicionales
-
-## Changelog v2.7.1
-
-### Bug fixes
-- **FIX-23**: `useGlassCalendar.js` renombrado a `.jsx` — Vite requiere extension `.jsx` para ficheros con JSX. Build de produccion fallaba con "invalid JS syntax"
-
-## Changelog v2.8.0
-
-### Refactor
-- **REFACTOR-17**: Extraer `usePedidos` y `useProduccion` hooks de App.jsx — `hooks/usePedidos.js` (~370 lineas) internaliza 13 useState, 2 useRef, 2 useMemo (stats, bulkTransitions), 2 useEffect (load registros, pending view) y 17 funciones (loadPedidos, cambiarEstado, cambiarEstadoBulk, crearPedido, guardarModificacion, cambiarNotas, cambiarFechaPedido, cancelarPedido, cleanupOrphanRegistros, requestEstadoChange, confirmarCambioEstado, requestPagadoChange, confirmarPagadoChange, openPhoneMenu, verPedidoCreado, invalidateSearchCache). `hooks/useProduccion.js` (~55 lineas) internaliza produccionData, produccionFecha, loadProduccion, invalidateProduccion, updatePagado. Comunicacion entre hooks via 2 callbacks: `onInvalidateProduccion` y `onUpdateProduccionPagado`. Loading global combinado: `pedidosLoading || produccionLoading`. App.jsx reducido de ~1212 a ~700 lineas. Sin cambios de comportamiento
-- **REFACTOR-18**: Dividir VyniaContext en 2 contextos — nuevo `context/PedidosContext.jsx` con `PedidosProvider` + `usePedidosCtx()` para datos que cambian con frecuencia (pedidos, stats, filtros, bulk). `VyniaContext` conserva estado estable (layout, handlers, catalogo, glass calendar, privacy toggle). TabPedidos usa ambos contextos; TabNuevo, TabProduccion y OrderDetailModal solo usan VyniaContext. Elimina re-renders innecesarios en 3 de 4 consumers cuando pedidos cambia (polling cada 120s). Sin cambios de comportamiento
-
-### Docs
-- **DOCS-02**: Reescritura completa de README.md — actualizado de v1.x a v2.8.0. Estructura modular con 8 subdirectorios en src/. 7 endpoints API documentados (eliminado productos.js inexistente, añadidos parse-order, tracking, PATCH clientes, batch registros, rango produccion). Enriquecimiento server-side, cache TTLs correctos (pedidos 10s, produccion 60s, catalogo 30min, tracking 15s). Funcionalidades actualizadas: WhatsApp parsing, dictado por voz, seguimiento publico, sugerencias de fecha, surplus planning, sistema de estado, bulk operations, privacy toggle, glass calendar. Security headers y rate limiting documentados. Variables de entorno: NOTION_TOKEN + ANTHROPIC_API_KEY
-
-## Changelog v2.8.1
-
-### Performance
-- **PERF-08**: Lazy eviction en rate limiter de tracking — reemplazado `setInterval` (no fiable en serverless) por eviction basada en contador cada 50 invocaciones de `rateLimit()`. Las entradas stale (>2min) se purgan durante el flujo normal de requests. Determinista, zero overhead entre invocaciones, mismos rate limits sin cambios
-
-## Changelog v2.8.2
-
-### Mejoras
-- **FEAT-39**: Health check endpoint `GET /api/health` — verifica conectividad con Notion via `databases.retrieve` (query mas ligera posible, solo metadata). Devuelve `{ ok: true, latency: Xms, ts }` o 503 si Notion no responde. Cache 30s via `cached()` para evitar sobrecarga en polling frecuente. Monitoreable por UptimeRobot o similares. 8/12 serverless functions
-
-## Changelog v2.9.0
-
-### Mejoras
-- **FEAT-40**: Surplus planning persistido en Notion — los datos de planificacion de produccion se sincronizan con Notion (nueva BD "Planificacion", ID `b0147c49-24d5-461a-b377-54a234cc4a94`) para acceso multi-dispositivo. Estrategia write-through: localStorage para carga instantanea + Notion en background para persistencia. Fallback a localStorage si la API falla (modo offline). Consolidado en `api/produccion.js` via `GET/POST ?surplus=true` (sin nueva serverless function). Nuevo export `clearCached()` en `_notion.js` para invalidacion de cache tras escritura. `loadSurplusPlan` ahora es async; `loadSurplusPlanLocal` mantiene la version sync para carga instantanea. TabProduccion.jsx carga localStorage inmediatamente y reemplaza con datos de Notion en background. Tests actualizados con mocks de API (15→19 tests)
-
-## Changelog v2.10.0
-
-### Refactor
-- **REFACTOR-19**: Extraer `computePedidoStats` y `computeBulkTransitions` de usePedidos a `src/utils/stats.js` — stats aggregation (total, pendientes, recogidos, porPreparar, listoRecoger) y logica de interseccion de transiciones bulk movidas a funciones puras testeables. usePedidos importa y envuelve en useMemo. Zero cambios de comportamiento
-
-### Testing
-- **TEST-01**: Cobertura completa de `fmt.js` — 19 tests para localISO (padding, timezone), isToday, isTomorrow, isPast (null safety), date (formato español), time (extraccion HH:MM), DAY_NAMES
-- **TEST-02**: Cobertura completa de `helpers.js` — 15 tests para waLink (normalizacion telefono, codigo pais, formateo), parseProductsStr (parsing, doble digito, ñ/ó, malformados), esTarde (notas, hora, fecha, heuristica multi-fallback)
-- **TEST-03**: Tests de stats y bulk transitions — 7 tests para computePedidoStats (6 estados, mix completo, estado desconocido) + 2 tests para computeBulkTransitions (seleccion vacia, interseccion multi-estado). Total: 82 → 125 tests (+43, +52%), 20 ficheros de test
-
-## Changelog v2.10.1
-
-### Docs
-- **DOCS-03**: Sincronizar CLAUDE.md con estado actual v2.10.0 — App.jsx actualizado de ~1400 a ~700 lineas. Estructura: hooks/ expandido de 1 a 7 hooks (usePedidos, useProduccion, useCatalog, useGlassCalendar, useTooltip, useVersionCheck, useBreakpoint). context/ añadido PedidosContext.jsx. _notion.js: documentados extractors, DB IDs, clearCached, loadCatalog. produccion.js: documentadas rutas surplus GET/POST. POST /api/registros: documentado modo batch. Tab Produccion: surplus hybrid Notion sync. API client: añadidos loadSurplus/saveSurplus. Server-side cache: añadidos TTLs de surplus (15s) y health (30s), documentado clearCached. Tests: 16→20 ficheros, 77→125 tests
+- **DOCS-04**: Reestructuracion de CLAUDE.md con instrucciones accionables — nueva seccion "Reglas de desarrollo" (8 NUNCA + 10 SIEMPRE), nueva seccion "Patrones de arquitectura" (guias para añadir componentes, hooks, utils, endpoints, contextos React, catalogo), nueva seccion "Troubleshooting" (9 problemas comunes con causa y solucion). "Notas tecnicas" reorganizada como "Notas de implementacion" (solo sync, cache, rendering). Changelog historico condensado de 451 lineas (60+ entries) a resumen ejecutivo de 15 lineas. Reduccion total: 837→477 lineas (-43%)
