@@ -51,7 +51,7 @@ export const PROP_UNIDADES = "Unidades ";
 export const DB_PRODUCTOS = "1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2";
 export const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
 export const DB_PLANIFICACION = "b0147c49-24d5-461a-b377-54a234cc4a94";
-export const DB_HORARIO = "31d18b3a-38b1-8089-8c9f-d23e085ec633";
+export const DB_HORARIO = "31d18b3a-38b1-8044-b968-ddc21626833b";
 
 // ─── Cache invalidation ───
 export function clearCached(key) { _cache.delete(key); }

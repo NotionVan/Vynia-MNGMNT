@@ -90,7 +90,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 | Productos | `1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2` | Catalogo de productos |
 | Registros | `1d418b3a-38b1-808b-9afb-c45193c1270b` | Lineas de pedido (producto + cantidad) |
 | Planificacion | `b0147c49-24d5-461a-b377-54a234cc4a94` | Planificacion de produccion diaria (nombre + fecha + unidades) |
-| Horario Negocio | `31d18b3a-38b1-8089-8c9f-d23e085ec633` | Horario semanal del obrador (7 paginas, L-D) |
+| Horario Negocio | `31d18b3a-38b1-8044-b968-ddc21626833b` | Horario semanal del obrador (7 paginas, L-D) |
 
 ## Propiedades Notion importantes
 
@@ -575,3 +575,8 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Fixes
 - **FIX-33**: Horario sync fiable con Notion — `saveHorarioDia` ahora es async y await la respuesta de Notion en lugar de fire-and-forget. HorarioEditor muestra estado real de sincronizacion (guardando/guardado/error) con debounce 600ms. Si Notion falla, el usuario ve el error en lugar de un falso "guardado". Notion es source of truth: todos los dispositivos ven el mismo horario
+
+## Changelog v2.12.4
+
+### Fixes
+- **FIX-34**: DB_HORARIO apuntaba a BD inexistente (`31d18b3a...8089`) — actualizado a la BD real "Horario Negocio" (`31d18b3a-38b1-8044-b968-ddc21626833b`) dentro de la pagina "Gestiona Tu Obrador". Configuradas propiedades via Notion API: Nombre (title), Dia (number), Abierto (checkbox), Hora apertura/cierre (rich_text), Hora apertura 2/cierre 2 (rich_text)
