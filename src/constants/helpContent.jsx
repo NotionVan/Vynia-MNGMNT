@@ -92,15 +92,60 @@ const HELP_CONTENT = [
         tip: "Necesitas al menos un cliente y un producto seleccionado para avanzar al paso 2",
       },
       {
-        title: "Paso 2: Fecha de Entrega y Creación",
-        content: "En el segundo paso podrás seleccionar exclusivamente la fecha y hora.",
+        title: "Pegar pedido (importar de WhatsApp)",
+        content: "El boton Pegar pedido permite importar pedidos directamente desde WhatsApp usando IA. Acepta texto, capturas de pantalla y dictado por voz.",
+        steps: [
+          "Pulsa el boton Pegar pedido debajo de los productos para abrir el modal de importacion",
+          "Pega el texto del mensaje de WhatsApp en el area de texto, o arrastra/pega una captura de pantalla",
+          "Para capturas: arrastra una imagen al area de drop, pega desde el portapapeles (Cmd+V / Ctrl+V) o selecciona un archivo",
+          "Pulsa Analizar para que la IA extraiga los datos del pedido (cliente, productos, cantidades, fecha)",
+        ],
+        tip: "Si el telefono del remitente coincide con un cliente existente, se selecciona automaticamente. Si no existe, se marcara como NUEVO",
+      },
+      {
+        title: "Dictado por voz",
+        content: "El boton Dictar permite transcribir audio reproduciendo un mensaje de voz de WhatsApp cerca del microfono del dispositivo.",
+        steps: [
+          "Pulsa Dictar para abrir el visualizador de escucha a pantalla completa",
+          "Reproduce el audio de WhatsApp cerca del microfono — la transcripcion aparece en tiempo real",
+          "Pulsa Parar cuando termine el audio",
+          "Revisa y edita el texto transcrito antes de pulsar Analizar",
+        ],
+        tip: "Requiere permiso de microfono y reconocimiento de voz en Chrome. En Safari el dictado no esta disponible",
+      },
+      {
+        title: "Revisar resultado del analisis",
+        content: "Tras analizar, el sistema muestra una preview con los datos extraidos y un badge de confianza (alta, media o baja).",
+        steps: [
+          "Revisa el cliente, productos y cantidades detectados",
+          "Los productos reconocidos del catalogo aparecen marcados; los no reconocidos muestran un aviso",
+          "Pulsa Aplicar para pre-rellenar el formulario con los datos extraidos",
+          "Ajusta manualmente cualquier dato antes de continuar al paso 2",
+        ],
+        tip: "Puedes combinar texto e imagen en el mismo analisis para mayor precision",
+      },
+      {
+        title: "Sugerencias inteligentes de fecha",
+        content: "Al pasar al paso 2, el sistema analiza la produccion de los proximos 7 dias y sugiere las mejores fechas de entrega basandose en los productos del carrito.",
+        steps: [
+          "Las sugerencias aparecen como chips encima del selector de fecha",
+          "Cada chip muestra el dia, los productos en comun con tu carrito y las unidades previstas",
+          "Pulsa un chip para seleccionar esa fecha automaticamente",
+          "Si no hay coincidencias de productos, no se muestran sugerencias",
+        ],
+        tip: "Las sugerencias priorizan dias donde ya se van a producir los mismos productos que has seleccionado, para optimizar la produccion del obrador",
+      },
+      {
+        title: "Paso 2: Fecha de Entrega y Creacion",
+        content: "En el segundo paso podras seleccionar exclusivamente la fecha y hora.",
         steps: [
           "Pulsa en Siguiente: Elegir fecha cuando termines con los productos.",
-          "Selecciona el día con los atajos Hoy / Mañana / Pasado o usa el calendario.",
-          "Si te equivocas, usa el botón 'Volver a datos del pedido' para retroceder e introducir cambios.",
+          "Revisa las sugerencias inteligentes de fecha si aparecen, o selecciona manualmente.",
+          "Selecciona el dia con los atajos Hoy / Manana / Pasado o usa el calendario.",
+          "Si te equivocas, usa el boton 'Volver a datos del pedido' para retroceder e introducir cambios.",
           "Pulsa Crear pedido para enviar todo."
         ],
-        tip: "El pedido siempre se crea con estado Sin empezar."
+        tip: "El pedido siempre se crea con estado Sin empezar.",
       },
     ],
   },

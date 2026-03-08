@@ -432,16 +432,41 @@ Hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js` como fallback. C
 La app se sincroniza de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras activa, (3) boton recargar manual. Polls y visibility usan `skipEnrich: true` (preservan datos previos). Carga inicial y reload manual hacen enrichment completo. `invalidatePedidosCache()` invalida solo claves de pedidos — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads
 
 ### Server-side cache
-`api/_notion.js` exporta `cached(key, ttlMs, fn)` y `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel). TTLs: pedidos GET 10s, produccion 60s, catalogo 300s (5min), tracking 15s, surplus 15s, health 30s. `clearCached` invalida cache tras escritura
+`api/_notion.js` exporta `cached(key, ttlMs, fn)`, `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel) y `withTiming(label, fn)` (mide wall time, devuelve `{ data, ms }`). TTLs: pedidos GET 10s, produccion 60s, catalogo 300s (5min), tracking 15s, surplus 15s, health 30s. `clearCached` invalida cache tras escritura
 
 ### Renderizado progresivo
 La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se resetea al cambiar filtro/datos
+
+## Requisitos No Funcionales
+
+### Disponibilidad
+- Objetivo 99.5% mensual. Degradacion graceful obligatoria (modo DEMO, surplus localStorage fallback, CATALOGO_FALLBACK)
+- Health check: `GET /api/health` verifica acceso real de lectura via `databases.query({ page_size: 1 })`. Cache 30s. Devuelve `{ ok, latency, ts }` o 503 `{ ok: false, error, ts }`
+- **Monitorizacion (UptimeRobot)**: configurar HTTP check en `https://vynia-mngmnt.vercel.app/api/health`, esperar 200, keyword `"ok":true`, intervalo 5min, alerta email
+
+### Latencia (p95)
+- Carga inicial percibida <1s (catalogo desde localStorage SWR)
+- Operaciones CRUD <1s (crear pedido, cambiar estado, modificar)
+- Tracking publico <1s
+- Parseo IA <5s
+- Retry total no debe superar 10s (maxRetries=3 con backoff exponencial)
+
+### Observabilidad: Server-Timing headers
+- `withTiming(label, fn)` en `api/_notion.js` mide wall time de operaciones async. Devuelve `{ data, ms }`
+- Aplicado a 3 endpoints GET: `/api/pedidos`, `/api/produccion` (GET principal), `/api/tracking`. Header: `Server-Timing: total;dur=XXX`
+- Cache hits muestran ~0ms, cold calls muestran latencia real de Notion (200-800ms tipico)
+- Visible en browser DevTools > Network > Timing
+
+### Client-side timeout
+- Todas las llamadas API abortan tras 10s (AbortController en `src/api.js` `doFetch`)
+- Excepcion: `/parse-order` (vision IA) usa 15s
+- Error: `"Tiempo de espera agotado (Xs)"`
 
 ## Tests
 
 - **Framework**: Vitest 4.x con jsdom
 - **Ejecutar**: `npm test` (o `npx vitest run`)
-- **20 archivos de test**, 125 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions
+- **21 archivos de test**, 133 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions, latencia (withTiming, AbortController timeout, health endpoint)
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
 ## Troubleshooting
@@ -479,3 +504,21 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Docs
 - **DOCS-04**: Reestructuracion de CLAUDE.md con instrucciones accionables — nueva seccion "Reglas de desarrollo" (8 NUNCA + 10 SIEMPRE), nueva seccion "Patrones de arquitectura" (guias para añadir componentes, hooks, utils, endpoints, contextos React, catalogo), nueva seccion "Troubleshooting" (9 problemas comunes con causa y solucion). "Notas tecnicas" reorganizada como "Notas de implementacion" (solo sync, cache, rendering). Changelog historico condensado de 451 lineas (60+ entries) a resumen ejecutivo de 15 lineas. Reduccion total: 837→477 lineas (-43%)
+
+## Changelog v2.11.0
+
+### Mejoras
+- **FEAT-41**: Server-Timing headers — nuevo `withTiming(label, fn)` en `api/_notion.js` que mide wall time de operaciones async. Aplicado a `GET /api/pedidos`, `GET /api/produccion` y `GET /api/tracking` con header `Server-Timing: total;dur=XXX`. Cache hits muestran ~0ms, cold calls muestran latencia real de Notion
+- **FEAT-42**: Client-side timeout — AbortController en `src/api.js` `doFetch` con 10s default, 15s para `/parse-order` (vision IA). Error user-friendly en español al expirar
+- **FEAT-43**: Health check mejorado — `GET /api/health` cambiado de `databases.retrieve` a `databases.query({ page_size: 1 })` para verificar acceso real de lectura (no solo metadata)
+
+### Testing
+- **TEST-04**: Tests de latencia — 8 tests nuevos: withTiming (measurement, error propagation, instant), doFetch timeout (AbortSignal passed, success within timeout, AbortError message), health endpoint (200 con latencia, 503 Notion down). Total: 133 tests, 21 ficheros
+
+### Docs
+- **DOCS-05**: Seccion "Requisitos No Funcionales" en CLAUDE.md — disponibilidad 99.5%, latencia p95 (CRUD <1s, tracking <1s, parseo IA <5s), observabilidad Server-Timing, client timeout 10s/15s, instrucciones monitorizacion UptimeRobot
+
+## Changelog v2.11.1
+
+### Docs
+- **DOCS-06**: Ampliar manual de ayuda in-app (`helpContent.jsx`) — categoria "Nuevo Pedido" ampliada de 2 a 6 secciones: (1) Pegar pedido (importar de WhatsApp via texto/imagen), (2) Dictado por voz (Web Speech API, popup fullscreen, transcripcion en tiempo real), (3) Revisar resultado del analisis (preview con confianza, productos matched/unmatched, aplicar), (4) Sugerencias inteligentes de fecha (analisis produccion 7 dias, chips con solapamiento, scoring), (5) Paso 2 actualizado con mencion a sugerencias. Paso 1 sin cambios
