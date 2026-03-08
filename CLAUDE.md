@@ -784,3 +784,12 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Bug fixes
 - **FIX-23**: `useGlassCalendar.js` renombrado a `.jsx` — Vite requiere extension `.jsx` para ficheros con JSX. Build de produccion fallaba con "invalid JS syntax"
+
+## Changelog v2.8.0
+
+### Refactor
+- **REFACTOR-17**: Extraer `usePedidos` y `useProduccion` hooks de App.jsx — `hooks/usePedidos.js` (~370 lineas) internaliza 13 useState, 2 useRef, 2 useMemo (stats, bulkTransitions), 2 useEffect (load registros, pending view) y 17 funciones (loadPedidos, cambiarEstado, cambiarEstadoBulk, crearPedido, guardarModificacion, cambiarNotas, cambiarFechaPedido, cancelarPedido, cleanupOrphanRegistros, requestEstadoChange, confirmarCambioEstado, requestPagadoChange, confirmarPagadoChange, openPhoneMenu, verPedidoCreado, invalidateSearchCache). `hooks/useProduccion.js` (~55 lineas) internaliza produccionData, produccionFecha, loadProduccion, invalidateProduccion, updatePagado. Comunicacion entre hooks via 2 callbacks: `onInvalidateProduccion` y `onUpdateProduccionPagado`. Loading global combinado: `pedidosLoading || produccionLoading`. App.jsx reducido de ~1212 a ~700 lineas. Sin cambios de comportamiento
+- **REFACTOR-18**: Dividir VyniaContext en 2 contextos — nuevo `context/PedidosContext.jsx` con `PedidosProvider` + `usePedidosCtx()` para datos que cambian con frecuencia (pedidos, stats, filtros, bulk). `VyniaContext` conserva estado estable (layout, handlers, catalogo, glass calendar, privacy toggle). TabPedidos usa ambos contextos; TabNuevo, TabProduccion y OrderDetailModal solo usan VyniaContext. Elimina re-renders innecesarios en 3 de 4 consumers cuando pedidos cambia (polling cada 120s). Sin cambios de comportamiento
+
+### Docs
+- **DOCS-02**: Reescritura completa de README.md — actualizado de v1.x a v2.8.0. Estructura modular con 8 subdirectorios en src/. 7 endpoints API documentados (eliminado productos.js inexistente, añadidos parse-order, tracking, PATCH clientes, batch registros, rango produccion). Enriquecimiento server-side, cache TTLs correctos (pedidos 10s, produccion 60s, catalogo 30min, tracking 15s). Funcionalidades actualizadas: WhatsApp parsing, dictado por voz, seguimiento publico, sugerencias de fecha, surplus planning, sistema de estado, bulk operations, privacy toggle, glass calendar. Security headers y rate limiting documentados. Variables de entorno: NOTION_TOKEN + ANTHROPIC_API_KEY

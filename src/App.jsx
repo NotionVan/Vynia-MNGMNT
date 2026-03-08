@@ -1,16 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { notion, invalidateApiCache, invalidatePedidosCache } from "./api.js";
-import { VYNIA_LOGO, VYNIA_LOGO_MD } from "./constants/brand.js";
-import { ESTADOS, ESTADO_PROGRESS, ESTADO_NEXT, ESTADO_ACTION, ESTADO_TRANSITIONS, effectiveEstado } from "./constants/estados.js";
-import { fmt } from "./utils/fmt.js";
-import { esTarde, parseProductsStr } from "./utils/helpers.js";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { invalidateApiCache } from "./api.js";
+import { VYNIA_LOGO } from "./constants/brand.js";
+import { ESTADOS, ESTADO_TRANSITIONS } from "./constants/estados.js";
 import I from "./components/Icons.jsx";
 import useBreakpoint from "./hooks/useBreakpoint.js";
 import useTooltip from "./hooks/useTooltip.js";
 import useVersionCheck from "./hooks/useVersionCheck.js";
 import useCatalog from "./hooks/useCatalog.js";
 import useGlassCalendar from "./hooks/useGlassCalendar.jsx";
-import PipelineRing from "./components/PipelineRing.jsx";
+import usePedidos from "./hooks/usePedidos.js";
+import useProduccion from "./hooks/useProduccion.js";
 import ConfirmEstadoDialog from "./components/ConfirmEstadoDialog.jsx";
 import ConfirmPagadoDialog from "./components/ConfirmPagadoDialog.jsx";
 import WhatsAppPrompt from "./components/WhatsAppPrompt.jsx";
@@ -21,6 +20,7 @@ import TabNuevo from "./components/TabNuevo.jsx";
 import TabProduccion from "./components/TabProduccion.jsx";
 import TabPedidos from "./components/TabPedidos.jsx";
 import { VyniaProvider } from "./context/VyniaContext.jsx";
+import { PedidosProvider } from "./context/PedidosContext.jsx";
 
 // ═══════════════════════════════════════════════════════════
 //  MAIN APP COMPONENT
@@ -33,45 +33,24 @@ export default function VyniaApp() {
 
   // ─── STATE ───
   const [tab, setTab] = useState("pedidos");   // pedidos | nuevo | produccion
-  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);     // { type: "ok"|"err", msg }
   const [apiMode, setApiMode] = useState("live"); // demo | live
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [mostrarDatos, setMostrarDatos] = useState(false);
+
+  // ─── REFS ───
+  const toastTimer = useRef(null);
+  const menuRef = useRef(null);
+  const headerRef = useRef(null);
+  const [headerH, setHeaderH] = useState(0);
 
   // ─── EXTRACTED HOOKS ───
   const tooltip = useTooltip();
   const { updateAvailable, setUpdateAvailable } = useVersionCheck();
   const catalogo = useCatalog(apiMode);
   const { glassCalTarget, setGlassCalTarget, openGlassCal, renderGlassCal } = useGlassCalendar();
-
-  // Pedidos data
-  const [pedidos, setPedidos] = useState([]);
-  const [filtro, setFiltro] = useState("pendientes"); // pendientes | hoy | todos | recogidos
-  const [filtroFecha, setFiltroFecha] = useState(fmt.todayISO()); // null = all dates
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef(null);
-  const headerRef = useRef(null);
-  const [headerH, setHeaderH] = useState(0);
-  const [showHelp, setShowHelp] = useState(false);
-  const [pedidoFromFicha, setPedidoFromFicha] = useState(false);
-
-  // Produccion diaria
-  const [produccionData, setProduccionData] = useState([]);
-  const [produccionFecha, setProduccionFecha] = useState(fmt.todayISO());
-  const [selectedPedido, setSelectedPedido] = useState(null);
-  const [phoneMenu, setPhoneMenu] = useState(null); // { tel, x, y }
-  const [whatsappPrompt, setWhatsappPrompt] = useState(null); // { tel, nombre }
-
-  // Bulk selection
-  const [bulkMode, setBulkMode] = useState(false);
-  const [bulkSelected, setBulkSelected] = useState(new Set());
-  const [bulkLoading, setBulkLoading] = useState(false);
-  const [mostrarDatos, setMostrarDatos] = useState(false);
-
-  // Refs
-  const toastTimer = useRef(null);
-  const pendingViewPedidoId = useRef(null);
-  const registrosCache = useRef({}); // { [pedidoId]: { ts, data } }
 
   // ─── TOAST ───
   const notify = useCallback((type, msg) => {
@@ -80,87 +59,24 @@ export default function VyniaApp() {
     toastTimer.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Invalidate caches when data changes
-  const invalidateSearchCache = () => { invalidatePedidosCache(); };
-  const invalidateProduccion = (pedidoFecha) => {
-    // Only invalidate if the pedido's date matches the currently loaded produccion date
-    const pedidoDate = (pedidoFecha || "").split("T")[0];
-    if (!pedidoDate || pedidoDate === produccionFecha) setProduccionData([]);
-  };
+  // ─── DATA HOOKS ───
+  const prod = useProduccion({ apiMode, notify });
+  const ped = usePedidos({
+    apiMode, notify,
+    onInvalidateProduccion: prod.invalidateProduccion,
+    onUpdateProduccionPagado: prod.updatePagado,
+  });
 
-  // ─── LOAD PEDIDOS ───
-  // skipEnrich: when true, skips the registros enrichment phase and preserves
-  // existing productos/importe from previous state (used by auto-polls to save invocations)
-  const loadPedidos = useCallback(async (fechaParam, { skipEnrich = false } = {}) => {
-    const f = fechaParam !== undefined ? fechaParam : filtroFecha;
-    if (apiMode === "demo") {
-      const allDemo = [
-        { id: "demo-1", nombre: "Pedido María García", cliente: "María García", tel: "600123456", fecha: fmt.todayISO(), hora: "10:30", productos: "2x Cookie pistacho, 1x Brownie", importe: 8.60, estado: "En preparación", pagado: true, notas: "" },
-        { id: "demo-2", nombre: "Pedido Juan López", cliente: "Juan López", tel: "612345678", fecha: fmt.todayISO(), hora: "12:00", productos: "1x Hogaza Miel, 3x Viñacaos", importe: 18.50, estado: "Sin empezar", pagado: false, notas: "Sin nueces" },
-        { id: "demo-3", nombre: "Pedido Ana Ruiz", cliente: "Ana Ruiz", tel: "654321000", fecha: fmt.tomorrowISO(), hora: "", productos: "1x Tarta de queso, 2x Barra de pan", importe: 32.00, estado: "Listo para recoger", pagado: true, notas: "Recoger por la tarde" },
-        { id: "demo-4", nombre: "Pedido Carlos", cliente: "Carlos Martín", tel: "677888999", fecha: fmt.todayISO(), hora: "09:00", productos: "4x Magdalenas, 2x Bollitos", importe: 9.60, estado: "Recogido", pagado: true, notas: "" },
-        { id: "demo-5", nombre: "Pedido Laura", cliente: "Laura Sánchez", tel: "611222333", fecha: fmt.dayAfterISO(), hora: "11:00", productos: "1x Bizcocho naranja, 1x Granola", importe: 8.80, estado: "Incidencia", pagado: false, notas: "Llamar antes" },
-      ];
-      setPedidos(f ? allDemo.filter(p => (p.fecha || "").startsWith(f)) : allDemo);
-      return;
-    }
+  // ─── GLOBAL LOADING ───
+  const loading = ped.pedidosLoading || prod.produccionLoading;
 
-    setLoading(true);
-    try {
-      const pedidosData = await notion.loadPedidosByDate(f);
-
-      const mapped = (Array.isArray(pedidosData) ? pedidosData : []).map(p => {
-        const raw = { estado: p.estado, recogido: !!p.recogido, noAcude: !!p.noAcude, incidencia: !!p.incidencia };
-        return {
-          id: p.id,
-          nombre: p.titulo || "",
-          fecha: p.fecha || "",
-          estado: effectiveEstado(raw),
-          pagado: !!p.pagado,
-          notas: p.notas || "",
-          importe: p.importe || 0,
-          productos: p.productos || "",
-          tel: p.telefono || "",
-          numPedido: p.numPedido || 0,
-          hora: p.fecha?.includes("T") ? p.fecha.split("T")[1]?.substring(0, 5) : "",
-          cliente: p.cliente || (p.titulo || "").replace(/^Pedido\s+/i, ""),
-          clienteId: p.clienteId || null,
-        };
-      });
-
-      if (skipEnrich) {
-        // Preserve enrichment data (productos, importe) from previous state
-        setPedidos(prev => {
-          const prevMap = {};
-          for (const p of prev) { prevMap[p.id] = p; }
-          return mapped.map(p => {
-            const existing = prevMap[p.id];
-            if (existing && (existing.productos || existing.importe)) {
-              return { ...p, productos: existing.productos, importe: existing.importe };
-            }
-            return p;
-          });
-        });
-        return;
-      }
-
-      setPedidos(mapped);
-      notify("ok", `${mapped.length} pedido${mapped.length !== 1 ? "s" : ""} cargado${mapped.length !== 1 ? "s" : ""}`);
-    } catch (err) {
-      notify("err", "Error cargando: " + (err.message || "desconocido").substring(0, 100));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiMode, filtroFecha, notify]);
-
-  useEffect(() => { loadPedidos(); loadProduccion(); }, [apiMode]);
+  // ─── INITIAL LOAD ───
+  useEffect(() => { ped.loadPedidos(); prod.loadProduccion(); }, [apiMode]);
 
   // ─── Auto-refresh: reload on tab focus (debounced) + poll every 120s ───
-  // Polls use skipEnrich to avoid re-fetching registros (preserves existing data).
-  // Manual reloads and initial load still do full enrichment.
   useEffect(() => {
     if (apiMode === "demo") return;
-    const reload = () => { invalidateApiCache(); loadPedidos(undefined, { skipEnrich: true }); if (tab === "produccion") loadProduccion(); };
+    const reload = () => { invalidateApiCache(); ped.loadPedidos(undefined, { skipEnrich: true }); if (tab === "produccion") prod.loadProduccion(); };
     let visDebounce = null;
     const onVisible = () => {
       if (!document.hidden) {
@@ -171,7 +87,7 @@ export default function VyniaApp() {
     document.addEventListener("visibilitychange", onVisible);
     const interval = setInterval(() => { if (!document.hidden) reload(); }, 120000);
     return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(interval); clearTimeout(visDebounce); };
-  }, [apiMode, tab, loadPedidos]);
+  }, [apiMode, tab, ped.loadPedidos]);
 
   // ─── Close menu on click outside ───
   useEffect(() => {
@@ -194,479 +110,49 @@ export default function VyniaApp() {
     return () => ro.disconnect();
   }, []);
 
-  // ─── LOAD PRODUCTS FOR SELECTED PEDIDO (with in-memory cache) ───
-  useEffect(() => {
-    if (!selectedPedido || apiMode === "demo") return;
-    const hasIds = Array.isArray(selectedPedido.productos) && selectedPedido.productos.length > 0 && selectedPedido.productos[0]?.id;
-    if (hasIds) return;
-    // Check registros cache (60s TTL)
-    const cached = registrosCache.current[selectedPedido.id];
-    if (cached && Date.now() - cached.ts < 60000) {
-      setSelectedPedido(prev => prev && prev.id === selectedPedido.id ? { ...prev, productos: cached.data } : prev);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const prods = await notion.loadRegistros(selectedPedido.id);
-        if (!cancelled && Array.isArray(prods) && prods.length > 0) {
-          registrosCache.current[selectedPedido.id] = { ts: Date.now(), data: prods };
-          setSelectedPedido(prev => prev && prev.id === selectedPedido.id ? { ...prev, productos: prods } : prev);
-        }
-      } catch { /* ignore */ }
-    })();
-    return () => { cancelled = true; };
-  }, [selectedPedido?.id]);
-
-  // ─── LOAD PRODUCCION ───
-  const loadProduccion = useCallback(async (fechaParam) => {
-    const f = fechaParam || produccionFecha;
-    if (apiMode === "demo") {
-      // Parse demo pedidos to generate produccion data
-      const demoPedidos = [
-        { id: "demo-1", nombre: "Pedido María García", cliente: "María García", tel: "600123456", fecha: fmt.todayISO(), hora: "10:30", productos: "2x Cookie pistacho, 1x Brownie", importe: 8.60, estado: "En preparación", pagado: true, notas: "" },
-        { id: "demo-2", nombre: "Pedido Juan López", cliente: "Juan López", tel: "612345678", fecha: fmt.todayISO(), hora: "12:00", productos: "1x Hogaza Miel, 3x Viñacaos", importe: 18.50, estado: "Sin empezar", pagado: false, notas: "Sin nueces" },
-        { id: "demo-4", nombre: "Pedido Carlos", cliente: "Carlos Martín", tel: "677888999", fecha: fmt.todayISO(), hora: "09:00", productos: "4x Magdalenas, 2x Bollitos", importe: 9.60, estado: "Listo para recoger", pagado: true, notas: "" },
-        { id: "demo-5", nombre: "Pedido Ana Ruiz", cliente: "Ana Ruiz", tel: "655111222", fecha: fmt.todayISO(), hora: "09:30", productos: "3x Cookie pistacho, 2x Magdalenas", importe: 11.00, estado: "Recogido", pagado: true, notas: "" },
-      ];
-      const filtered = demoPedidos.filter(p => (p.fecha || "").startsWith(f) && p.estado !== "No acude");
-      const agg = {};
-      filtered.forEach(p => {
-        (p.productos || "").split(",").forEach(item => {
-          const m = item.trim().match(/^(\d+)x\s+(.+)$/);
-          if (!m) return;
-          const qty = parseInt(m[1], 10);
-          const name = m[2].trim();
-          if (!agg[name]) agg[name] = { nombre: name, totalUnidades: 0, pedidos: [] };
-          agg[name].totalUnidades += qty;
-          agg[name].pedidos.push({ pedidoId: p.id, pedidoTitulo: p.nombre, unidades: qty, fecha: p.fecha, estado: p.estado, pagado: p.pagado, notas: p.notas, cliente: p.cliente, tel: p.tel, hora: p.hora });
-        });
-      });
-      setProduccionData(Object.values(agg).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-      return;
-    }
-    setLoading(true);
-    try {
-      const data = await notion.loadProduccion(f);
-      setProduccionData(data.productos || []);
-    } catch (err) {
-      notify("err", "Error cargando producción: " + (err.message || "").substring(0, 100));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiMode, produccionFecha, notify]);
-
-  // ─── CAMBIAR ESTADO ───
-  const [estadoPicker, setEstadoPicker] = useState(null);
-  const [pendingEstadoChange, setPendingEstadoChange] = useState(null); // { pedido, nuevoEstado, isBulk }
-  const [pendingPagadoChange, setPendingPagadoChange] = useState(null); // { pedido }
-
-  const requestEstadoChange = (pedido, nuevoEstado, opts = {}) => {
-    setPendingEstadoChange({ pedido, nuevoEstado, ...opts });
-    if (!opts.keepPicker) setEstadoPicker(null);
-  };
-
-  const confirmarCambioEstado = () => {
-    if (!pendingEstadoChange) return;
-    const { pedido, nuevoEstado, isBulk } = pendingEstadoChange;
-    setPendingEstadoChange(null);
-    if (isBulk) {
-      cambiarEstadoBulk(nuevoEstado);
-    } else {
-      cambiarEstado(pedido, nuevoEstado);
-      if (selectedPedido && selectedPedido.id === pedido.id) {
-        setSelectedPedido(prev => prev ? { ...prev, estado: nuevoEstado } : prev);
-      }
-    }
-  };
-
-  const cambiarEstado = async (pedido, nuevoEstado) => {
-    if (apiMode === "demo") {
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, estado: nuevoEstado } : p));
-      notify("ok", ESTADOS[nuevoEstado]?.label || nuevoEstado);
-      if (nuevoEstado === "Listo para recoger" && (pedido.telefono || pedido.tel)) {
-        setWhatsappPrompt({ tel: pedido.telefono || pedido.tel, nombre: pedido.cliente || pedido.titulo || pedido.nombre });
-      }
-      return;
-    }
-    setLoading(true);
-    try {
-      await notion.cambiarEstado(pedido.id, nuevoEstado);
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, estado: nuevoEstado } : p));
-      invalidateProduccion(pedido.fecha); invalidateSearchCache();
-      notify("ok", `${ESTADOS[nuevoEstado]?.icon || ""} ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
-      if (nuevoEstado === "Listo para recoger" && (pedido.telefono || pedido.tel)) {
-        setWhatsappPrompt({ tel: pedido.telefono || pedido.tel, nombre: pedido.cliente || pedido.titulo || pedido.nombre });
-      }
-    } catch (err) {
-      notify("err", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─── BULK ESTADO CHANGE ───
-  const cambiarEstadoBulk = async (nuevoEstado) => {
-    const selected = pedidos.filter(p => bulkSelected.has(p.id));
-    if (selected.length === 0) return;
-    setBulkLoading(true);
-    const prevEstados = new Map(selected.map(p => [p.id, p.estado]));
-    // Optimistic UI
-    setPedidos(ps => ps.map(p => bulkSelected.has(p.id) ? { ...p, estado: nuevoEstado } : p));
-
-    let failCount = 0;
-    if (apiMode !== "demo") {
-      const results = await Promise.allSettled(
-        selected.map(p => notion.cambiarEstado(p.id, nuevoEstado))
-      );
-      const failedIds = new Set();
-      results.forEach((r, i) => { if (r.status === "rejected") failedIds.add(selected[i].id); });
-      failCount = failedIds.size;
-      if (failCount > 0) {
-        // Rollback failed pedidos to their previous estado
-        setPedidos(ps => ps.map(p => failedIds.has(p.id) ? { ...p, estado: prevEstados.get(p.id) } : p));
-        notify("err", `${failCount} pedido${failCount > 1 ? "s" : ""} fallaron`);
-      }
-      invalidateProduccion(); invalidateSearchCache();
-    }
-
-    if (failCount === 0) notify("ok", `${selected.length} pedidos → ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
-    setBulkMode(false);
-    setBulkSelected(new Set());
-    setBulkLoading(false);
-  };
-
-  // ─── CANCEL PEDIDO ───
-  const cancelarPedido = async (pedido) => {
-    if (apiMode === "demo") {
-      setPedidos(ps => ps.filter(p => p.id !== pedido.id));
-      setSelectedPedido(null);
-      notify("ok", "Pedido cancelado");
-      return;
-    }
-    setLoading(true);
-    try {
-      await notion.archivarPedido(pedido.id);
-      setPedidos(ps => ps.filter(p => p.id !== pedido.id));
-      invalidateProduccion(pedido.fecha); invalidateSearchCache();
-      setSelectedPedido(null);
-      notify("ok", "Pedido cancelado");
-    } catch (err) {
-      notify("err", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─── CLEANUP ORPHAN REGISTROS ───
-  const cleanupOrphanRegistros = async () => {
-    if (apiMode === "demo") { notify("err", "No disponible en modo demo"); return; }
-    notify("ok", "Buscando registros huérfanos...");
-    try {
-      const { orphanIds = [], count = 0 } = await notion.findOrphanRegistros();
-      if (count === 0) { notify("ok", "No hay registros huérfanos"); return; }
-      notify("ok", `${count} huérfanos encontrados. Archivando...`);
-      for (let i = 0; i < orphanIds.length; i += 10) {
-        await notion.deleteRegistros(orphanIds.slice(i, i + 10));
-        notify("ok", `Archivando... ${Math.min(i + 10, count)}/${count}`);
-      }
-      invalidateApiCache();
-      notify("ok", `Limpieza completada: ${count} registros archivados`);
-    } catch (err) {
-      notify("err", "Error limpieza: " + (err.message || "").substring(0, 100));
-    }
-  };
-
-  // ─── CHANGE DELIVERY DATE ───
-  const cambiarFechaPedido = async (pedido, newFecha) => {
-    if (!newFecha) return;
-    if (apiMode === "demo") {
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, fecha: newFecha, hora: "" } : p));
-      notify("ok", "Fecha actualizada");
-      return true;
-    }
-    setLoading(true);
-    try {
-      await notion.updatePage(pedido.id, { "Fecha entrega": { date: { start: newFecha } } });
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, fecha: newFecha, hora: "" } : p));
-      invalidateProduccion(pedido.fecha); invalidateProduccion(newFecha); invalidateSearchCache();
-      notify("ok", "Fecha actualizada");
-      return true;
-    } catch (err) {
-      notify("err", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─── MODIFY NOTAS ───
-  const cambiarNotas = async (pedido, newNotas) => {
-    const trimmed = (newNotas || "").trim();
-    if (apiMode === "demo") {
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, notas: trimmed } : p));
-      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, notas: trimmed } : prev);
-      notify("ok", trimmed ? "Notas actualizadas" : "Notas eliminadas");
-      return true;
-    }
-    setLoading(true);
-    try {
-      await notion.updatePage(pedido.id, {
-        "Notas": { rich_text: trimmed ? [{ type: "text", text: { content: trimmed } }] : [] }
-      });
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, notas: trimmed } : p));
-      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, notas: trimmed } : prev);
-      invalidateSearchCache();
-      notify("ok", trimmed ? "Notas actualizadas" : "Notas eliminadas");
-      return true;
-    } catch (err) {
-      notify("err", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const requestPagadoChange = (pedido) => {
-    setPendingPagadoChange({ pedido });
-  };
-
-  const confirmarPagadoChange = async () => {
-    if (!pendingPagadoChange) return;
-    const { pedido } = pendingPagadoChange;
-    setPendingPagadoChange(null);
-    const newVal = !pedido.pagado;
-    const updateLocal = () => {
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, pagado: newVal } : p));
-      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, pagado: newVal } : prev);
-      setProduccionData(prev => prev.map(prod => ({
-        ...prod,
-        pedidos: prod.pedidos.map(ped => ped.pedidoId === pedido.id ? { ...ped, pagado: newVal } : ped),
-      })));
-    };
-    if (apiMode === "demo") {
-      updateLocal();
-      notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
-      return;
-    }
-    // Optimistic UI — instant feedback, rollback on failure
-    updateLocal();
-    try {
-      await notion.updatePage(pedido.id, {
-        "Pagado al reservar": { checkbox: newVal }
-      });
-      invalidateSearchCache();
-      notify("ok", newVal ? "Marcado como pagado" : "Desmarcado como pagado");
-    } catch (err) {
-      // Rollback
-      const rollback = () => {
-        setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, pagado: !newVal } : p));
-        if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, pagado: !newVal } : prev);
-        setProduccionData(prev => prev.map(prod => ({
-          ...prod,
-          pedidos: prod.pedidos.map(ped => ped.pedidoId === pedido.id ? { ...ped, pagado: !newVal } : ped),
-        })));
-      };
-      rollback();
-      notify("err", err.message);
-    }
-  };
-
-  const guardarModificacion = async (pedido, newLineas) => {
-    if (newLineas.length === 0) { notify("err", "Añade al menos un producto"); return; }
-    const newImporte = newLineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
-    const newProdsStr = newLineas.map(l => `${l.cantidad}x ${l.nombre}`).join(", ");
-    if (apiMode === "demo") {
-      const newProds = newLineas.map(l => ({ nombre: l.nombre, unidades: l.cantidad }));
-      setSelectedPedido(prev => prev ? { ...prev, productos: newProds } : prev);
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, importe: newImporte, productos: newProdsStr } : p));
-      notify("ok", "Pedido modificado");
-      return true;
-    }
-    setLoading(true);
-    try {
-      // Create new registros FIRST, delete old AFTER (prevents data loss on partial failure)
-      for (const linea of newLineas) {
-        await notion.crearRegistro(pedido.id, linea.nombre, linea.cantidad);
-      }
-      let prods = pedido.productos || [];
-      if (Array.isArray(prods) && prods.length > 0 && !prods[0]?.id) {
-        prods = await notion.loadRegistros(pedido.id) || [];
-      }
-      const oldIds = prods.filter(p => p.id).map(p => p.id);
-      let deleteWarning = false;
-      if (oldIds.length > 0) {
-        try {
-          await notion.deleteRegistros(oldIds);
-        } catch (delErr) {
-          console.error("Error borrando registros antiguos:", delErr);
-          deleteWarning = true;
-        }
-      }
-      // Reload fresh registros (with new IDs) and update cache
-      const freshProds = await notion.loadRegistros(pedido.id);
-      delete registrosCache.current[pedido.id];
-      if (Array.isArray(freshProds) && freshProds.length > 0) {
-        registrosCache.current[pedido.id] = { ts: Date.now(), data: freshProds };
-      }
-      setSelectedPedido(prev => prev ? { ...prev, productos: Array.isArray(freshProds) ? freshProds : [] } : prev);
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, importe: newImporte, productos: newProdsStr } : p));
-      invalidateProduccion(pedido.fecha); invalidateSearchCache();
-      notify(deleteWarning ? "warn" : "ok", deleteWarning ? "Pedido modificado, pero la limpieza de registros antiguos falló" : "Pedido modificado");
-      return true;
-    } catch (err) {
-      notify("err", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─── PHONE MENU (call / WhatsApp) ───
-  const openPhoneMenu = (tel, e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setPhoneMenu({ tel, x: rect.left + rect.width / 2, y: rect.bottom + 4 });
-  };
-
-  // ─── CREATE ORDER (called by TabNuevo via prop) ───
-  const crearPedido = async ({ cliente, telefono, fecha, hora, pagado, notas, lineas, selectedClienteId }) => {
-    if (apiMode === "demo") {
-      const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
-      const prodsStr = lineas.map(l => `${l.cantidad}x ${l.nombre}`).join(", ");
-      const demoId = `demo-${Date.now()}`;
-      setPedidos(ps => [{
-        id: demoId, nombre: `Pedido ${cliente}`, cliente, tel: telefono,
-        fecha: hora ? `${fecha}T${hora}:00` : fecha, hora,
-        productos: prodsStr, importe: total, estado: "Sin empezar", pagado, notas,
-      }, ...ps]);
-      notify("ok", `✓ Pedido creado: ${cliente} — €${total.toFixed(2)}`);
-      return { status: "ok", cliente, total, pedidoId: demoId };
-    }
-
-    setLoading(true);
-    try {
-      let clientePageId = selectedClienteId;
-      if (!clientePageId) {
-        const clienteRes = await notion.findOrCreateCliente(cliente, telefono);
-        if (!clienteRes?.id) throw new Error("No se pudo crear/encontrar el cliente");
-        clientePageId = clienteRes.id;
-      }
-      const pedidoRes = await notion.crearPedido(cliente, clientePageId, fecha, hora, pagado, notas, lineas);
-      const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
-      notify("ok", `✓ Pedido creado en Notion: ${cliente} — €${total.toFixed(2)}`);
-      loadPedidos();
-      invalidateProduccion(fecha); invalidateSearchCache();
-      return { status: "ok", cliente, total, pedidoId: pedidoRes.id, telefono, fecha, hora, pagado, notas, lineas };
-    } catch (err) {
-      notify("err", "Error: " + (err.message || "").substring(0, 100));
-      return { status: "err", message: err.message || "Error desconocido" };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verPedidoCreado = (pedidoId, resultData) => {
+  // ─── VIEW ORDER (wrapper adds setTab) ───
+  const handleViewOrder = (pedidoId, resultData) => {
     setTab("pedidos");
-    const found = pedidos.find(p => p.id === pedidoId);
-    if (found) {
-      setSelectedPedido({
-        ...found,
-        pedidoTitulo: found.nombre,
-        tel: found.tel, telefono: found.tel,
-        productos: typeof found.productos === "string"
-          ? parseProductsStr(found.productos)
-          : (Array.isArray(found.productos) ? found.productos : []),
-      });
-    } else if (resultData) {
-      const cr = resultData;
-      const fechaFull = cr.hora ? `${cr.fecha}T${cr.hora}:00` : cr.fecha;
-      setSelectedPedido({
-        id: pedidoId,
-        nombre: `Pedido ${cr.cliente}`,
-        pedidoTitulo: `Pedido ${cr.cliente}`,
-        cliente: cr.cliente,
-        tel: cr.telefono || "", telefono: cr.telefono || "",
-        fecha: fechaFull,
-        hora: cr.hora || "",
-        estado: "Sin empezar",
-        pagado: !!cr.pagado,
-        notas: cr.notas || "",
-        productos: (cr.lineas || []).map(l => ({ nombre: l.nombre, unidades: l.cantidad })),
-        importe: cr.total || 0,
-        numPedido: 0,
-      });
-      pendingViewPedidoId.current = pedidoId;
-    } else {
-      pendingViewPedidoId.current = pedidoId;
-    }
+    ped.verPedidoCreado(pedidoId, resultData);
   };
 
-  useEffect(() => {
-    if (!pendingViewPedidoId.current) return;
-    const found = pedidos.find(p => p.id === pendingViewPedidoId.current);
-    if (found) {
-      pendingViewPedidoId.current = null;
-      setSelectedPedido({
-        ...found,
-        pedidoTitulo: found.nombre,
-        tel: found.tel, telefono: found.tel,
-        productos: typeof found.productos === "string"
-          ? parseProductsStr(found.productos)
-          : (Array.isArray(found.productos) ? found.productos : []),
-      });
-    }
-  }, [pedidos]);
-
-  // ─── STATS (single-pass, memoized) ───
-  const { statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger } = useMemo(() => {
-    let total = 0, pendientes = 0, recogidos = 0, porPreparar = 0, listoRecoger = 0;
-    for (const p of pedidos) {
-      total++;
-      const g = ESTADOS[p.estado]?.group;
-      if (p.estado === "Recogido") recogidos++;
-      else if (g !== "complete") pendientes++;
-      if (p.estado === "Sin empezar" || p.estado === "En preparación") porPreparar++;
-      if (p.estado === "Listo para recoger") listoRecoger++;
-    }
-    return { statsTotal: total, statsPendientes: pendientes, statsRecogidos: recogidos, statsPorPreparar: porPreparar, statsListoRecoger: listoRecoger };
-  }, [pedidos]);
-
-  // ─── BULK TRANSITIONS (intersection of valid transitions for all selected) ───
-  const bulkTransitions = useMemo(() => {
-    if (bulkSelected.size === 0) return [];
-    const selected = pedidos.filter(p => bulkSelected.has(p.id));
-    if (selected.length === 0) return [];
-    const sets = selected.map(p => new Set(ESTADO_TRANSITIONS[p.estado] || []));
-    return [...sets[0]].filter(est => sets.every(s => s.has(est)));
-  }, [bulkSelected, pedidos]);
-
   // ═══════════════════════════════════════════════════════════
-  //  CONTEXT VALUE
+  //  CONTEXT VALUES
   // ═══════════════════════════════════════════════════════════
-  const ctx = {
+  const uiCtx = {
     // Layout
     isDesktop, isTablet, headerH,
-    // Core data
-    pedidos, apiMode, catalogo,
-    // Filters
-    filtro, setFiltro, filtroFecha, setFiltroFecha,
-    // Stats
-    statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger,
-    // Bulk
-    bulkMode, setBulkMode, bulkSelected, setBulkSelected,
+    // Core
+    apiMode, catalogo,
     // Handlers
-    notify, loadPedidos, requestEstadoChange, requestPagadoChange, openPhoneMenu,
-    setEstadoPicker,
+    notify, requestEstadoChange: ped.requestEstadoChange,
+    requestPagadoChange: ped.requestPagadoChange,
+    openPhoneMenu: ped.openPhoneMenu,
     // Privacy toggle
     mostrarDatos, setMostrarDatos,
     // Glass calendar
     renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
   };
 
+  const pedCtx = {
+    pedidos: ped.pedidos,
+    filtro: ped.filtro, setFiltro: ped.setFiltro,
+    filtroFecha: ped.filtroFecha, setFiltroFecha: ped.setFiltroFecha,
+    statsTotal: ped.statsTotal, statsPendientes: ped.statsPendientes,
+    statsRecogidos: ped.statsRecogidos, statsPorPreparar: ped.statsPorPreparar,
+    statsListoRecoger: ped.statsListoRecoger,
+    bulkMode: ped.bulkMode, setBulkMode: ped.setBulkMode,
+    bulkSelected: ped.bulkSelected, setBulkSelected: ped.setBulkSelected,
+    loadPedidos: ped.loadPedidos,
+    setEstadoPicker: ped.setEstadoPicker,
+  };
+
   // ═══════════════════════════════════════════════════════════
   //  RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <VyniaProvider value={ctx}>
+    <VyniaProvider value={uiCtx}>
+    <PedidosProvider value={pedCtx}>
     <div style={{
       minHeight: "100vh",
       background: "#EFE9E4",
@@ -734,13 +220,13 @@ export default function VyniaApp() {
               display: "flex", gap: 8, flex: 1, justifyContent: "center", maxWidth: 460,
             }}>
               {[
-                { label: "Total", value: statsTotal, color: "#4F6867", filter: "todos" },
-                { label: "Pendientes", value: statsPendientes, color: "#1565C0", filter: "pendientes" },
-                { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", filter: "recogidos" },
+                { label: "Total", value: ped.statsTotal, color: "#4F6867", filter: "todos" },
+                { label: "Pendientes", value: ped.statsPendientes, color: "#1565C0", filter: "pendientes" },
+                { label: "Recogidos", value: ped.statsRecogidos, color: "#2E7D32", filter: "recogidos" },
               ].map(s => {
-                const active = filtro === s.filter && tab === "pedidos";
+                const active = ped.filtro === s.filter && tab === "pedidos";
                 return (
-                <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
+                <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); ped.setFiltro(s.filter); }}
                   style={{
                     position: "relative", overflow: "hidden",
                     flex: 1, padding: "10px 8px", borderRadius: 14,
@@ -798,10 +284,10 @@ export default function VyniaApp() {
                 zIndex: 80, animation: "popoverIn 0.18s ease-out",
               }}>
                 {[
-                  { icon: <I.Refresh s={16} />, label: "Recargar pedidos", action: () => { invalidateApiCache(); loadPedidos(); } },
+                  { icon: <I.Refresh s={16} />, label: "Recargar pedidos", action: () => { invalidateApiCache(); ped.loadPedidos(); } },
                   { icon: <I.Printer s={16} />, label: "Imprimir", action: () => window.print() },
                   { icon: <I.Help s={16} />, label: "Manual de uso", action: () => { setShowHelp(true); } },
-                  { icon: <I.Broom s={16} />, label: "Limpiar registros", action: cleanupOrphanRegistros },
+                  { icon: <I.Broom s={16} />, label: "Limpiar registros", action: ped.cleanupOrphanRegistros },
                 ].map((item, i) => (
                   <button key={i} onClick={() => { setShowMenu(false); item.action(); }} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 10,
@@ -845,13 +331,13 @@ export default function VyniaApp() {
           scrollbarWidth: "none", msOverflowStyle: "none",
         }}>
           {[
-            { label: "Total", value: statsTotal, color: "#4F6867", filter: "todos" },
-            { label: "Pendientes", value: statsPendientes, color: "#1565C0", filter: "pendientes" },
-            { label: "Recogidos", value: statsRecogidos, color: "#2E7D32", filter: "recogidos" },
+            { label: "Total", value: ped.statsTotal, color: "#4F6867", filter: "todos" },
+            { label: "Pendientes", value: ped.statsPendientes, color: "#1565C0", filter: "pendientes" },
+            { label: "Recogidos", value: ped.statsRecogidos, color: "#2E7D32", filter: "recogidos" },
           ].map(s => {
-            const active = filtro === s.filter && tab === "pedidos";
+            const active = ped.filtro === s.filter && tab === "pedidos";
             return (
-            <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); setFiltro(s.filter); }}
+            <button key={s.label} className="dot-card" title={`Filtrar por ${s.label.toLowerCase()}`} onClick={() => { setTab("pedidos"); ped.setFiltro(s.filter); }}
               style={{
                 position: "relative", overflow: "hidden",
                 flex: 1, padding: "12px 8px", borderRadius: 14,
@@ -908,8 +394,8 @@ export default function VyniaApp() {
             </h1>
             <p style={{ fontSize: 12, color: "#4F6867", margin: "4px 0 0" }}>
               {new Date().toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-              {" · Filtro: "}{filtro.charAt(0).toUpperCase() + filtro.slice(1)}
-              {" · "}{pedidos.length} pedido{pedidos.length !== 1 ? "s" : ""}
+              {" · Filtro: "}{ped.filtro.charAt(0).toUpperCase() + ped.filtro.slice(1)}
+              {" · "}{ped.pedidos.length} pedido{ped.pedidos.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
@@ -946,46 +432,46 @@ export default function VyniaApp() {
         {tab === "pedidos" && (
           <TabPedidos
             onSelectPedido={(pedido, fromFicha) => {
-              setSelectedPedido(pedido);
-              if (fromFicha) setPedidoFromFicha(true);
+              ped.setSelectedPedido(pedido);
+              if (fromFicha) ped.setPedidoFromFicha(true);
             }}
           />
         )}
 
 
-        {tab === "nuevo" && <TabNuevo onCreatePedido={crearPedido} onViewOrder={verPedidoCreado} />}
+        {tab === "nuevo" && <TabNuevo onCreatePedido={ped.crearPedido} onViewOrder={handleViewOrder} />}
 
         {tab === "produccion" && (
           <TabProduccion
-            produccionData={produccionData}
-            produccionFecha={produccionFecha}
-            setProduccionFecha={setProduccionFecha}
-            loadProduccion={loadProduccion}
-            onSelectPedido={setSelectedPedido}
+            produccionData={prod.produccionData}
+            produccionFecha={prod.produccionFecha}
+            setProduccionFecha={prod.setProduccionFecha}
+            loadProduccion={prod.loadProduccion}
+            onSelectPedido={ped.setSelectedPedido}
           />
         )}
 
-        {selectedPedido && (
+        {ped.selectedPedido && (
           <OrderDetailModal
-            pedido={selectedPedido}
-            pedidoFromFicha={pedidoFromFicha}
-            onClose={() => { setSelectedPedido(null); setPedidoFromFicha(false); }}
-            onSaveProducts={guardarModificacion}
-            onSaveNotas={cambiarNotas}
-            onChangeFecha={cambiarFechaPedido}
-            onCancel={cancelarPedido}
+            pedido={ped.selectedPedido}
+            pedidoFromFicha={ped.pedidoFromFicha}
+            onClose={() => { ped.setSelectedPedido(null); ped.setPedidoFromFicha(false); }}
+            onSaveProducts={ped.guardarModificacion}
+            onSaveNotas={ped.cambiarNotas}
+            onChangeFecha={ped.cambiarFechaPedido}
+            onCancel={ped.cancelarPedido}
           />
         )}
 
         {/* ══════════════════════════════════════════
             ESTADO PICKER POPOVER
         ══════════════════════════════════════════ */}
-        {estadoPicker && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => setEstadoPicker(null)}>
+        {ped.estadoPicker && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => ped.setEstadoPicker(null)}>
             <div style={{
               position: "absolute",
-              left: Math.min(Math.max(estadoPicker.x - 100, 10), window.innerWidth - 220),
-              top: Math.min(estadoPicker.y, window.innerHeight - 250),
+              left: Math.min(Math.max(ped.estadoPicker.x - 100, 10), window.innerWidth - 220),
+              top: Math.min(ped.estadoPicker.y, window.innerHeight - 250),
               background: "rgba(239,233,228,0.92)",
               backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               borderRadius: 16, padding: 4,
@@ -998,12 +484,12 @@ export default function VyniaApp() {
                 borderRadius: 14, overflow: "hidden",
                 border: "1px solid rgba(162,194,208,0.25)",
               }}>
-                {(ESTADO_TRANSITIONS[estadoPicker.currentEstado] || []).map((est, i, arr) => {
+                {(ESTADO_TRANSITIONS[ped.estadoPicker.currentEstado] || []).map((est, i, arr) => {
                   const cfg = ESTADOS[est];
                   return (
                     <button key={est} onClick={() => {
-                      const pedido = pedidos.find(p => p.id === estadoPicker.pedidoId) || { id: estadoPicker.pedidoId, fecha: "", tel: "", cliente: "" };
-                      requestEstadoChange(pedido, est);
+                      const pedido = ped.pedidos.find(p => p.id === ped.estadoPicker.pedidoId) || { id: ped.estadoPicker.pedidoId, fecha: "", tel: "", cliente: "" };
+                      ped.requestEstadoChange(pedido, est);
                     }}
                       style={{
                         width: "100%", padding: "12px 14px",
@@ -1030,20 +516,20 @@ export default function VyniaApp() {
           </div>
         )}
 
-        {pendingEstadoChange && <ConfirmEstadoDialog pending={pendingEstadoChange} bulkCount={bulkSelected.size} onConfirm={confirmarCambioEstado} onCancel={() => setPendingEstadoChange(null)} />}
+        {ped.pendingEstadoChange && <ConfirmEstadoDialog pending={ped.pendingEstadoChange} bulkCount={ped.bulkSelected.size} onConfirm={ped.confirmarCambioEstado} onCancel={() => ped.setPendingEstadoChange(null)} />}
 
-        {pendingPagadoChange && <ConfirmPagadoDialog pending={pendingPagadoChange} onConfirm={confirmarPagadoChange} onCancel={() => setPendingPagadoChange(null)} />}
+        {ped.pendingPagadoChange && <ConfirmPagadoDialog pending={ped.pendingPagadoChange} onConfirm={ped.confirmarPagadoChange} onCancel={() => ped.setPendingPagadoChange(null)} />}
 
-        {whatsappPrompt && <WhatsAppPrompt prompt={whatsappPrompt} onClose={() => setWhatsappPrompt(null)} />}
+        {ped.whatsappPrompt && <WhatsAppPrompt prompt={ped.whatsappPrompt} onClose={() => ped.setWhatsappPrompt(null)} />}
 
-        {phoneMenu && <PhoneMenuPopover phoneMenu={phoneMenu} onClose={() => setPhoneMenu(null)} />}
+        {ped.phoneMenu && <PhoneMenuPopover phoneMenu={ped.phoneMenu} onClose={() => ped.setPhoneMenu(null)} />}
 
         {showHelp && <HelpOverlay initialCategory={tab === "produccion" ? "produccion" : tab === "nuevo" ? "nuevo" : "pedidos"} onClose={() => setShowHelp(false)} />}
 
       </main>
 
       {/* ════ BULK ACTION BAR ════ */}
-      {bulkMode && bulkSelected.size > 0 && (
+      {ped.bulkMode && ped.bulkSelected.size > 0 && (
         <div style={{
           position: "fixed", bottom: 68, left: "50%", transform: "translateX(-50%)",
           width: "calc(100% - 96px)",
@@ -1060,13 +546,13 @@ export default function VyniaApp() {
               fontFamily: "'Roboto Condensed', sans-serif",
               whiteSpace: "nowrap",
             }}>
-              {bulkSelected.size} seleccionado{bulkSelected.size > 1 ? "s" : ""}
+              {ped.bulkSelected.size} seleccionado{ped.bulkSelected.size > 1 ? "s" : ""}
             </span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1 }}>
-              {bulkTransitions.map(est => {
+              {ped.bulkTransitions.map(est => {
                 const cfg = ESTADOS[est];
                 return (
-                  <button key={est} disabled={bulkLoading} onClick={() => requestEstadoChange(null, est, { isBulk: true })}
+                  <button key={est} disabled={ped.bulkLoading} onClick={() => ped.requestEstadoChange(null, est, { isBulk: true })}
                     style={{
                       padding: "8px 14px", borderRadius: 10,
                       border: "none",
@@ -1074,8 +560,8 @@ export default function VyniaApp() {
                       color: "#fff",
                       fontSize: 12, fontWeight: 700,
                       fontFamily: "'Roboto Condensed', sans-serif",
-                      cursor: bulkLoading ? "wait" : "pointer",
-                      opacity: bulkLoading ? 0.6 : 1,
+                      cursor: ped.bulkLoading ? "wait" : "pointer",
+                      opacity: ped.bulkLoading ? 0.6 : 1,
                       transition: "all 0.15s",
                       whiteSpace: "nowrap",
                     }}>
@@ -1083,7 +569,7 @@ export default function VyniaApp() {
                   </button>
                 );
               })}
-              {bulkTransitions.length === 0 && (
+              {ped.bulkTransitions.length === 0 && (
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontStyle: "italic" }}>
                   Sin transiciones comunes
                 </span>
@@ -1131,7 +617,7 @@ export default function VyniaApp() {
           { key: "nuevo", icon: <I.Plus s={22} />, label: "Nuevo", tip: "Crear nuevo pedido" },
           { key: "produccion", icon: <I.ChefHat s={22} />, label: "Producción", tip: "Ver producción diaria" },
         ].map(t => (
-          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setGlassCalTarget(null); if (t.key !== "pedidos") { setBulkMode(false); setBulkSelected(new Set()); } if (t.key === "produccion" && produccionData.length === 0) loadProduccion(); }}
+          <button title={t.tip} key={t.key} onClick={() => { setTab(t.key); setGlassCalTarget(null); if (t.key !== "pedidos") { ped.setBulkMode(false); ped.setBulkSelected(new Set()); } if (t.key === "produccion" && prod.produccionData.length === 0) prod.loadProduccion(); }}
             style={{
               flex: 1, padding: "6px 0", border: "none",
               background: "transparent", cursor: "pointer",
@@ -1206,7 +692,7 @@ export default function VyniaApp() {
         </div>
       )}
     </div>
+    </PedidosProvider>
     </VyniaProvider>
   );
 }
-

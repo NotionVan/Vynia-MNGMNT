@@ -1,221 +1,259 @@
 # Vynia MNGMNT
 
-Sistema de gestion de pedidos para **Vynia**, conectado a Notion como base de datos.
+Sistema de gestión de pedidos para **Vynia** (obrador artesano sin gluten), conectado a Notion como base de datos.
 
-**URL produccion:** [vynia-mngmnt.vercel.app](https://vynia-mngmnt.vercel.app)
+**URL producción:** [vynia-mngmnt.vercel.app](https://vynia-mngmnt.vercel.app)
 
 ## Funcionalidades
 
 ### Pedidos
-- Lista de pedidos filtrable por fecha (Hoy / Manana / Pasado + date picker)
-- Filtros de estado: Pendientes, Recogidos, Todos
-- Buscador de clientes: busca en BD Clientes por nombre, telefono o email. Muestra dropdown con resultados y al seleccionar un cliente abre ficha con datos + pedidos asociados. Click en pedido abre modal con boton "← Cliente" para volver a la ficha
-- Cards con nombre de cliente, hora entrega, telefono, productos, notas, importe
-- Click en pedido abre modal con detalle completo + productos cargados desde Registros
-- Click en telefono ofrece Llamar o enviar WhatsApp
-- Toggle de recogido y no acude
-- Modificar productos y cantidades de un pedido existente desde el modal (borra registros anteriores y recrea)
-- Cancelar pedido (archiva en Notion) y cambiar fecha de entrega desde el modal
-- Importe total calculado por pedido (carga progresiva en background desde catalogo Notion + Registros)
-- Clasificacion automatica Manana/Tarde dentro de cada fecha (detecta "tarde" en notas o hora >= 17:00)
-- Badges: PAGADO, INCIDENCIA, TARDE
-- Stats bar con contadores (total, pendientes, recogidos)
-- Boton "Ver en Notion" en modal de detalle (abre la pagina del pedido en Notion)
-- Boton limpieza de registros huerfanos (archiva registros sin pedido asociado, con feedback progresivo)
+- Lista de pedidos filtrable por fecha (Hoy / Mañana / Pasado + glass calendar horizontal)
+- Filtros de estado: Pendientes, Recogidos, Todos (pills con efecto tubelight)
+- Pipeline visual: badge de estado prominente con semicírculo SVG animado (`EstadoGauge`) + botón 1-tap para avanzar al siguiente estado
+- Stats cards con anillos SVG (`PipelineRing`): "Por preparar", "Listo para recoger", "Recogido"
+- Buscador de clientes con ficha (datos + pedidos asociados, edición inline de nombre/teléfono/email)
+- Modal de detalle: edición de notas, fecha, productos; cambio de estado y pagado con confirmación
+- Selección bulk para cambio de estado múltiple con rollback automático en fallos
+- Toggle "Ver/Ocultar datos" (precios + teléfonos)
+- WhatsApp notification al marcar "Listo para recoger"
+- Renderizado progresivo (IntersectionObserver, lotes de 30 cards)
 
 ### Nuevo Pedido
-- Formulario dividido en dos pasos:
-  1. Cliente (sugerencias, crear nuevo), productos (catálogo con buscador), notas y estado de pago.
-  2. Selección de fecha de entrega (presets Hoy/Mañana/Pasado + datepicker + hora)
+- Formulario en 2 pasos: (1) Cliente + productos + notas + pagado, (2) Fecha con sugerencias inteligentes
+- "Pegar pedido": parseo de mensajes/capturas de WhatsApp con Claude Haiku 4.5 (vision)
+- Dictado por voz: Web Speech API para transcribir audio en tiempo real
+- Sugerencias de fecha: analiza producción de los próximos 7 días y sugiere fechas con productos en común
 - Crea cliente en Notion si no existe
-- Confirmacion post-creacion: pantalla de exito con "Ver pedido" (abre modal) y "Crear otro", o pantalla de error con mensaje y "Reintentar" (sin perder datos del formulario)
 
-### Produccion
-- Vista agregada de productos por dia con cantidades totales
-- Toggle Pendiente / Todo el dia: discrimina pedidos recogidos de la produccion pendiente
-- Muestra unidades pendientes vs recogidas (con tachado) por producto y en resumen global
-- Selector de fecha (presets + datepicker)
-- Click en producto expande los pedidos que lo contienen (recogidos aparecen tachados con badge RECOGIDO)
-- Click en pedido abre modal con detalle completo (cliente, telefono, fecha, productos, badges, notas)
-- Precarga automatica al iniciar la app para carga instantanea
+### Producción
+- Vista agregada de productos por día con cantidades totales
+- "Disponible para venta": planificación de producción con steppers, cálculo de excedentes (localStorage por fecha)
+- Toggle Pendiente / Todo el día
+- Click en producto expande pedidos; click en pedido abre modal de detalle
 
-### General
-- Version de la app y fecha de despliegue visibles en el header (junto al logo)
+### Seguimiento público
+- URL: `/seguimiento` (standalone HTML, sin React)
+- Embeddable en WordPress via iframe (`vynia.es/mi-pedido/`)
+- Cliente introduce teléfono → tarjetas glass-morphism con gauge SVG animado por estado
+- CTA de reseña Google
+- Rate limiting: 10 req/min por IP + 3 req/min por teléfono
 
 ## Stack
 
-| Capa | Tecnologia |
+| Capa | Tecnología |
 |------|-----------|
-| Frontend | React 19 + Vite 6 |
-| Backend | Vercel Serverless Functions |
+| Frontend | React 19 + Vite 6 (arquitectura modular, ~20 ficheros en `src/`) |
+| Backend | Vercel Serverless Functions (7 funciones en `api/`) |
 | Base de datos | Notion API (`@notionhq/client@2.3.0`) |
+| IA | Anthropic API (Claude Haiku 4.5 para parseo de pedidos) |
 | Deploy | Vercel (autodeploy desde `main`) |
 
 ## Estructura
 
 ```
 Vynia-MNGMNT/
-├── api/                    # Vercel Serverless Functions
-│   ├── _notion.js          # Modulo compartido: Notion client con retry, cache servidor, delay
-│   ├── pedidos.js          # GET (listar con filtro fecha/estado) + POST (crear pedido)
-│   ├── pedidos/[id].js     # PATCH (toggle recogido, no acude, etc.)
-│   ├── clientes.js         # GET (buscar) + POST (buscar o crear cliente)
-│   ├── registros.js        # GET (productos de un pedido | huerfanos) + POST (crear linea) + DELETE (archivar lineas)
-│   ├── produccion.js       # GET (produccion diaria agregada con clientes, incluye recogidos)
-│   └── productos.js        # GET (catalogo de productos desde Notion)
+├── api/                          # Vercel Serverless Functions
+│   ├── _notion.js                # Notion client, retry, cache, constantes compartidas
+│   ├── pedidos.js                # GET (listar + enrich server-side) + POST (crear)
+│   ├── pedidos/[id].js           # PATCH (estado, propiedades, archivar)
+│   ├── clientes.js               # GET (buscar) + POST (buscar o crear) + PATCH (actualizar)
+│   ├── registros.js              # GET/POST/DELETE registros + GET ?productos=true (catálogo)
+│   ├── produccion.js             # GET (producción diaria + modo rango multi-día)
+│   ├── tracking.js               # GET (seguimiento público, rate limited)
+│   └── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp)
+├── __tests__/                    # Vitest (77 tests, 16 ficheros)
+├── public/
+│   ├── seguimiento.html          # Página pública de seguimiento (standalone)
+│   └── *.png                     # Logos e imágenes
 ├── src/
-│   ├── App.jsx             # Componente principal (toda la UI, ~2100 lineas)
-│   └── api.js              # Cliente API frontend (wrapper fetch)
-├── main.jsx                # Entry point React
+│   ├── App.jsx                   # Shell principal (~700 líneas): provider, effects, layout
+│   ├── api.js                    # Cliente API frontend (fetch wrapper, cache SWR, dedup)
+│   ├── main.jsx                  # Entry point React
+│   ├── constants/
+│   │   ├── estados.js            # ESTADOS, ESTADO_NEXT, ESTADO_TRANSITIONS, effectiveEstado
+│   │   ├── catalogo.js           # CATALOGO_FALLBACK, PRICE_MAP, FRECUENTES
+│   │   ├── brand.js              # VYNIA_LOGO, VYNIA_LOGO_MD
+│   │   └── helpContent.jsx       # HELP_CONTENT (5 categorías de ayuda)
+│   ├── utils/
+│   │   ├── fmt.js                # fmt (todayISO, localISO, etc.), DAY_NAMES
+│   │   ├── helpers.js            # esTarde, computeDateSuggestions, waLink, parseProductsStr
+│   │   └── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
+│   ├── hooks/
+│   │   ├── useBreakpoint.js      # isDesktop / isTablet responsive hook
+│   │   ├── useTooltip.js         # Long-press mobile + hover desktop
+│   │   ├── useVersionCheck.js    # Poll version.json + visibilitychange
+│   │   ├── useCatalog.js         # localStorage SWR + background fetch catálogo
+│   │   ├── useGlassCalendar.jsx  # State + render del glass calendar horizontal
+│   │   ├── usePedidos.js         # Estado, CRUD, bulk, confirmaciones de pedidos
+│   │   └── useProduccion.js      # Producción diaria + invalidación
+│   ├── styles/
+│   │   ├── global.css            # Keyframes, CSS variables, media queries, print
+│   │   └── shared.js             # labelStyle, inputStyle, formSectionStyle
+│   ├── context/
+│   │   ├── VyniaContext.jsx      # VyniaProvider + useVynia() — UI/handlers
+│   │   └── PedidosContext.jsx    # PedidosProvider + usePedidosCtx() — datos de pedidos
+│   └── components/
+│       ├── Icons.jsx             # ~37 iconos SVG inline
+│       ├── EstadoGauge.jsx       # Semicírculo SVG de progreso
+│       ├── PipelineRing.jsx      # Anillo SVG de pipeline
+│       ├── TabPedidos.jsx        # Tab de lista de pedidos
+│       ├── TabNuevo.jsx          # Tab de crear pedido
+│       ├── TabProduccion.jsx     # Tab de producción diaria
+│       ├── OrderDetailModal.jsx  # Modal de detalle de pedido
+│       ├── ParseWhatsAppModal.jsx # Modal de parseo WhatsApp con IA
+│       ├── ListeningPopup.jsx    # Popup fullscreen de dictado por voz
+│       ├── ConfirmEstadoDialog.jsx # Confirmación de cambio de estado
+│       ├── ConfirmPagadoDialog.jsx # Confirmación de pago
+│       ├── PhoneMenuPopover.jsx  # Popover de acciones de teléfono
+│       ├── WhatsAppPrompt.jsx    # Prompt de envío de WhatsApp
+│       └── HelpOverlay.jsx       # Overlay de ayuda con bento grid
 ├── index.html
 ├── vite.config.js
-├── vercel.json             # Rewrites: /api/* → serverless, /* → SPA
-├── .env.local              # NOTION_TOKEN (gitignored)
+├── vercel.json                   # Rewrites, security headers, CSP
+├── .env.local                    # NOTION_TOKEN, ANTHROPIC_API_KEY (gitignored)
 └── package.json
 ```
 
 ## API Endpoints
 
 ### GET /api/pedidos
-- Query params: `filter=todos|pendientes|recogidos`, `fecha=YYYY-MM-DD`, `clienteId=<notion_page_id>`
-- Filtra por fecha a nivel de Notion (on_or_after + before nextDay)
-- Resuelve nombres de clientes via `pages.retrieve` en la relacion Clientes
-- Resuelve telefono via rollup
-- Paginacion automatica via cursor
-- Devuelve: `[{ id, titulo, fecha, recogido, noAcude, pagado, incidencia, notas, numPedido, cliente, telefono, clienteId }]`
+- Query params: `filter=todos|pendientes|recogidos`, `fecha=YYYY-MM-DD`, `clienteId=<id>`
+- Enriquecimiento server-side: devuelve `productos` (string) e `importe` (number) calculados en backend via OR query por chunks de 100
+- Paginación automática via cursor
 
 ### POST /api/pedidos
 - Body: `{ properties: { ... } }` — propiedades Notion del pedido
-- Devuelve `{ id }` del pedido creado
+- Usa `Notion-Version: 2025-09-03` con `template: { type: "default" }` para aplicar plantilla de BD
 
 ### PATCH /api/pedidos/:id
-- Body: `{ properties: { ... }, archived?: boolean }` — propiedades a actualizar o archivar
-- Usado para toggle recogido, no acude, cambiar fecha, cancelar pedido (archived)
+- Body: `{ properties: { ... }, archived?: boolean }`
+- Dual-write: `Estado` status + checkboxes sync (Recogido/NoAcude/Incidencia)
 
 ### GET /api/clientes
-- Query params: `q=<search_term>` — busca clientes por nombre, telefono o email (filtro `or`)
-- Devuelve: `[{ id, nombre, telefono, email }]`
+- Query params: `q=<search>` — busca por nombre, teléfono o email (filtro `or`)
 
 ### POST /api/clientes
-- Body: `{ nombre, telefono? }`
-- Busca cliente por nombre exacto. Si no existe, lo crea
-- Devuelve `{ id, created: boolean }`
+- Body: `{ nombre, telefono? }` — busca o crea cliente
+
+### PATCH /api/clientes
+- Body: `{ id, nombre?, telefono?, email? }` — actualiza datos del cliente
 
 ### GET /api/registros
-- Query params: `pedidoId=<notion_page_id>` — productos de un pedido: `[{ id, nombre, unidades }]`
-- Query params: `orphans=true` — registros sin pedido asociado: `{ orphanIds: [string], count: number }`
+- `?pedidoId=<id>` — productos de un pedido
+- `?productos=true` — catálogo completo (reemplaza al antiguo `/api/productos`)
+- `?orphans=true` — registros sin pedido asociado
 
 ### POST /api/registros
-- Body: `{ pedidoPageId, productoNombre, cantidad }`
-- Busca producto por nombre en BD Productos y crea registro vinculado al pedido
+- **Modo single**: `{ pedidoPageId, productoNombre, cantidad }`
+- **Modo batch**: `{ pedidoPageId, lineas: [{ productoNombre, cantidad }] }` — crea múltiples registros en paralelo (lotes de 10)
 
 ### DELETE /api/registros
-- Body: `{ registroIds: [string] }`
-- Archiva los registros (lineas de pedido) especificados en Notion
-- Usado para modificar pedidos: se borran los registros existentes y se recrean con los nuevos datos
+- Body: `{ registroIds: [string] }` — archiva registros en lotes de 10 en paralelo
 
 ### GET /api/produccion
-- Query params: `fecha=YYYY-MM-DD`
-- Filtra pedidos del dia (incluye recogidos, excluye no-acude), consulta registros asociados
-- Agrega productos con cantidades totales. Incluye flag `recogido` por pedido para discriminar en frontend
-- Resuelve nombres de clientes
-- Devuelve: `{ productos: [{ nombre, totalUnidades, pedidos: [...] }] }`
+- `?fecha=YYYY-MM-DD` — producción diaria agregada con datos de clientes
+- `?fecha=YYYY-MM-DD&rango=7` — producción ligera multi-día (solo nombre + unidades por producto/día)
 
-### GET /api/productos
-- Sin parametros
-- Consulta la BD Productos de Notion con paginacion automatica (cursor)
-- Excluye productos sin nombre o sin precio
-- Devuelve array ordenado alfabeticamente: `[{ nombre, precio, cat }]`
+### POST /api/parse-order
+- Body: `{ text?, imageBase64?, senderName?, senderPhone? }`
+- Parsea texto/imagen con Claude Haiku 4.5 (vision), devuelve datos estructurados del pedido
+- Lookup de cliente por teléfono en BD Clientes
+
+### GET /api/tracking
+- Query params: `tel=<teléfono>` (mínimo 6 dígitos)
+- **Endpoint público** — rate limited: 10 req/min por IP + 3 req/min por teléfono
+- No expone IDs internos, notas ni estado de pago
 
 ## Bases de Datos Notion
-
-La app utiliza 4 bases de datos dentro de la pagina "Gestiona Tu Obrador":
 
 | BD | ID | Uso |
 |----|-----|-----|
 | Pedidos | `1c418b3a-38b1-81a1-9f3c-da137557fcf6` | Pedidos de clientes |
 | Clientes | `1c418b3a-38b1-811f-b3ab-ea7a5e513ace` | Datos de clientes |
-| Productos | `1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2` | Catalogo de productos |
-| Registros | `1d418b3a-38b1-808b-9afb-c45193c1270b` | Lineas de pedido (producto + cantidad) |
+| Productos | `1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2` | Catálogo de productos |
+| Registros | `1d418b3a-38b1-808b-9afb-c45193c1270b` | Líneas de pedido (producto + cantidad) |
 
-Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
+Integración: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 
 ## Desarrollo local
 
 ```bash
 npm install
 
-# Con API real (necesita NOTION_TOKEN en .env.local)
+# Con API real (necesita NOTION_TOKEN + ANTHROPIC_API_KEY en .env.local)
 vercel dev
 
 # Solo frontend (modo DEMO funciona sin API)
 npx vite
+
+# Tests (lento en Google Drive — copiar a /tmp/vynia-test con rsync primero)
+npm test
 ```
 
 ## Variables de entorno
 
-| Variable | Descripcion |
+| Variable | Descripción |
 |----------|-------------|
-| `NOTION_TOKEN` | Token de la integracion "Frontend Vynia" en Notion |
+| `NOTION_TOKEN` | Token de la integración "Frontend Vynia" en Notion |
+| `ANTHROPIC_API_KEY` | Token de Anthropic para Claude Haiku 4.5 (parseo WhatsApp) |
 
-Se configura en `.env.local` para desarrollo local y en el dashboard de Vercel para produccion.
+Se configuran en `.env.local` para desarrollo local y en el dashboard de Vercel para producción.
 
 ## Modos
 
 - **LIVE** — Conecta a Notion API real (por defecto si API disponible)
-- **DEMO** — Datos locales hardcodeados para testing sin API. Se activa con toggle en header o automaticamente si falla la API
+- **DEMO** — Datos locales hardcodeados para testing sin API. Se activa con toggle en menú hamburguesa o automáticamente si falla la API
 
 ## UI / UX
 
 - **Palette**: Vynia brand — primario `#4F6867`, secundario `#1B1C39`, accent `#E1F2FC`, bg `#EFE9E4`, muted `#A2C2D0`
-- **Fuentes**: Roboto Condensed (titulos/numeros), Inter (texto)
-- **Responsive**: Mobile-first con breakpoints JS (desktop >=1024px 3 columnas, tablet >=768px 2 columnas, mobile 1 columna). Max-width 1400px desktop / 960px tablet-mobile
-- **Tooltips**: Hover (desktop) + long-press ~0.4s (movil) con popup animado
-- **Print**: CSS @media print para imprimir lista de pedidos/produccion
-- **Bottom nav**: 3 tabs fijas (Pedidos, Nuevo, Produccion) con safe-area-inset-bottom
+- **Fuentes**: Roboto Condensed (títulos/números), Inter (texto)
+- **Layout**: Full-width 100%, columnas auto-fill responsive `minmax(320px, 1fr)`
+- **Glass calendar**: Date picker horizontal con backdrop-blur, strip scrollable, domingos en rojo
+- **Filtros**: Pills con efecto tubelight (glow bar animada en pill activo)
+- **Cards**: Hover shadow, EstadoGauge semicircular SVG, pipeline 1-tap
+- **Loaders**: Logo loader con rotación (logoSpin)
+- **Tooltips**: Hover (desktop) + long-press ~0.4s (móvil)
+- **Bottom nav**: 3 tabs fijas con iconos dock-style (ClipboardList, ChefHat) + dot indicator
 
-## Deploy
+## Sistema de Estado
 
-- Vercel project: `vynia-mngmnt`
-- Git integration: push a `main` autodeploya
-- Repo: `github.com/javintnvn/Vynia-MNGMNT`
+`Estado` (propiedad status de Notion) es la **source of truth**. Los checkboxes se mantienen sincronizados via dual-write.
 
-## Notas tecnicas
-
-- `@notionhq/client` debe ser v2.x (v5.x elimino `databases.query`, NO actualizar)
-- El campo `"Unidades "` en Registros tiene un espacio trailing — respetar siempre
-- El campo `"Nombre"` (title) en Registros contiene solo `" "` — usar `"AUX Producto Texto"` (formula) para el nombre real del producto
-- `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
-- El telefono del cliente viene de un rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
-- El nombre del cliente viene del rollup `"AUX Nombre Cliente"` en Pedidos: `p["AUX Nombre Cliente"]?.rollup?.array[0]?.title[0]?.plain_text` — elimina la necesidad de llamadas extra `pages.retrieve`
-- Toda la UI esta en un solo componente `App.jsx` — no hay componentes separados
-- El catalogo de productos se carga dinamicamente desde Notion via `GET /api/productos`. En App.jsx existe `CATALOGO_FALLBACK` (69 productos) como respaldo para modo DEMO o si falla la API
-- Notion es la source of truth para productos y precios: si se crea o modifica un producto en Notion, la app lo refleja sin intervencion
-- Todos los endpoints importan `notion` desde `_notion.js` — modulo compartido que centraliza el client de Notion con retry automatico
-- `_notion.js` usa Proxy JS para interceptar todas las llamadas `notion.*.method()` y envolver con retry (backoff exponencial: 1s → 2s → 4s + jitter random, max 3 reintentos) en errores 429, 502, 503
-- `cached(key, ttlMs, fn)` — cache server-side en Map a nivel de modulo, persiste en instancias warm de Vercel (independiente por funcion serverless)
-- `delay(ms)` — pausa entre operaciones secuenciales de escritura para evitar rafagas que disparen rate limits
-- El importe de cada pedido se calcula en frontend: se cargan registros en background por lotes de 5, se cruzan nombres de productos con PRICE_MAP (lookup case-insensitive con `toLowerCase().trim()`) y se suman `unidades * precio`
-- Modificar pedido usa estrategia delete-all + recreate: archiva todos los registros existentes y crea nuevos
-- Clasificacion Manana/Tarde: `esTarde(p)` detecta keyword "tarde" en notas, hora >= 17 en notas (regex), u hora >= 17 en Fecha entrega
-- Responsive usa hook `useBreakpoint()` con breakpoints JS (no CSS media queries) para mantener coherencia con inline styles
-- Callbacks como `loadPedidos(fechaParam)` NO deben pasarse directamente a `onClick` — usar `onClick={() => loadPedidos()}` para evitar que el evento se interprete como argumento
-- Version y fecha de build se inyectan en compile time via `vite.config.js` `define`: `__APP_VERSION__` (de package.json) y `__APP_BUILD_DATE__` (ISO timestamp del build). Se actualizan automaticamente en cada deploy
+| Estado | Grupo | Color | Pipeline 1-tap |
+|--------|-------|-------|----------------|
+| Sin empezar | to_do | #8B8B8B | → En preparación |
+| En preparación | in_progress | #1565C0 | → Listo para recoger |
+| Listo para recoger | in_progress | #E65100 | → Recogido |
+| Recogido | complete | #2E7D32 | (fin) |
+| No acude | complete | #C62828 | (fin) |
+| Incidencia | complete | #795548 | (fin) |
 
 ## Performance
 
-- **Memoizacion**: `useMemo` en pedidosFiltrados, stats (single-pass), groups, productosFiltrados, prodView
-- **PRICE_MAP**: Lookup de precios a nivel de modulo, se reconstruye dinamicamente al cargar productos de Notion
-- **Batch importe**: Un solo `setPedidos` tras todos los batches (en vez de uno por batch)
-- **esTarde cache**: Resultados cacheados en Set por grupo de fecha (evita 3x llamadas por pedido)
-- **API dedup**: Requests GET en vuelo deduplicados (evita duplicados por clicks rapidos)
-- **API cache**: Cache en memoria con TTL 30s para GETs (evita re-fetch al cambiar tabs)
-- **Vendor chunk**: React separado en chunk independiente (cacheable por separado)
-- **Font optimization**: Solo pesos usados (400-800), preconnect hints
-- **Static assets**: Cache-Control immutable para assets hasheados en Vercel
-- **Retry automatico**: Proxy en `_notion.js` reintenta 429/502/503 con backoff exponencial (transparente para endpoints)
-- **Cache servidor**: `productos` 5min, `produccion` 30s (Map en instancia warm Vercel, independiente por funcion serverless)
-- **Rollup cliente**: nombre del cliente via rollup `"AUX Nombre Cliente"` en Notion — elimina N+1 queries `pages.retrieve` (0 API calls extra vs N antes)
-- **Batch delete registros**: archivado en lotes de 3 en paralelo con 200ms entre lotes (vs secuencial con 300ms antes)
-- **Enrich cap**: enriquecimiento de importes limitado a 50 pedidos (evita cientos de API calls al cargar "Todos")
-- **Write throttling**: 300ms entre archives en DELETE registros, 200ms entre batches de queries paralelas en pedidos/produccion
+- **Server-side enrich**: `GET /api/pedidos` calcula importe + productos en backend (OR query por chunks de 100)
+- **SWR frontend**: Cache 45s con stale-while-revalidate en `api.js`, dedup de requests en vuelo
+- **Catálogo SWR**: localStorage 2h + background revalidation
+- **Auto-refresh**: Poll 120s + visibilitychange (con `skipEnrich` para preservar datos)
+- **Batch registros**: POST batch para crear múltiples registros en 1 request
+- **Cache servidor**: pedidos 10s, producción 60s, catálogo 30min, tracking 15s
+- **Retry automático**: Proxy en `_notion.js`, 429/502/503, backoff exponencial + jitter
+
+## Deploy
+
+- Vercel project: `vynia-mngmnt` en team `javiers-projects-9e54bc4d`
+- Git integration: push a `main` autodeploya
+- Repo: `github.com/javintnvn/Vynia-MNGMNT`
+- **Límite Hobby plan**: max 12 Serverless Functions (actualmente 7 usadas)
+
+## Notas técnicas
+
+- `@notionhq/client` debe ser v2.x (v5.x eliminó `databases.query`, NO actualizar)
+- El campo `"Unidades "` en Registros tiene un espacio trailing — usar constante `PROP_UNIDADES` de `_notion.js`
+- El campo `"Nombre"` (title) en Registros contiene solo `" "` — usar `"AUX Producto Texto"` (fórmula)
+- `"N Pedido"` es tipo `unique_id`, acceder via `.unique_id.number`
+- Teléfono del cliente viene de rollup en Pedidos: `p["Telefono"]?.rollup?.array[0]?.phone_number`
+- Nombre del cliente viene de rollup `"AUX Nombre Cliente"` en Pedidos (0 API calls extra)
+- Arquitectura modular: App.jsx es shell (~700 líneas) con 2 contextos (VyniaContext + PedidosContext), 7 hooks custom, 14 componentes
+- El catálogo se carga via `GET /api/registros?productos=true` (consolidado en registros.js para respetar límite de funciones)
+- Security headers en `vercel.json`: CSP, HSTS, X-Frame-Options, Permissions-Policy (microphone=self)
