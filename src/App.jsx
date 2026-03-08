@@ -15,6 +15,8 @@ import ConfirmPagadoDialog from "./components/ConfirmPagadoDialog.jsx";
 import WhatsAppPrompt from "./components/WhatsAppPrompt.jsx";
 import PhoneMenuPopover from "./components/PhoneMenuPopover.jsx";
 import HelpOverlay from "./components/HelpOverlay.jsx";
+import HorarioEditor from "./components/HorarioEditor.jsx";
+import { loadHorarioLocal, loadHorario as loadHorarioAsync } from "./utils/horario.js";
 import OrderDetailModal from "./components/OrderDetailModal.jsx";
 import TabNuevo from "./components/TabNuevo.jsx";
 import TabProduccion from "./components/TabProduccion.jsx";
@@ -39,6 +41,9 @@ export default function VyniaApp() {
   const [showMenu, setShowMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [mostrarDatos, setMostrarDatos] = useState(false);
+  const [showHorario, setShowHorario] = useState(false);
+  const [horario, setHorario] = useState(null);
+  const [horarioLastEdited, setHorarioLastEdited] = useState(null);
 
   // ─── REFS ───
   const toastTimer = useRef(null);
@@ -72,6 +77,17 @@ export default function VyniaApp() {
 
   // ─── INITIAL LOAD ───
   useEffect(() => { ped.loadPedidos(); prod.loadProduccion(); }, [apiMode]);
+
+  // ─── HORARIO LOAD (localStorage instant + Notion async) ───
+  useEffect(() => {
+    const local = loadHorarioLocal();
+    if (local?.horario) { setHorario(local.horario); setHorarioLastEdited(local.lastEdited || null); }
+    if (apiMode !== "demo") {
+      loadHorarioAsync().then(res => {
+        if (res?.horario) { setHorario(res.horario); setHorarioLastEdited(res.lastEdited || null); }
+      }).catch(() => {});
+    }
+  }, [apiMode]);
 
   // ─── Auto-refresh: reload on tab focus (debounced) + poll every 120s ───
   useEffect(() => {
@@ -132,6 +148,8 @@ export default function VyniaApp() {
     mostrarDatos, setMostrarDatos,
     // Glass calendar
     renderGlassCal, openGlassCal, setGlassCalTarget, glassCalTarget,
+    // Horario
+    horario,
   };
 
   const pedCtx = {
@@ -287,6 +305,7 @@ export default function VyniaApp() {
                   { icon: <I.Refresh s={16} />, label: "Recargar pedidos", action: () => { invalidateApiCache(); ped.loadPedidos(); } },
                   { icon: <I.Printer s={16} />, label: "Imprimir", action: () => window.print() },
                   { icon: <I.Help s={16} />, label: "Manual de uso", action: () => { setShowHelp(true); } },
+                  { icon: <I.Clock s={16} />, label: "Horario del negocio", action: () => setShowHorario(true) },
                   { icon: <I.Broom s={16} />, label: "Limpiar registros", action: ped.cleanupOrphanRegistros },
                 ].map((item, i) => (
                   <button key={i} onClick={() => { setShowMenu(false); item.action(); }} style={{
@@ -525,6 +544,15 @@ export default function VyniaApp() {
         {ped.phoneMenu && <PhoneMenuPopover phoneMenu={ped.phoneMenu} onClose={() => ped.setPhoneMenu(null)} />}
 
         {showHelp && <HelpOverlay initialCategory={tab === "produccion" ? "produccion" : tab === "nuevo" ? "nuevo" : "pedidos"} onClose={() => setShowHelp(false)} />}
+
+        {showHorario && (
+          <HorarioEditor
+            horario={horario}
+            lastEdited={horarioLastEdited}
+            onSave={(updated) => setHorario(updated)}
+            onClose={() => setShowHorario(false)}
+          />
+        )}
 
       </main>
 

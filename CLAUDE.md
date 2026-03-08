@@ -12,7 +12,7 @@
 ```
 Vynia-MNGMNT/
 ├── api/                          # Vercel Serverless Functions
-│   ├── _notion.js                # Notion client, retry, cached/clearCached, shared constants (PROP_UNIDADES, DB_REGISTROS, DB_PRODUCTOS, DB_PLANIFICACION), extractors (extractTitle/RichText/DateStart), loadCatalog
+│   ├── _notion.js                # Notion client, retry, cached/clearCached, shared constants (PROP_UNIDADES, DB_REGISTROS, DB_PRODUCTOS, DB_PLANIFICACION, DB_HORARIO), extractors (extractTitle/RichText/DateStart), loadCatalog
 │   ├── pedidos.js                # GET (listar con filtro) + POST (crear pedido)
 │   ├── pedidos/[id].js           # PATCH (cambiar estado, propiedades)
 │   ├── clientes.js               # GET (buscar) + POST (buscar o crear) + PATCH (actualizar cliente)
@@ -20,6 +20,7 @@ Vynia-MNGMNT/
 │   ├── produccion.js             # GET (produccion diaria agregada) + GET/POST ?surplus=true (planificacion Notion)
 │   ├── tracking.js               # GET (seguimiento publico por telefono)
 │   ├── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
+│   ├── horario.js                # GET/PATCH (horario semanal del negocio, hybrid localStorage + Notion)
 │   └── health.js                 # GET (health check — conectividad Notion, monitorizable)
 ├── __tests__/                    # Vitest test suite (125 tests, 20 files)
 ├── public/
@@ -37,6 +38,7 @@ Vynia-MNGMNT/
 │   │   ├── fmt.js                # fmt object (todayISO, localISO, etc.), DAY_NAMES
 │   │   ├── helpers.js            # esTarde, computeDateSuggestions, waLink, parseProductsStr
 │   │   ├── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
+│   │   ├── horario.js           # loadHorario, saveHorarioDia, isOpenDay, jsDayToBdIndex (hybrid localStorage + Notion)
 │   │   └── stats.js             # computePedidoStats, computeBulkTransitions
 │   ├── hooks/
 │   │   ├── useBreakpoint.js      # isDesktop / isTablet responsive hook
@@ -66,7 +68,8 @@ Vynia-MNGMNT/
 │       ├── ConfirmPagadoDialog.jsx # Dialogo de confirmacion de pago
 │       ├── PhoneMenuPopover.jsx  # Popover de acciones de telefono
 │       ├── WhatsAppPrompt.jsx    # Prompt de envio de WhatsApp
-│       └── HelpOverlay.jsx       # Overlay de ayuda con bento grid
+│       ├── HelpOverlay.jsx       # Overlay de ayuda con bento grid
+│       └── HorarioEditor.jsx    # Editor de horario semanal (modal desde menu hamburguesa)
 ├── main.jsx                      # Entry point React (importa global.css)
 ├── index.html
 ├── vite.config.js
@@ -87,6 +90,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 | Productos | `1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2` | Catalogo de productos |
 | Registros | `1d418b3a-38b1-808b-9afb-c45193c1270b` | Lineas de pedido (producto + cantidad) |
 | Planificacion | `b0147c49-24d5-461a-b377-54a234cc4a94` | Planificacion de produccion diaria (nombre + fecha + unidades) |
+| Horario Negocio | `31d18b3a-38b1-8089-8c9f-d23e085ec633` | Horario semanal del obrador (7 paginas, L-D) |
 
 ## Propiedades Notion importantes
 
@@ -118,6 +122,16 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 ### Productos
 - title — nombre del producto (ej: "Brownie", "Cookies de chocolate y avellanas")
 - El catalogo completo esta hardcodeado en `constants/catalogo.js` como `CATALOGO_FALLBACK[]`, con carga dinamica via `/api/registros?productos=true`
+
+### Horario Negocio
+- `"Nombre"` — title ("Lunes", "Martes"... "Domingo")
+- `"Día"` — number (0=Lunes, 1=Martes, 2=Miercoles, 3=Jueves, 4=Viernes, 5=Sabado, 6=Domingo)
+- `"Abierto"` — checkbox
+- `"Hora apertura"` — rich_text ("HH:MM")
+- `"Hora cierre"` — rich_text ("HH:MM")
+- `"Hora apertura 2"` — rich_text, segundo tramo opcional ("HH:MM")
+- `"Hora cierre 2"` — rich_text, segundo tramo opcional ("HH:MM")
+- Ultima edicion — last_edited_time (automatica de Notion)
 
 ## API Endpoints
 
@@ -223,6 +237,19 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 - Pedidos ordenados por fecha descendente (mas recientes primero), max 20
 - Cache server-side 15s (misma consulta repetida)
 
+### GET /api/horario
+- Lee todas las paginas de la BD Horario Negocio (7 paginas, una por dia de la semana)
+- Cache server-side 5 min (`cached("horario", 300000, ...)`)
+- Devuelve `{ horario: { 0: { abierto, apertura, cierre, apertura2, cierre2, pageId }, ... 6: {...} }, lastEdited: "ISO string" }`
+- `apertura2`/`cierre2` son strings o null (segundo tramo horario partido)
+- `lastEdited` es el MAX de todos los `last_edited_time` de las 7 paginas
+
+### PATCH /api/horario
+- Body: `{ dia: number, abierto?: boolean, apertura?: string, cierre?: string, apertura2?: string, cierre2?: string }`
+- Busca la pagina con `Dia === dia`, actualiza propiedades correspondientes
+- Invalida cache: `clearCached("horario")`
+- Devuelve `{ ok: true }`
+
 ### Pagina de seguimiento (`/seguimiento`)
 - URL standalone: `https://vynia-mngmnt.vercel.app/seguimiento`
 - URL publica (iframe en WordPress): `https://vynia.es/mi-pedido/`
@@ -269,11 +296,13 @@ Exporta objeto `notion` con metodos, y funciones de cache `invalidateApiCache()`
 - `parseWhatsApp(text?, senderName?, senderPhone?, imageBase64?)` — POST /api/parse-order (texto, imagen, o ambos)
 - `loadSurplus(fecha)` — GET /api/produccion?surplus=true&fecha=... (planificacion desde Notion)
 - `saveSurplus(fecha, plan)` — POST /api/produccion (surplus write-through a Notion)
+- `loadHorario()` — GET /api/horario (horario semanal desde Notion)
+- `saveHorarioDia(dia, data)` — PATCH /api/horario (write-through a Notion)
 
 ## Tabs de la app
 
 1. **Pedidos** — Lista de pedidos con filtros estadisticos (pendientes/hoy/recogidos/todos), pills de filtro, badge de estado prominente como cabecera de cada card, boton pipeline (1 tap avanza estado), estado picker popover, enlace telefono, busqueda de clientes con ficha (enlace a Notion, edicion inline de nombre/telefono/email), seleccion bulk para cambio de estado multiple, toggle de visibilidad de precios (boton `€ ON/OFF` junto a barra de busqueda, oculto por defecto). Fila de fecha: botones Hoy/Manana/Pasado a la izquierda + datepicker al extremo derecho. Modal de detalle incluye: edicion inline de notas (crear/modificar/eliminar via textarea), edicion de fecha, modificar productos, y cambio de estado
-2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. Boton "Pegar pedido" (card premium con shine effect) abre modal para importar pedidos de WhatsApp via: texto pegado, captura de pantalla (drag-drop/clipboard/file), o dictado por voz (Web Speech API, boton "Dictar" con pulso animado). Parseo con Claude Haiku 4.5 (vision), preview con confianza, matching contra catalogo, lookup de cliente por telefono. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas)` — logica pura sin IA. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
+2. **Nuevo** — Formulario en DOS pasos para crear pedido: 1) Cliente (autocompletado), productos del catalogo (busqueda + cantidades con NumberFlow) + notas + pagado toggle. Boton "Pegar pedido" (card premium con shine effect) abre modal para importar pedidos de WhatsApp via: texto pegado, captura de pantalla (drag-drop/clipboard/file), o dictado por voz (Web Speech API, boton "Dictar" con pulso animado). Parseo con Claude Haiku 4.5 (vision), preview con confianza, matching contra catalogo, lookup de cliente por telefono. 2) Sugerencias inteligentes de fecha (analiza produccion de proximos 7 dias, muestra chips con fechas que comparten productos del carrito, scoring `overlapCount*3 + overlapUnits`, max 3 sugerencias) + Fecha (presets hoy/manana/pasado + datepicker + hora). Crea con Estado = "Sin empezar". Funcion de scoring: `computeDateSuggestions(produccionRango, lineas, horario?)` — logica pura sin IA, filtra dias cerrados si se pasa horario. Estado: `dateSuggestions`, `suggestionsLoading`. Fetch async via `loadProduccionRango()` al pasar a Paso 2
 3. **Produccion** — Vista agregada de productos por dia. Selector de fecha (presets + datepicker). Seccion "Disponible para venta": flujo de 3 estados — boton CTA "Planificar produccion" → modo edicion (steppers, busqueda catalogo, pills frecuentes) → resumen compacto con totales plan/pedidos/disponibles y badges de excedente/deficit. Datos persistidos en Notion (BD Planificacion) con write-through a localStorage para carga instantanea; fallback a localStorage si API falla (modo offline). Limpieza >7 dias. Filtros "Pendiente" (resta pedidos "Listo para recoger" y "Recogido") y "Todo el dia" (muestra todo). Barra de resumen con conteo de productos, boton "Desplegar/Contraer" (expande o colapsa todos los acordeones a la vez) y total de unidades pendientes. Lista de productos con badge de cantidad total. Accordion: click en producto muestra pedidos filtrados con nombre de cliente y badge de estado (click individual en modo expandAll contrae todo y deja solo ese producto). Click en pedido abre modal con detalle completo. Cambiar fecha o filtro resetea el estado de expansion
 
 ## Sistema de Estado
@@ -466,7 +495,7 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 - **Framework**: Vitest 4.x con jsdom
 - **Ejecutar**: `npm test` (o `npx vitest run`)
-- **21 archivos de test**, 133 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions, latencia (withTiming, AbortController timeout, health endpoint)
+- **23 archivos de test**, 170 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions, latencia (withTiming, AbortController timeout, health endpoint), horario (jsDayToBdIndex, isOpenDay, getOpenDaysInRange, hybrid sync, write-through)
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
 ## Troubleshooting
@@ -522,3 +551,8 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Docs
 - **DOCS-06**: Ampliar manual de ayuda in-app (`helpContent.jsx`) — categoria "Nuevo Pedido" ampliada de 2 a 6 secciones: (1) Pegar pedido (importar de WhatsApp via texto/imagen), (2) Dictado por voz (Web Speech API, popup fullscreen, transcripcion en tiempo real), (3) Revisar resultado del analisis (preview con confianza, productos matched/unmatched, aplicar), (4) Sugerencias inteligentes de fecha (analisis produccion 7 dias, chips con solapamiento, scoring), (5) Paso 2 actualizado con mencion a sugerencias. Paso 1 sin cambios
+
+## Changelog v2.12.0
+
+### Mejoras
+- **FEAT-44**: Horario del negocio — configuracion semanal (L-D) con soporte horario partido (2 tramos por dia), persistido en Notion BD "Horario Negocio" (`DB_HORARIO`). Editor accesible desde menu hamburguesa con auto-save y sync cross-device (hybrid localStorage + Notion). `computeDateSuggestions` filtra dias cerrados (3er parametro opcional, backward compatible). Presets de fecha Hoy/Manana/Pasado muestran indicador "Cerrado" con strikethrough. Nuevo endpoint `GET/PATCH /api/horario` (funcion serverless 9 de 12). Documentacion en overlay de ayuda. 37 tests nuevos (33 horario + 4 date-suggestions)

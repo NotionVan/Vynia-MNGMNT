@@ -1,4 +1,5 @@
 import { fmt } from "./fmt.js";
+import { isOpenDay } from "./horario.js";
 
 // ─── MAÑANA / TARDE DETECTION ───
 export function esTarde(p) {
@@ -28,10 +29,11 @@ export function parseProductsStr(str) {
 }
 
 // ─── DATE SUGGESTIONS (scoring for delivery date optimization) ───
-export function computeDateSuggestions(produccionRango, lineas) {
+export function computeDateSuggestions(produccionRango, lineas, horario) {
   if (!produccionRango || !lineas || lineas.length === 0) return [];
   const selected = new Set(lineas.map(l => l.nombre.toLowerCase().trim()));
   return Object.entries(produccionRango)
+    .filter(([date]) => isOpenDay(horario, date))
     .map(([date, productos]) => {
       const overlapping = productos.filter(p => selected.has(p.nombre.toLowerCase().trim()));
       const overlapCount = overlapping.length;

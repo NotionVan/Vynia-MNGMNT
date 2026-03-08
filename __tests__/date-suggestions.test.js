@@ -126,4 +126,62 @@ describe("computeDateSuggestions", () => {
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe("2026-03-08");
   });
+
+  // ─── Horario integration ───
+
+  it("with null horario behaves identically (backward compat)", () => {
+    const rango = {
+      "2026-03-07": [{ nombre: "Brownie", totalUnidades: 5 }],
+    };
+    const lineas = [{ nombre: "Brownie", cantidad: 1 }];
+    const withNull = computeDateSuggestions(rango, lineas, null);
+    const withUndefined = computeDateSuggestions(rango, lineas, undefined);
+    const withoutParam = computeDateSuggestions(rango, lineas);
+    expect(withNull).toEqual(withoutParam);
+    expect(withUndefined).toEqual(withoutParam);
+  });
+
+  it("excludes closed day even if it has high score", () => {
+    const rango = {
+      // 2026-03-08 is Sunday → bdIndex 6
+      "2026-03-08": [{ nombre: "Brownie", totalUnidades: 20 }],
+      // 2026-03-09 is Monday → bdIndex 0
+      "2026-03-09": [{ nombre: "Brownie", totalUnidades: 2 }],
+    };
+    const lineas = [{ nombre: "Brownie", cantidad: 1 }];
+    const horario = {
+      0: { abierto: true },  // Lunes open
+      6: { abierto: false }, // Domingo closed
+    };
+    const result = computeDateSuggestions(rango, lineas, horario);
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe("2026-03-09");
+  });
+
+  it("returns empty when all days with overlap are closed", () => {
+    const rango = {
+      "2026-03-08": [{ nombre: "Brownie", totalUnidades: 5 }], // Sunday
+      "2026-03-07": [{ nombre: "Brownie", totalUnidades: 3 }], // Saturday
+    };
+    const lineas = [{ nombre: "Brownie", cantidad: 1 }];
+    const horario = {
+      5: { abierto: false }, // Sabado
+      6: { abierto: false }, // Domingo
+    };
+    const result = computeDateSuggestions(rango, lineas, horario);
+    expect(result).toEqual([]);
+  });
+
+  it("with all-open horario gives same result as no horario", () => {
+    const rango = {
+      "2026-03-07": [{ nombre: "Brownie", totalUnidades: 5 }],
+      "2026-03-08": [{ nombre: "Cookie", totalUnidades: 3 }],
+    };
+    const lineas = [{ nombre: "Brownie", cantidad: 1 }];
+    const allOpen = {};
+    for (let i = 0; i < 7; i++) allOpen[i] = { abierto: true };
+    const withHorario = computeDateSuggestions(rango, lineas, allOpen);
+    const without = computeDateSuggestions(rango, lineas);
+    expect(withHorario).toEqual(without);
+  });
 });

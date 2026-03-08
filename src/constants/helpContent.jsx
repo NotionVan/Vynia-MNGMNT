@@ -282,6 +282,18 @@ const HELP_CONTENT = [
         content: "Cuando hay una nueva version desplegada, aparece un banner en la parte inferior.",
         steps: ["Pulsa Actualizar para recargar con la ultima version"],
       },
+      {
+        title: "Horario del negocio",
+        content: "Configura los dias y horas de apertura de tu obrador para que las sugerencias de fecha de entrega sean mas precisas.",
+        steps: [
+          "Abre el menu hamburguesa y pulsa Horario del negocio",
+          "Activa o desactiva cada dia de la semana con el toggle",
+          "Para los dias abiertos, ajusta la hora de apertura y cierre. Si tu obrador tiene horario partido (manana y tarde), pulsa Anadir segundo tramo para configurar el segundo horario.",
+          "Los cambios se guardan automaticamente y se sincronizan entre dispositivos",
+          "Al crear un nuevo pedido, las sugerencias inteligentes de fecha excluiran automaticamente los dias cerrados",
+        ],
+        tip: "Si no configuras el horario, el sistema asume que abres todos los dias (comportamiento por defecto). Los dias marcados como cerrados se muestran tachados en el selector de fecha, pero puedes seleccionarlos manualmente si lo necesitas.",
+      },
     ],
   },
 ];

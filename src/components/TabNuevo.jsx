@@ -5,13 +5,14 @@ import { notion } from "../api.js";
 import { FRECUENTES } from "../constants/catalogo.js";
 import { fmt, DAY_NAMES } from "../utils/fmt.js";
 import { computeDateSuggestions } from "../utils/helpers.js";
+import { isOpenDay } from "../utils/horario.js";
 import { labelStyle, inputStyle, formSectionStyle } from "../styles/shared.js";
 import ParseWhatsAppModal from "./ParseWhatsAppModal.jsx";
 import ListeningPopup from "./ListeningPopup.jsx";
 import { useVynia } from "../context/VyniaContext.jsx";
 
 export default function TabNuevo({ onCreatePedido, onViewOrder }) {
-  const { isDesktop, apiMode, catalogo, notify } = useVynia();
+  const { isDesktop, apiMode, catalogo, notify, horario } = useVynia();
   // ─── State ───
   const [cliente, setCliente] = useState("");
   const [clienteSuggestions, setClienteSuggestions] = useState([]);
@@ -696,7 +697,7 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
               if (apiMode !== "demo" && lineas.length > 0) {
                 setSuggestionsLoading(true);
                 notion.loadProduccionRango(fmt.todayISO(), 7)
-                  .then(data => setDateSuggestions(computeDateSuggestions(data.produccion || {}, lineas)))
+                  .then(data => setDateSuggestions(computeDateSuggestions(data.produccion || {}, lineas, horario)))
                   .catch(() => setDateSuggestions([]))
                   .finally(() => setSuggestionsLoading(false));
               }
@@ -801,8 +802,10 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
                     { label: "Hoy", val: fmt.todayISO() },
                     { label: "Mañana", val: fmt.tomorrowISO() },
                     { label: "Pasado", val: fmt.dayAfterISO() },
-                  ].map(d => (
-                    <button key={d.label} title={`Fecha de entrega: ${d.label.toLowerCase()}`} onClick={() => setFecha(d.val)}
+                  ].map(d => {
+                    const closed = !isOpenDay(horario, d.val);
+                    return (
+                    <button key={d.label} title={`Fecha de entrega: ${d.label.toLowerCase()}${closed ? " (cerrado)" : ""}`} onClick={() => setFecha(d.val)}
                       style={{
                         flex: 1, padding: "10px 0", borderRadius: 10,
                         border: fecha === d.val ? "2px solid #4F6867" : "1.5px solid #A2C2D0",
@@ -811,10 +814,14 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
                         fontWeight: fecha === d.val ? 700 : 500,
                         fontSize: 13, cursor: "pointer",
                         transition: "all 0.15s",
+                        opacity: closed ? 0.6 : 1,
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
                       }}>
-                      {d.label}
+                      <span style={{ textDecoration: closed ? "line-through" : "none" }}>{d.label}</span>
+                      {closed && <span style={{ fontSize: 9, color: "#A2C2D0", fontWeight: 500 }}>Cerrado</span>}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>

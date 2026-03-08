@@ -22,17 +22,33 @@ export function invalidatePedidosCache() {
   }
 }
 
-function doFetch(path, options) {
+const DEFAULT_TIMEOUT = 10000;
+const SLOW_PATHS = ["/parse-order"];
+
+function doFetch(path, options = {}) {
   return (async () => {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({ error: "Unknown error" }));
-      throw new Error(errData.error || `API Error ${res.status}`);
+    const timeout = SLOW_PATHS.some(p => path.startsWith(p)) ? 15000 : DEFAULT_TIMEOUT;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errData.error || `API Error ${res.status}`);
+      }
+      return res.json();
+    } catch (err) {
+      if (err.name === "AbortError") {
+        throw new Error(`Tiempo de espera agotado (${timeout / 1000}s)`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
-    return res.json();
   })();
 }
 
@@ -232,6 +248,17 @@ export const notion = {
 
   async loadProductos() {
     return apiCall("/registros?productos=true");
+  },
+
+  async loadHorario() {
+    return apiCall("/horario");
+  },
+
+  async saveHorarioDia(dia, data) {
+    return apiCall("/horario", {
+      method: "PATCH",
+      body: JSON.stringify({ dia, ...data }),
+    });
   },
 
   async parseWhatsApp(text, senderName, senderPhone, imageBase64) {
