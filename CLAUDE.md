@@ -779,3 +779,8 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FEAT-38**: Batch endpoint para registros — `POST /api/registros` acepta modo batch `{ pedidoPageId, lineas: [{ productoNombre, cantidad }] }` ademas del modo single existente. Resuelve nombres de producto via `loadCatalog()` cache (0 queries extra), crea registros en batches paralelos de 10 con 200ms delay. `src/api.js` `crearPedido` actualizado para usar batch (1 request en vez de N secuenciales). Campo `id` anadido a `loadCatalog()` para resolver nombre→id sin queries adicionales
+
+## Changelog v2.7.1
+
+### Bug fixes
+- **FIX-23**: `useGlassCalendar.js` renombrado a `.jsx` — Vite requiere extension `.jsx` para ficheros con JSX. Build de produccion fallaba con "invalid JS syntax"

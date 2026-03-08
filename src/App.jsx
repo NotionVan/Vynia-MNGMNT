@@ -9,7 +9,7 @@ import useBreakpoint from "./hooks/useBreakpoint.js";
 import useTooltip from "./hooks/useTooltip.js";
 import useVersionCheck from "./hooks/useVersionCheck.js";
 import useCatalog from "./hooks/useCatalog.js";
-import useGlassCalendar from "./hooks/useGlassCalendar.js";
+import useGlassCalendar from "./hooks/useGlassCalendar.jsx";
 import PipelineRing from "./components/PipelineRing.jsx";
 import ConfirmEstadoDialog from "./components/ConfirmEstadoDialog.jsx";
 import ConfirmPagadoDialog from "./components/ConfirmPagadoDialog.jsx";
