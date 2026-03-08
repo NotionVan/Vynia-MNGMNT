@@ -4,7 +4,7 @@ import I from "./Icons.jsx";
 import { ESTADOS, effectiveEstado } from "../constants/estados.js";
 import { FRECUENTES } from "../constants/catalogo.js";
 import { fmt } from "../utils/fmt.js";
-import { cleanOldSurplus, loadSurplusPlan, saveSurplusPlan } from "../utils/surplus.js";
+import { cleanOldSurplus, loadSurplusPlan, loadSurplusPlanLocal, saveSurplusPlan } from "../utils/surplus.js";
 import { useVynia } from "../context/VyniaContext.jsx";
 
 export default function TabProduccion({
@@ -30,9 +30,15 @@ export default function TabProduccion({
   useEffect(() => { cleanOldSurplus(); }, []);
 
   useEffect(() => {
-    setSurplusPlan(loadSurplusPlan(produccionFecha));
+    let cancelled = false;
     setSurplusSearch("");
     setSurplusInfoOpen(false);
+    // Load from localStorage instantly, then replace with Notion data
+    setSurplusPlan(loadSurplusPlanLocal(produccionFecha));
+    loadSurplusPlan(produccionFecha).then(plan => {
+      if (!cancelled) setSurplusPlan(plan);
+    });
+    return () => { cancelled = true; };
   }, [produccionFecha]);
 
   const { prodView, totalPendiente, totalRecogido, activeProductCount } = useMemo(() => {

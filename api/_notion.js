@@ -50,6 +50,10 @@ export const PROP_UNIDADES = "Unidades ";
 // ─── Shared DB IDs ───
 export const DB_PRODUCTOS = "1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2";
 export const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
+export const DB_PLANIFICACION = "b0147c49-24d5-461a-b377-54a234cc4a94";
+
+// ─── Cache invalidation ───
+export function clearCached(key) { _cache.delete(key); }
 
 // ─── Notion property extractors (shared across API handlers) ───
 export function extractTitle(prop) {

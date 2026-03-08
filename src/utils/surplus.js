@@ -1,12 +1,16 @@
-// ─── SURPLUS (localStorage helpers for planned production) ───
+import { notion } from "../api.js";
+
+// ─── SURPLUS (hybrid localStorage + Notion for cross-device sync) ───
 export const SURPLUS_KEY = "vynia-surplus:";
 
-export function loadSurplusPlan(fecha) {
+// ─── Local-only (synchronous) ───
+
+export function loadSurplusPlanLocal(fecha) {
   try { return JSON.parse(localStorage.getItem(SURPLUS_KEY + fecha) || "{}"); }
   catch { return {}; }
 }
 
-export function saveSurplusPlan(fecha, plan) {
+export function saveSurplusPlanLocal(fecha, plan) {
   const clean = Object.fromEntries(Object.entries(plan).filter(([, v]) => v > 0));
   if (Object.keys(clean).length) {
     localStorage.setItem(SURPLUS_KEY + fecha, JSON.stringify(clean));
@@ -14,6 +18,29 @@ export function saveSurplusPlan(fecha, plan) {
     localStorage.removeItem(SURPLUS_KEY + fecha);
   }
 }
+
+// ─── Hybrid (localStorage instant + Notion background) ───
+
+export async function loadSurplusPlan(fecha) {
+  try {
+    const res = await notion.loadSurplus(fecha);
+    const plan = res.plan || {};
+    saveSurplusPlanLocal(fecha, plan);
+    return plan;
+  } catch {
+    return loadSurplusPlanLocal(fecha);
+  }
+}
+
+export function saveSurplusPlan(fecha, plan) {
+  const clean = Object.fromEntries(Object.entries(plan).filter(([, v]) => v > 0));
+  saveSurplusPlanLocal(fecha, clean);
+  notion.saveSurplus(fecha, clean).catch(err => {
+    console.warn("Failed to save surplus to Notion:", err.message);
+  });
+}
+
+// ─── Cleanup (localStorage only, >7 days) ───
 
 export function cleanOldSurplus() {
   const cutoff = Date.now() - 7 * 86400000;

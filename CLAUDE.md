@@ -19,7 +19,8 @@ Vynia-MNGMNT/
 │   ├── registros.js              # GET/POST/DELETE (lineas de pedido) + GET ?productos=true (catalogo)
 │   ├── produccion.js             # GET (produccion diaria agregada con clientes)
 │   ├── tracking.js               # GET (seguimiento publico por telefono)
-│   └── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
+│   ├── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
+│   └── health.js                 # GET (health check — conectividad Notion, monitorizable)
 ├── __tests__/                    # Vitest test suite (77 tests, 16 files)
 ├── public/
 │   ├── seguimiento.html          # Pagina publica de seguimiento (standalone, sin React)
@@ -77,6 +78,7 @@ Integracion: **Frontend Vynia** (debe tener acceso a cada BD individualmente).
 | Clientes | `1c418b3a-38b1-811f-b3ab-ea7a5e513ace` | Datos de clientes |
 | Productos | `1c418b3a-38b1-8186-8da9-cfa6c2f0fcd2` | Catalogo de productos |
 | Registros | `1d418b3a-38b1-808b-9afb-c45193c1270b` | Lineas de pedido (producto + cantidad) |
+| Planificacion | `b0147c49-24d5-461a-b377-54a234cc4a94` | Planificacion de produccion diaria (nombre + fecha + unidades) |
 
 ## Propiedades Notion importantes
 
@@ -344,7 +346,7 @@ npx vite            # solo frontend (modo DEMO funciona sin API)
 - Variables de entorno en Vercel: `NOTION_TOKEN`, `ANTHROPIC_API_KEY`
 - Git integration: push a `main` autodeploya automaticamente
 - Repo: `github.com/javintnvn/Vynia-MNGMNT`
-- **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 7 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
+- **Limite Hobby plan**: max 12 Serverless Functions por deployment. Actualmente 8 funciones en `api/` (excluye `_notion.js` helper). NO crear nuevos ficheros en `api/` sin consolidar primero
 - **OBLIGATORIO en cada commit**: 1) Actualizar `"version"` en `package.json` (semver: patch para fixes/perf, minor para features, major para breaking changes). 2) Documentar los cambios en la seccion `## Changelog vX.Y.Z` al final de este archivo (CLAUDE.md) con ID de cambio (FIX-xx, FEAT-xx, PERF-xx) y descripcion concisa
 
 ## Notas tecnicas
@@ -793,3 +795,18 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Docs
 - **DOCS-02**: Reescritura completa de README.md — actualizado de v1.x a v2.8.0. Estructura modular con 8 subdirectorios en src/. 7 endpoints API documentados (eliminado productos.js inexistente, añadidos parse-order, tracking, PATCH clientes, batch registros, rango produccion). Enriquecimiento server-side, cache TTLs correctos (pedidos 10s, produccion 60s, catalogo 30min, tracking 15s). Funcionalidades actualizadas: WhatsApp parsing, dictado por voz, seguimiento publico, sugerencias de fecha, surplus planning, sistema de estado, bulk operations, privacy toggle, glass calendar. Security headers y rate limiting documentados. Variables de entorno: NOTION_TOKEN + ANTHROPIC_API_KEY
+
+## Changelog v2.8.1
+
+### Performance
+- **PERF-08**: Lazy eviction en rate limiter de tracking — reemplazado `setInterval` (no fiable en serverless) por eviction basada en contador cada 50 invocaciones de `rateLimit()`. Las entradas stale (>2min) se purgan durante el flujo normal de requests. Determinista, zero overhead entre invocaciones, mismos rate limits sin cambios
+
+## Changelog v2.8.2
+
+### Mejoras
+- **FEAT-39**: Health check endpoint `GET /api/health` — verifica conectividad con Notion via `databases.retrieve` (query mas ligera posible, solo metadata). Devuelve `{ ok: true, latency: Xms, ts }` o 503 si Notion no responde. Cache 30s via `cached()` para evitar sobrecarga en polling frecuente. Monitoreable por UptimeRobot o similares. 8/12 serverless functions
+
+## Changelog v2.9.0
+
+### Mejoras
+- **FEAT-40**: Surplus planning persistido en Notion — los datos de planificacion de produccion se sincronizan con Notion (nueva BD "Planificacion", ID `b0147c49-24d5-461a-b377-54a234cc4a94`) para acceso multi-dispositivo. Estrategia write-through: localStorage para carga instantanea + Notion en background para persistencia. Fallback a localStorage si la API falla (modo offline). Consolidado en `api/produccion.js` via `GET/POST ?surplus=true` (sin nueva serverless function). Nuevo export `clearCached()` en `_notion.js` para invalidacion de cache tras escritura. `loadSurplusPlan` ahora es async; `loadSurplusPlanLocal` mantiene la version sync para carga instantanea. TabProduccion.jsx carga localStorage inmediatamente y reemplaza con datos de Notion en background. Tests actualizados con mocks de API (15→19 tests)

@@ -1,21 +1,21 @@
-import { notion, cached, PROP_UNIDADES, DB_REGISTROS, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
+import { notion, cached, clearCached, PROP_UNIDADES, DB_REGISTROS, DB_PLANIFICACION, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
+  if (req.method === "GET") {
+    const { fecha, rango, surplus } = req.query;
+    if (!fecha) return res.status(400).json({ error: "Missing fecha parameter" });
+    if (surplus === "true") return handleGetSurplus(req, res, fecha);
+    if (rango) return handleRango(req, res, fecha, parseInt(rango, 10));
+    // Fall through to main produccion GET below
+  } else if (req.method === "POST") {
+    return handlePostSurplus(req, res);
+  } else {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { fecha, rango } = req.query;
-  if (!fecha) {
-    return res.status(400).json({ error: "Missing fecha parameter" });
-  }
-
-  // Multi-day range mode: lightweight response for date suggestions
-  if (rango) {
-    return handleRango(req, res, fecha, parseInt(rango, 10));
-  }
+  const { fecha } = req.query;
 
   try {
     const productos = await cached(`produccion:${fecha}`, 60000, async () => {
@@ -247,6 +247,130 @@ async function handleRango(req, res, fecha, dias) {
     return res.status(200).json({ produccion: result });
   } catch (error) {
     console.error("Error loading produccion rango:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+// ─── Surplus: planificacion de produccion persistida en Notion ───
+
+async function handleGetSurplus(req, res, fecha) {
+  try {
+    const plan = await cached(`surplus:${fecha}`, 15000, async () => {
+      const results = [];
+      let cursor;
+      do {
+        const resp = await notion.databases.query({
+          database_id: DB_PLANIFICACION,
+          filter: { property: "Fecha", date: { equals: fecha } },
+          start_cursor: cursor,
+          page_size: 100,
+        });
+        results.push(...resp.results);
+        cursor = resp.has_more ? resp.next_cursor : undefined;
+      } while (cursor);
+
+      const plan = {};
+      for (const page of results) {
+        const nombre = extractTitle(page.properties["Nombre"]).trim();
+        const unidades = page.properties["Unidades"]?.number || 0;
+        if (nombre && unidades > 0) plan[nombre] = unidades;
+      }
+      return plan;
+    });
+
+    return res.status(200).json({ plan });
+  } catch (error) {
+    console.error("Error loading surplus:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function handlePostSurplus(req, res) {
+  const { surplus, fecha, plan } = req.body;
+  if (!surplus || !fecha || !plan || typeof plan !== "object") {
+    return res.status(400).json({ error: "Missing surplus, fecha, or plan" });
+  }
+
+  try {
+    // 1. Load existing entries for this date
+    const existing = [];
+    let cursor;
+    do {
+      const resp = await notion.databases.query({
+        database_id: DB_PLANIFICACION,
+        filter: { property: "Fecha", date: { equals: fecha } },
+        start_cursor: cursor,
+        page_size: 100,
+      });
+      existing.push(...resp.results);
+      cursor = resp.has_more ? resp.next_cursor : undefined;
+    } while (cursor);
+
+    // Build map: nombre → { pageId, unidades }
+    const existingMap = new Map();
+    for (const page of existing) {
+      const nombre = extractTitle(page.properties["Nombre"]).trim();
+      existingMap.set(nombre, {
+        pageId: page.id,
+        unidades: page.properties["Unidades"]?.number || 0,
+      });
+    }
+
+    // 2. Determine operations
+    const toUpdate = [];
+    const toCreate = [];
+    const toArchive = [];
+
+    for (const [rawName, unidades] of Object.entries(plan)) {
+      const nombre = rawName.trim();
+      if (unidades <= 0) continue;
+      const ex = existingMap.get(nombre);
+      if (ex) {
+        if (ex.unidades !== unidades) toUpdate.push({ pageId: ex.pageId, unidades });
+        existingMap.delete(nombre);
+      } else {
+        toCreate.push({ nombre, unidades });
+      }
+    }
+    for (const [, { pageId }] of existingMap) toArchive.push(pageId);
+
+    // 3. Execute in parallel batches of 10
+    const ops = [];
+
+    for (let i = 0; i < toUpdate.length; i += 10) {
+      ops.push(Promise.allSettled(toUpdate.slice(i, i + 10).map(item =>
+        notion.pages.update({ page_id: item.pageId, properties: { Unidades: { number: item.unidades } } })
+      )));
+    }
+    for (let i = 0; i < toCreate.length; i += 10) {
+      ops.push(Promise.allSettled(toCreate.slice(i, i + 10).map(item =>
+        notion.pages.create({
+          parent: { database_id: DB_PLANIFICACION },
+          properties: {
+            Nombre: { title: [{ text: { content: item.nombre } }] },
+            Fecha: { date: { start: fecha } },
+            Unidades: { number: item.unidades },
+          },
+        })
+      )));
+    }
+    for (let i = 0; i < toArchive.length; i += 10) {
+      ops.push(Promise.allSettled(toArchive.slice(i, i + 10).map(id =>
+        notion.pages.update({ page_id: id, archived: true })
+      )));
+    }
+
+    await Promise.all(ops);
+    clearCached(`surplus:${fecha}`);
+
+    return res.status(200).json({
+      ok: true,
+      updated: toUpdate.length,
+      created: toCreate.length,
+      archived: toArchive.length,
+    });
+  } catch (error) {
+    console.error("Error saving surplus:", error);
     return res.status(500).json({ error: error.message });
   }
 }

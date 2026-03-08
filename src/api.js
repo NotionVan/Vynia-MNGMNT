@@ -219,6 +219,17 @@ export const notion = {
     return apiCall(`/produccion?fecha=${fecha}&rango=${rango}`);
   },
 
+  async loadSurplus(fecha) {
+    return apiCall(`/produccion?surplus=true&fecha=${fecha}`);
+  },
+
+  async saveSurplus(fecha, plan) {
+    return apiCall("/produccion", {
+      method: "POST",
+      body: JSON.stringify({ surplus: true, fecha, plan }),
+    });
+  },
+
   async loadProductos() {
     return apiCall("/registros?productos=true");
   },

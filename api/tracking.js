@@ -2,8 +2,14 @@ import { notion, cached, PROP_UNIDADES, DB_REGISTROS, extractTitle, extractDateS
 
 // ─── Rate limiter in-memory (per Vercel instance) ───
 const _rl = new Map();
+let _rlCalls = 0;
 function rateLimit(key, max, windowMs) {
   const now = Date.now();
+  // Lazy eviction every 50 calls (deterministic, no setInterval in serverless)
+  if (++_rlCalls >= 50) {
+    _rlCalls = 0;
+    for (const [k, v] of _rl) if (now - v.ts > 120000) _rl.delete(k);
+  }
   const entry = _rl.get(key);
   if (!entry || now - entry.ts > windowMs) {
     _rl.set(key, { n: 1, ts: now });
@@ -13,11 +19,6 @@ function rateLimit(key, max, windowMs) {
   entry.n++;
   return true;
 }
-// Evict stale entries every 60s to prevent memory leak
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of _rl) if (now - v.ts > 120000) _rl.delete(k);
-}, 60000);
 
 const DB_CLIENTES = "1c418b3a-38b1-811f-b3ab-ea7a5e513ace";
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";

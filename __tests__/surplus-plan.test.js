@@ -1,5 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { loadSurplusPlan, saveSurplusPlan, cleanOldSurplus } from "../src/utils/surplus.js";
+import { loadSurplusPlanLocal, saveSurplusPlanLocal, cleanOldSurplus, loadSurplusPlan, saveSurplusPlan } from "../src/utils/surplus.js";
+
+// Mock the API client
+vi.mock("../src/api.js", () => ({
+  notion: {
+    loadSurplus: vi.fn(),
+    saveSurplus: vi.fn(),
+  },
+  invalidateApiCache: vi.fn(),
+  invalidatePedidosCache: vi.fn(),
+}));
+import { notion } from "../src/api.js";
 
 // ─── Inline surplusView computation (same logic as TabProduccion.jsx) ───
 function computeSurplusView(produccionData, surplusPlan, catalogo) {
@@ -19,31 +30,31 @@ function computeSurplusView(produccionData, surplusPlan, catalogo) {
     .sort((a, b) => (b.pedidos > 0) - (a.pedidos > 0) || a.nombre.localeCompare(b.nombre, "es"));
 }
 
-// ─── Tests ───
+// ─── Local-only tests ───
 
-describe("loadSurplusPlan", () => {
+describe("loadSurplusPlanLocal", () => {
   beforeEach(() => localStorage.clear());
 
   it("returns empty object when no data stored", () => {
-    expect(loadSurplusPlan("2026-03-06")).toEqual({});
+    expect(loadSurplusPlanLocal("2026-03-06")).toEqual({});
   });
 
   it("returns parsed data when stored", () => {
     localStorage.setItem("vynia-surplus:2026-03-06", JSON.stringify({ brownie: 5, "barra de pan": 10 }));
-    expect(loadSurplusPlan("2026-03-06")).toEqual({ brownie: 5, "barra de pan": 10 });
+    expect(loadSurplusPlanLocal("2026-03-06")).toEqual({ brownie: 5, "barra de pan": 10 });
   });
 
   it("returns empty object on invalid JSON", () => {
     localStorage.setItem("vynia-surplus:2026-03-06", "not-json");
-    expect(loadSurplusPlan("2026-03-06")).toEqual({});
+    expect(loadSurplusPlanLocal("2026-03-06")).toEqual({});
   });
 });
 
-describe("saveSurplusPlan", () => {
+describe("saveSurplusPlanLocal", () => {
   beforeEach(() => localStorage.clear());
 
   it("saves non-zero entries", () => {
-    saveSurplusPlan("2026-03-06", { brownie: 5, cookies: 0, barra: 3 });
+    saveSurplusPlanLocal("2026-03-06", { brownie: 5, cookies: 0, barra: 3 });
     const stored = JSON.parse(localStorage.getItem("vynia-surplus:2026-03-06"));
     expect(stored).toEqual({ brownie: 5, barra: 3 });
     expect(stored.cookies).toBeUndefined();
@@ -51,16 +62,63 @@ describe("saveSurplusPlan", () => {
 
   it("removes key entirely when all entries are zero", () => {
     localStorage.setItem("vynia-surplus:2026-03-06", JSON.stringify({ brownie: 5 }));
-    saveSurplusPlan("2026-03-06", { brownie: 0 });
+    saveSurplusPlanLocal("2026-03-06", { brownie: 0 });
     expect(localStorage.getItem("vynia-surplus:2026-03-06")).toBeNull();
   });
 
   it("removes key when plan is empty", () => {
     localStorage.setItem("vynia-surplus:2026-03-06", JSON.stringify({ brownie: 5 }));
-    saveSurplusPlan("2026-03-06", {});
+    saveSurplusPlanLocal("2026-03-06", {});
     expect(localStorage.getItem("vynia-surplus:2026-03-06")).toBeNull();
   });
 });
+
+// ─── Hybrid tests (localStorage + Notion) ───
+
+describe("loadSurplusPlan (async with Notion)", () => {
+  beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); });
+
+  it("loads from Notion API and syncs to localStorage", async () => {
+    notion.loadSurplus.mockResolvedValue({ plan: { brownie: 5 } });
+    const result = await loadSurplusPlan("2026-03-08");
+    expect(result).toEqual({ brownie: 5 });
+    expect(localStorage.getItem("vynia-surplus:2026-03-08")).toBe('{"brownie":5}');
+  });
+
+  it("falls back to localStorage when API fails", async () => {
+    localStorage.setItem("vynia-surplus:2026-03-08", JSON.stringify({ brownie: 3 }));
+    notion.loadSurplus.mockRejectedValue(new Error("Network error"));
+    const result = await loadSurplusPlan("2026-03-08");
+    expect(result).toEqual({ brownie: 3 });
+  });
+
+  it("returns empty when API fails and no localStorage", async () => {
+    notion.loadSurplus.mockRejectedValue(new Error("Network error"));
+    const result = await loadSurplusPlan("2026-03-08");
+    expect(result).toEqual({});
+  });
+});
+
+describe("saveSurplusPlan (write-through)", () => {
+  beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); });
+
+  it("writes to localStorage and fires API call", () => {
+    notion.saveSurplus.mockResolvedValue({ ok: true });
+    saveSurplusPlan("2026-03-08", { brownie: 5, cookies: 0 });
+    expect(localStorage.getItem("vynia-surplus:2026-03-08")).toBe('{"brownie":5}');
+    expect(notion.saveSurplus).toHaveBeenCalledWith("2026-03-08", { brownie: 5 });
+  });
+
+  it("removes localStorage key when plan is empty", () => {
+    localStorage.setItem("vynia-surplus:2026-03-08", JSON.stringify({ brownie: 5 }));
+    notion.saveSurplus.mockResolvedValue({ ok: true });
+    saveSurplusPlan("2026-03-08", {});
+    expect(localStorage.getItem("vynia-surplus:2026-03-08")).toBeNull();
+    expect(notion.saveSurplus).toHaveBeenCalledWith("2026-03-08", {});
+  });
+});
+
+// ─── Cleanup ───
 
 describe("cleanOldSurplus", () => {
   beforeEach(() => localStorage.clear());
@@ -87,6 +145,8 @@ describe("cleanOldSurplus", () => {
     expect(localStorage.getItem("other-key")).toBe("value");
   });
 });
+
+// ─── Computation tests ───
 
 describe("computeSurplusView", () => {
   const catalogo = [
@@ -170,14 +230,7 @@ describe("computeSurplusView", () => {
       { nombre: "Brownie", totalUnidades: 3, pedidos: [] },
     ];
     const plan = { BROWNIE: 6 };
-    // The key in plan is uppercase, but nombre in produccionData is "Brownie"
-    // Since we lowercase both sides, this should NOT match (plan key is uppercase, lookup is lowercase)
-    // Actually: items.set("brownie", ...) then surplusPlan["BROWNIE"] won't match items.has("BROWNIE")
-    // But Object.entries(surplusPlan) gives ["BROWNIE", 6] and !items.has("BROWNIE") is true since map has "brownie"
-    // So BROWNIE would be added as a separate entry — this is a known limitation
-    // The UI always stores keys lowercased via updateSurplus, so in practice this won't happen
     const result = computeSurplusView(produccionData, plan, catalogo);
-    // In practice keys are always lowercased by updateSurplus
     expect(result.length).toBeGreaterThanOrEqual(1);
   });
 });
