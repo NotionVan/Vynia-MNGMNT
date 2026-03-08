@@ -21,7 +21,7 @@ Vynia-MNGMNT/
 │   ├── tracking.js               # GET (seguimiento publico por telefono)
 │   ├── parse-order.js            # POST (parseo IA de texto/imagen WhatsApp + lookup cliente)
 │   └── health.js                 # GET (health check — conectividad Notion, monitorizable)
-├── __tests__/                    # Vitest test suite (77 tests, 16 files)
+├── __tests__/                    # Vitest test suite (125 tests, 20 files)
 ├── public/
 │   ├── seguimiento.html          # Pagina publica de seguimiento (standalone, sin React)
 │   └── logovynia2_azul.png       # Logo Vynia usado en seguimiento
@@ -36,7 +36,8 @@ Vynia-MNGMNT/
 │   ├── utils/
 │   │   ├── fmt.js                # fmt object (todayISO, localISO, etc.), DAY_NAMES
 │   │   ├── helpers.js            # esTarde, computeDateSuggestions, waLink, parseProductsStr
-│   │   └── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
+│   │   ├── surplus.js            # loadSurplusPlan, saveSurplusPlan, cleanOldSurplus
+│   │   └── stats.js             # computePedidoStats, computeBulkTransitions
 │   ├── hooks/
 │   │   └── useBreakpoint.js      # isDesktop / isTablet responsive hook
 │   ├── styles/
@@ -810,3 +811,13 @@ Version major que agrupa todas las mejoras de interfaz (v1.9.0–v1.10.1):
 
 ### Mejoras
 - **FEAT-40**: Surplus planning persistido en Notion — los datos de planificacion de produccion se sincronizan con Notion (nueva BD "Planificacion", ID `b0147c49-24d5-461a-b377-54a234cc4a94`) para acceso multi-dispositivo. Estrategia write-through: localStorage para carga instantanea + Notion en background para persistencia. Fallback a localStorage si la API falla (modo offline). Consolidado en `api/produccion.js` via `GET/POST ?surplus=true` (sin nueva serverless function). Nuevo export `clearCached()` en `_notion.js` para invalidacion de cache tras escritura. `loadSurplusPlan` ahora es async; `loadSurplusPlanLocal` mantiene la version sync para carga instantanea. TabProduccion.jsx carga localStorage inmediatamente y reemplaza con datos de Notion en background. Tests actualizados con mocks de API (15→19 tests)
+
+## Changelog v2.10.0
+
+### Refactor
+- **REFACTOR-19**: Extraer `computePedidoStats` y `computeBulkTransitions` de usePedidos a `src/utils/stats.js` — stats aggregation (total, pendientes, recogidos, porPreparar, listoRecoger) y logica de interseccion de transiciones bulk movidas a funciones puras testeables. usePedidos importa y envuelve en useMemo. Zero cambios de comportamiento
+
+### Testing
+- **TEST-01**: Cobertura completa de `fmt.js` — 19 tests para localISO (padding, timezone), isToday, isTomorrow, isPast (null safety), date (formato español), time (extraccion HH:MM), DAY_NAMES
+- **TEST-02**: Cobertura completa de `helpers.js` — 15 tests para waLink (normalizacion telefono, codigo pais, formateo), parseProductsStr (parsing, doble digito, ñ/ó, malformados), esTarde (notas, hora, fecha, heuristica multi-fallback)
+- **TEST-03**: Tests de stats y bulk transitions — 7 tests para computePedidoStats (6 estados, mix completo, estado desconocido) + 2 tests para computeBulkTransitions (seleccion vacia, interseccion multi-estado). Total: 82 → 125 tests (+43, +52%), 20 ficheros de test

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { notion, invalidateApiCache, invalidatePedidosCache } from "../api.js";
-import { ESTADOS, ESTADO_TRANSITIONS, effectiveEstado } from "../constants/estados.js";
+import { ESTADOS, effectiveEstado } from "../constants/estados.js";
 import { fmt } from "../utils/fmt.js";
 import { parseProductsStr } from "../utils/helpers.js";
+import { computePedidoStats, computeBulkTransitions } from "../utils/stats.js";
 
 export default function usePedidos({ apiMode, notify, onInvalidateProduccion, onUpdateProduccionPagado }) {
   // ─── STATE ───
@@ -468,27 +469,14 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
   };
 
   // ─── STATS (single-pass, memoized) ───
-  const { statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger } = useMemo(() => {
-    let total = 0, pendientes = 0, recogidos = 0, porPreparar = 0, listoRecoger = 0;
-    for (const p of pedidos) {
-      total++;
-      const g = ESTADOS[p.estado]?.group;
-      if (p.estado === "Recogido") recogidos++;
-      else if (g !== "complete") pendientes++;
-      if (p.estado === "Sin empezar" || p.estado === "En preparación") porPreparar++;
-      if (p.estado === "Listo para recoger") listoRecoger++;
-    }
-    return { statsTotal: total, statsPendientes: pendientes, statsRecogidos: recogidos, statsPorPreparar: porPreparar, statsListoRecoger: listoRecoger };
-  }, [pedidos]);
+  const { statsTotal, statsPendientes, statsRecogidos, statsPorPreparar, statsListoRecoger } = useMemo(
+    () => computePedidoStats(pedidos), [pedidos]
+  );
 
   // ─── BULK TRANSITIONS ───
-  const bulkTransitions = useMemo(() => {
-    if (bulkSelected.size === 0) return [];
-    const selected = pedidos.filter(p => bulkSelected.has(p.id));
-    if (selected.length === 0) return [];
-    const sets = selected.map(p => new Set(ESTADO_TRANSITIONS[p.estado] || []));
-    return [...sets[0]].filter(est => sets.every(s => s.has(est)));
-  }, [bulkSelected, pedidos]);
+  const bulkTransitions = useMemo(
+    () => computeBulkTransitions(pedidos, bulkSelected), [bulkSelected, pedidos]
+  );
 
   return {
     // State
