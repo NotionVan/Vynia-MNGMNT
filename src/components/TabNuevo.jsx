@@ -5,7 +5,7 @@ import { notion } from "../api.js";
 import { FRECUENTES } from "../constants/catalogo.js";
 import { fmt, DAY_NAMES } from "../utils/fmt.js";
 import { computeDateSuggestions } from "../utils/helpers.js";
-import { isOpenDay } from "../utils/horario.js";
+import { isOpenDay, getOpenDaysInRange } from "../utils/horario.js";
 import { labelStyle, inputStyle, formSectionStyle } from "../styles/shared.js";
 import ParseWhatsAppModal from "./ParseWhatsAppModal.jsx";
 import ListeningPopup from "./ListeningPopup.jsx";
@@ -822,6 +822,30 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
                     </button>
                     );
                   })}
+                  {(() => {
+                    const presetDates = [fmt.todayISO(), fmt.tomorrowISO(), fmt.dayAfterISO()];
+                    const allClosed = presetDates.every(d => !isOpenDay(horario, d));
+                    if (!allClosed) return null;
+                    const nextOpen = getOpenDaysInRange(horario, fmt.todayISO(), 14)
+                      .find(d => !presetDates.includes(d));
+                    if (!nextOpen) return null;
+                    const nd = new Date(nextOpen + "T12:00:00");
+                    const label = DAY_NAMES[nd.getDay()] + " " + nd.getDate();
+                    return (
+                      <button key="next-open" title="Próximo día abierto" onClick={() => setFecha(nextOpen)}
+                        style={{
+                          flex: 1, padding: "10px 0", borderRadius: 10,
+                          border: fecha === nextOpen ? "2px solid #4F6867" : "1.5px solid #2E7D32",
+                          background: fecha === nextOpen ? "#E1F2FC" : "rgba(46,125,50,0.08)",
+                          color: "#2E7D32", fontWeight: 600, fontSize: 13,
+                          cursor: "pointer", transition: "all 0.15s",
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                        }}>
+                        <span>{label}</span>
+                        <span style={{ fontSize: 9, color: "#2E7D32", fontWeight: 500 }}>Próx. abierto</span>
+                      </button>
+                    );
+                  })()}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>

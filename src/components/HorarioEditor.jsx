@@ -45,12 +45,12 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
     <div style={{
       position: "fixed", inset: 0, zIndex: 400,
       background: "rgba(27,28,57,0.45)",
-      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      display: "flex", alignItems: "center", justifyContent: "center",
     }} onClick={onClose}>
       <div style={{
         background: "rgba(255,255,255,0.97)",
         backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 540,
+        borderRadius: 20, width: "100%", maxWidth: 540,
         maxHeight: "92vh", display: "flex", flexDirection: "column",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
         animation: "helpSlideUp 0.28s ease-out",
@@ -200,12 +200,14 @@ export default function HorarioEditor({ horario, lastEdited, onSave, onClose }) 
           {/* Footer */}
           <div style={{
             marginTop: 16, padding: "10px 14px", borderRadius: 10,
-            background: "rgba(225,242,252,0.3)",
-            border: "1px solid rgba(162,194,208,0.15)",
-            fontSize: 11, color: "#A2C2D0", fontWeight: 500,
+            background: "rgba(46,125,50,0.08)",
+            border: "1px solid rgba(46,125,50,0.2)",
+            fontSize: 11, color: "#2E7D32", fontWeight: 600,
             textAlign: "center",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}>
-            Los cambios se guardan automaticamente y se sincronizan entre dispositivos
+            <I.Check s={14} c="#2E7D32" />
+            Guardado automatico — los cambios se sincronizan al instante
           </div>
         </div>
       </div>

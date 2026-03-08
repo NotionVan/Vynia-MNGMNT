@@ -556,3 +556,12 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Mejoras
 - **FEAT-44**: Horario del negocio — configuracion semanal (L-D) con soporte horario partido (2 tramos por dia), persistido en Notion BD "Horario Negocio" (`DB_HORARIO`). Editor accesible desde menu hamburguesa con auto-save y sync cross-device (hybrid localStorage + Notion). `computeDateSuggestions` filtra dias cerrados (3er parametro opcional, backward compatible). Presets de fecha Hoy/Manana/Pasado muestran indicador "Cerrado" con strikethrough. Nuevo endpoint `GET/PATCH /api/horario` (funcion serverless 9 de 12). Documentacion en overlay de ayuda. 37 tests nuevos (33 horario + 4 date-suggestions)
+
+## Changelog v2.12.1
+
+### Fixes
+- **FIX-30**: PATCH `/api/horario` upsert — si no existe pagina para un dia en la BD de Notion, la crea automaticamente en lugar de fallar con 404 silencioso (fire-and-forget). Resuelve que el horario no se guardaba en Notion en primera configuracion
+
+### Mejoras
+- **FEAT-45**: Preset "proximo dia abierto" — cuando Hoy/Manana/Pasado estan todos cerrados, aparece un 4o chip verde con el proximo dia abierto (ej: "Mie 12 — Prox. abierto"). Usa `getOpenDaysInRange` buscando hasta 14 dias adelante
+- **FIX-31**: HorarioEditor centrado en pantalla (antes bottom sheet cortado) con border radius completo. Indicador de guardado verde con icono check en lugar de texto gris

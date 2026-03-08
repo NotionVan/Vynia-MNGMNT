@@ -94,29 +94,42 @@ async function handlePatch(req, res) {
     });
 
     const entry = current.horario[dia];
+
     if (!entry || !entry.pageId) {
-      return res.status(404).json({ error: `No page found for dia ${dia}` });
+      // Upsert: create page for this day if it doesn't exist
+      const DIAS_NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+      await notion.pages.create({
+        parent: { database_id: DB_HORARIO },
+        properties: {
+          "Nombre": { title: [{ text: { content: DIAS_NOMBRES[dia] } }] },
+          "Día": { number: dia },
+          "Abierto": { checkbox: abierto !== undefined ? abierto : true },
+          ...(apertura !== undefined && { "Hora apertura": { rich_text: [{ text: { content: apertura } }] } }),
+          ...(cierre !== undefined && { "Hora cierre": { rich_text: [{ text: { content: cierre } }] } }),
+          ...(apertura2 !== undefined && { "Hora apertura 2": { rich_text: [{ text: { content: apertura2 || "" } }] } }),
+          ...(cierre2 !== undefined && { "Hora cierre 2": { rich_text: [{ text: { content: cierre2 || "" } }] } }),
+        },
+      });
+    } else {
+      // Update existing page
+      const properties = {};
+      if (abierto !== undefined) {
+        properties["Abierto"] = { checkbox: abierto };
+      }
+      if (apertura !== undefined) {
+        properties["Hora apertura"] = { rich_text: [{ text: { content: apertura } }] };
+      }
+      if (cierre !== undefined) {
+        properties["Hora cierre"] = { rich_text: [{ text: { content: cierre } }] };
+      }
+      if (apertura2 !== undefined) {
+        properties["Hora apertura 2"] = { rich_text: [{ text: { content: apertura2 || "" } }] };
+      }
+      if (cierre2 !== undefined) {
+        properties["Hora cierre 2"] = { rich_text: [{ text: { content: cierre2 || "" } }] };
+      }
+      await notion.pages.update({ page_id: entry.pageId, properties });
     }
-
-    // Build properties to update (only changed fields)
-    const properties = {};
-    if (abierto !== undefined) {
-      properties["Abierto"] = { checkbox: abierto };
-    }
-    if (apertura !== undefined) {
-      properties["Hora apertura"] = { rich_text: [{ text: { content: apertura } }] };
-    }
-    if (cierre !== undefined) {
-      properties["Hora cierre"] = { rich_text: [{ text: { content: cierre } }] };
-    }
-    if (apertura2 !== undefined) {
-      properties["Hora apertura 2"] = { rich_text: [{ text: { content: apertura2 || "" } }] };
-    }
-    if (cierre2 !== undefined) {
-      properties["Hora cierre 2"] = { rich_text: [{ text: { content: cierre2 || "" } }] };
-    }
-
-    await notion.pages.update({ page_id: entry.pageId, properties });
     clearCached("horario");
 
     return res.status(200).json({ ok: true });
