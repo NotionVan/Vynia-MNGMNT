@@ -1,4 +1,4 @@
-import { notion, cached, clearCached, PROP_UNIDADES, DB_REGISTROS, DB_PLANIFICACION, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
+import { notion, cached, clearCached, withTiming, PROP_UNIDADES, DB_REGISTROS, DB_PLANIFICACION, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 
@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   const { fecha } = req.query;
 
   try {
-    const productos = await cached(`produccion:${fecha}`, 60000, async () => {
+    const { data: productos, ms } = await withTiming("total", () =>
+    cached(`produccion:${fecha}`, 60000, async () => {
     // 1. Get pedidos for the given date (paginated — handles >100 pedidos)
     let pedidos = [];
     let pedidosCursor = undefined;
@@ -137,8 +138,10 @@ export default async function handler(req, res) {
     return Object.values(productosAgg).sort((a, b) =>
       a.nombre.localeCompare(b.nombre, "es")
     );
-    }); // end cached
+    }) // end cached
+    ); // withTiming
 
+    res.setHeader("Server-Timing", `total;dur=${ms}`);
     return res.status(200).json({ productos });
   } catch (error) {
     console.error("Error loading produccion:", error);

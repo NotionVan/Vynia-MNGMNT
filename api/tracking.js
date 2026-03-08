@@ -1,4 +1,4 @@
-import { notion, cached, PROP_UNIDADES, DB_REGISTROS, extractTitle, extractDateStart } from "./_notion.js";
+import { notion, cached, withTiming, PROP_UNIDADES, DB_REGISTROS, extractTitle, extractDateStart } from "./_notion.js";
 
 // ─── Rate limiter in-memory (per Vercel instance) ───
 const _rl = new Map();
@@ -53,7 +53,8 @@ export default async function handler(req, res) {
 
   try {
     // Cache whole response for 15s (repeated lookups by same client)
-    const result = await cached(`tracking:${searchTel}`, 15000, async () => {
+    const { data: result, ms } = await withTiming("total", () =>
+    cached(`tracking:${searchTel}`, 15000, async () => {
       // 1. Find client by phone number
       const clientSearch = await notion.databases.query({
         database_id: DB_CLIENTES,
@@ -161,8 +162,10 @@ export default async function handler(req, res) {
       // Strip internal IDs
       const safePedidos = pedidos.map(({ _id, ...rest }) => rest);
       return { cliente: clienteNombre, pedidos: safePedidos };
-    }); // end cached
+    }) // end cached
+    ); // withTiming
 
+    res.setHeader("Server-Timing", `total;dur=${ms}`);
     return res.status(200).json(result);
   } catch (error) {
     console.error("Error tracking pedidos:", error);

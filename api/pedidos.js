@@ -1,4 +1,4 @@
-import { notion, cached, PROP_UNIDADES, DB_REGISTROS, loadCatalog, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
+import { notion, cached, withTiming, PROP_UNIDADES, DB_REGISTROS, loadCatalog, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 // Data source ID for API 2025-09-03 (required for template support)
@@ -22,12 +22,13 @@ function nextDay(dateStr) {
 
 async function handleGet(req, res) {
   try {
+    const { data: pedidos, ms } = await withTiming("total", async () => {
     const filter = req.query.filter || "todos";
     const fecha = req.query.fecha; // YYYY-MM-DD — filter by delivery date
     const clienteId = req.query.clienteId; // filter by client relation
     const cacheKey = `pedidos:${filter}:${fecha || ""}:${clienteId || ""}`;
 
-    const pedidos = await cached(cacheKey, 10000, async () => {
+    return cached(cacheKey, 10000, async () => {
       const conditions = [];
 
       // Client filter: pedidos for a specific client
@@ -161,7 +162,9 @@ async function handleGet(req, res) {
 
       return pedidoList;
     });
+    }); // withTiming
 
+    res.setHeader("Server-Timing", `total;dur=${ms}`);
     return res.status(200).json(pedidos);
   } catch (error) {
     console.error("Error querying pedidos:", error);

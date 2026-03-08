@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     const result = await cached("health", 30000, async () => {
       const start = Date.now();
-      await notion.databases.retrieve({ database_id: DB_PEDIDOS });
+      await notion.databases.query({ database_id: DB_PEDIDOS, page_size: 1 });
       return { latency: Date.now() - start };
     });
 
