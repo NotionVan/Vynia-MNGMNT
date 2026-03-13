@@ -39,6 +39,8 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
   const [listenText, setListenText] = useState("");
   const [listenError, setListenError] = useState("");
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // ─── Refs ───
   const searchRef = useRef(null);
   const clienteWrapperRef = useRef(null);
@@ -46,6 +48,7 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
   const parseFileRef = useRef(null);
   const speechRecRef = useRef(null);
   const isListeningRef = useRef(false);
+  const isSubmittingRef = useRef(false);
 
   // ─── Computed ───
   const productosFiltrados = useMemo(() => {
@@ -285,13 +288,21 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
 
   // ─── Create order (wraps parent callback) ───
   const crearPedido = async () => {
+    if (isSubmittingRef.current) return;
     if (!cliente.trim() || !fecha || lineas.length === 0) {
       notify("err", "Falta: cliente, fecha o productos");
       return;
     }
-    const result = await onCreatePedido({ cliente: cliente.trim(), telefono, fecha, hora, pagado, notas, lineas, selectedClienteId });
-    setCreateResult(result);
-    if (result.status === "ok") resetForm();
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const result = await onCreatePedido({ cliente: cliente.trim(), telefono, fecha, hora, pagado, notas, lineas, selectedClienteId });
+      setCreateResult(result);
+      if (result.status === "ok") resetForm();
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   // ─── View created order (wraps parent callback) ───
@@ -863,27 +874,29 @@ export default function TabNuevo({ onCreatePedido, onViewOrder }) {
 
               {/* ── Submit ── */}
           <button title="Crear nuevo pedido en Notion" onClick={crearPedido}
-            disabled={!cliente.trim() || !fecha || lineas.length === 0}
+            disabled={isSubmitting || !cliente.trim() || !fecha || lineas.length === 0}
             style={{
               width: "100%", padding: "16px",
               borderRadius: 14, border: "none",
-              background: (!cliente.trim() || !fecha || lineas.length === 0)
+              background: (isSubmitting || !cliente.trim() || !fecha || lineas.length === 0)
                 ? "#A2C2D0"
                 : "linear-gradient(135deg, #4F6867, #1B1C39)",
-              color: (!cliente.trim() || !fecha || lineas.length === 0)
-                ? "#fff" : "#fff",
-              fontSize: 16, fontWeight: 700, cursor: "pointer",
+              color: "#fff",
+              fontSize: 16, fontWeight: 700, cursor: isSubmitting ? "wait" : "pointer",
               fontFamily: "'Roboto Condensed', sans-serif",
-              boxShadow: (!cliente.trim() || !fecha || lineas.length === 0)
+              boxShadow: (isSubmitting || !cliente.trim() || !fecha || lineas.length === 0)
                 ? "none" : "0 4px 16px rgba(166,119,38,0.35)",
               transition: "all 0.3s",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               letterSpacing: "-0.01em",
+              opacity: isSubmitting ? 0.7 : 1,
             }}>
             <I.Send s={18} />
-            {lineas.length > 0
-              ? `Crear pedido — ${totalPedido.toFixed(2)}€`
-              : "Crear pedido"}
+            {isSubmitting
+              ? "Creando..."
+              : lineas.length > 0
+                ? `Crear pedido — ${totalPedido.toFixed(2)}€`
+                : "Crear pedido"}
           </button>
               <p style={{
                 textAlign: "center", fontSize: 10, color: "#A2C2D0",

@@ -31,10 +31,21 @@ export const notion = new Proxy(_client, {
 });
 
 // ─── Cache server-side (persiste en instancias warm de Vercel) ───
+// Supports stale-while-revalidate: after clearCached(), returns stale data
+// instantly while refreshing in background. Max stale age = 2× TTL.
 const _cache = new Map();
 export async function cached(key, ttlMs, fn) {
   const entry = _cache.get(key);
-  if (entry && Date.now() - entry.ts < ttlMs) return entry.data;
+  if (entry) {
+    const age = Date.now() - entry.ts;
+    // Fresh: return immediately
+    if (age < ttlMs && !entry.stale) return entry.data;
+    // Stale (marked by clearCached or expired <2× TTL): return stale, revalidate in background
+    if (entry.stale || age < ttlMs * 2) {
+      fn().then(data => _cache.set(key, { data, ts: Date.now() })).catch(() => {});
+      return entry.data;
+    }
+  }
   const data = await fn();
   _cache.set(key, { data, ts: Date.now() });
   return data;
@@ -53,8 +64,11 @@ export const DB_REGISTROS = "1d418b3a-38b1-808b-9afb-c45193c1270b";
 export const DB_PLANIFICACION = "b0147c49-24d5-461a-b377-54a234cc4a94";
 export const DB_HORARIO = "31d18b3a-38b1-8044-b968-ddc21626833b";
 
-// ─── Cache invalidation ───
-export function clearCached(key) { _cache.delete(key); }
+// ─── Cache invalidation (marks stale instead of deleting — SWR) ───
+export function clearCached(key) {
+  const entry = _cache.get(key);
+  if (entry) entry.stale = true;
+}
 
 // ─── Server-Timing measurement ───
 export async function withTiming(label, fn) {

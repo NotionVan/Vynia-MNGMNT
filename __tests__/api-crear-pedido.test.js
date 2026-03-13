@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { invalidateApiCache } from "../src/api.js";
 
 describe("crearPedido", () => {
+  beforeEach(() => invalidateApiCache());
   afterEach(() => vi.restoreAllMocks());
 
   it("creates pedido then registros batch in correct order", async () => {

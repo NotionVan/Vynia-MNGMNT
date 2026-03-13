@@ -102,34 +102,39 @@ async function handleGet(req, res) {
         };
       });
 
-      // ── Bulk fetch registros + importe (same pattern as produccion.js) ──
+      // ── Bulk fetch registros + catalog in parallel ──
       if (pedidoList.length === 0) return pedidoList;
 
       const pedidoIds = pedidoList.map(p => p.id);
       const OR_BATCH = 100;
-      let allRegistros = [];
 
-      for (let i = 0; i < pedidoIds.length; i += OR_BATCH) {
-        const chunk = pedidoIds.slice(i, i + OR_BATCH);
-        const orCond = chunk.map(id => ({
-          property: "Pedidos",
-          relation: { contains: id },
-        }));
-        let cursor;
-        do {
-          const regRes = await notion.databases.query({
-            database_id: DB_REGISTROS,
-            filter: orCond.length === 1 ? orCond[0] : { or: orCond },
-            start_cursor: cursor,
-            page_size: 100,
-          });
-          allRegistros = allRegistros.concat(regRes.results);
-          cursor = regRes.has_more ? regRes.next_cursor : undefined;
-        } while (cursor);
-      }
+      // Parallel: fetch registros + catalog simultaneously
+      const [allRegistros, catalog] = await Promise.all([
+        (async () => {
+          let regs = [];
+          for (let i = 0; i < pedidoIds.length; i += OR_BATCH) {
+            const chunk = pedidoIds.slice(i, i + OR_BATCH);
+            const orCond = chunk.map(id => ({
+              property: "Pedidos",
+              relation: { contains: id },
+            }));
+            let cursor;
+            do {
+              const regRes = await notion.databases.query({
+                database_id: DB_REGISTROS,
+                filter: orCond.length === 1 ? orCond[0] : { or: orCond },
+                start_cursor: cursor,
+                page_size: 100,
+              });
+              regs = regs.concat(regRes.results);
+              cursor = regRes.has_more ? regRes.next_cursor : undefined;
+            } while (cursor);
+          }
+          return regs;
+        })(),
+        loadCatalog(),
+      ]);
 
-      // Build price map from catalog (cached 30min)
-      const catalog = await loadCatalog();
       const priceMap = {};
       for (const c of catalog) {
         priceMap[c.nombre.toLowerCase().trim()] = c.precio;

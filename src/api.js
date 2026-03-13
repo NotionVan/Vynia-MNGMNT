@@ -1,7 +1,10 @@
 const API_BASE = "/api";
 
-// ─── Request deduplication (GET only) ───
+// ─── Request deduplication ───
 const _inflight = new Map();
+// POST dedup: hash(path+body) → {promise, ts}. Window 5s to prevent double-submit.
+const _postDedup = new Map();
+const POST_DEDUP_WINDOW = 5000;
 
 // ─── In-memory cache with SWR (GET only) ───
 const _cache = new Map();
@@ -14,7 +17,7 @@ function getCached(key) {
   return { data: entry.data, fresh };
 }
 
-export function invalidateApiCache() { _cache.clear(); }
+export function invalidateApiCache() { _cache.clear(); _postDedup.clear(); }
 
 export function invalidatePedidosCache() {
   for (const key of _cache.keys()) {
@@ -59,6 +62,13 @@ async function apiCall(path, options = {}) {
   // Dedup: return existing in-flight promise for same GET
   if (key && _inflight.has(key)) return _inflight.get(key);
 
+  // POST dedup: same path+body within 5s returns the original promise
+  if (method === "POST" && options.body) {
+    const postKey = `POST:${path}:${options.body}`;
+    const existing = _postDedup.get(postKey);
+    if (existing && Date.now() - existing.ts < POST_DEDUP_WINDOW) return existing.promise;
+  }
+
   // Cache: return fresh data or stale data with background revalidation (SWR)
   if (key) {
     const cached = getCached(key);
@@ -78,6 +88,13 @@ async function apiCall(path, options = {}) {
   if (key) {
     _inflight.set(key, promise);
     promise.then(data => _cache.set(key, { data, ts: Date.now() })).finally(() => _inflight.delete(key));
+  }
+
+  // Store POST promise for dedup window
+  if (method === "POST" && options.body) {
+    const postKey = `POST:${path}:${options.body}`;
+    _postDedup.set(postKey, { promise, ts: Date.now() });
+    promise.finally(() => setTimeout(() => _postDedup.delete(postKey), POST_DEDUP_WINDOW));
   }
 
   return promise;

@@ -41,16 +41,20 @@ describe("apiCall cache and deduplication", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("does not cache POST/PATCH/DELETE requests", async () => {
+  it("deduplicates identical POST requests within 5s window", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ ok: true }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    // Same path + same body within 5s → deduped (1 fetch)
     await notion.findOrCreateCliente("Test", "612345678");
     await notion.findOrCreateCliente("Test", "612345678");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
+    // Different body → NOT deduped (new fetch)
+    await notion.findOrCreateCliente("Other", "699999999");
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

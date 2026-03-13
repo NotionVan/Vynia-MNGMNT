@@ -580,3 +580,16 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Fixes
 - **FIX-34**: DB_HORARIO apuntaba a BD inexistente (`31d18b3a...8089`) — actualizado a la BD real "Horario Negocio" (`31d18b3a-38b1-8044-b968-ddc21626833b`) dentro de la pagina "Gestiona Tu Obrador". Configuradas propiedades via Notion API: Nombre (title), Dia (number), Abierto (checkbox), Hora apertura/cierre (rich_text), Hora apertura 2/cierre 2 (rich_text)
+
+## Changelog v2.13.0
+
+### Fixes
+- **FIX-35**: Prevencion de pedidos duplicados — guardia `useRef` + `isSubmitting` state en `TabNuevo.jsx` que bloquea doble-click/doble-tap en el boton "Crear Pedido". Boton se deshabilita y muestra "Creando..." durante el envio. Complementado con dedup de POST en `api.js`: mismo path+body dentro de 5s devuelve la misma promise (defensa en profundidad)
+
+### Mejoras
+- **PERF-05**: Stale-While-Revalidate server-side — `clearCached()` en `api/_notion.js` ahora marca entradas como stale en vez de borrarlas. `cached()` devuelve datos stale inmediatamente y revalida en background. Resultado: tras crear/modificar un pedido, la lista carga instantaneamente desde cache stale (~0ms) en vez de esperar un cold fetch a Notion (~500ms)
+- **PERF-06**: Llamadas paralelas en `GET /api/pedidos` — bulk fetch de registros y `loadCatalog()` ahora se ejecutan en paralelo via `Promise.all()`. Ahorra ~300-500ms por request frio (1 round-trip menos a Notion)
+- **FEAT-46**: Optimistic UI en creacion de pedidos — el pedido nuevo se inyecta en el estado local inmediatamente tras la respuesta del POST, sin esperar al refresh completo de la lista. El `numPedido` y datos enriquecidos llegan via background refresh con `skipEnrich: true`
+
+### Testing
+- **TEST-05**: Tests actualizados para double-submit: guardia useRef (bloqueo concurrente + reset tras completar), POST dedup (misma ventana, diferente body, diferente path), server-side SWR (stale return + background revalidation, fresh cache hit). Reemplaza el test documentativo anterior que solo registraba el bug

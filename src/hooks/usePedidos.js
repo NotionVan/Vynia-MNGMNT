@@ -420,8 +420,20 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       }
       const pedidoRes = await notion.crearPedido(cliente, clientePageId, fecha, hora, pagado, notas, lineas);
       const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
+      const prodsStr = lineas.map(l => `${l.cantidad}x ${l.nombre}`).join(", ");
+      const fechaFull = hora ? `${fecha}T${hora}:00` : fecha;
+
+      // Optimistic UI: inject the new order into local state immediately
+      setPedidos(ps => [{
+        id: pedidoRes.id, nombre: `Pedido ${cliente}`, cliente, tel: telefono,
+        fecha: fechaFull, hora: hora || "",
+        productos: prodsStr, importe: total, estado: "Sin empezar",
+        pagado, notas, numPedido: 0, clienteId: clientePageId,
+      }, ...ps]);
+
       notify("ok", `✓ Pedido creado en Notion: ${cliente} — €${total.toFixed(2)}`);
-      loadPedidos();
+      // Background refresh to get server-enriched data (numPedido, etc.)
+      loadPedidos(undefined, { skipEnrich: true });
       onInvalidateProduccion(fecha); invalidateSearchCache();
       return { status: "ok", cliente, total, pedidoId: pedidoRes.id, telefono, fecha, hora, pagado, notas, lineas };
     } catch (err) {
