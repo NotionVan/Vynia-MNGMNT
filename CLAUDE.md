@@ -461,7 +461,7 @@ Hardcodeado en `CATALOGO_FALLBACK[]` en `constants/catalogo.js` como fallback. C
 La app se sincroniza de 3 formas: (1) auto-refresh al volver a la pestaña via `visibilitychange` (debounced 2s), (2) polling cada 120s mientras activa, (3) boton recargar manual. Polls y visibility usan `skipEnrich: true` (preservan datos previos). Carga inicial y reload manual hacen enrichment completo. `invalidatePedidosCache()` invalida solo claves de pedidos — usada tras cambios de estado. `invalidateApiCache()` limpia todo — usada en reloads
 
 ### Server-side cache
-`api/_notion.js` exporta `cached(key, ttlMs, fn)`, `clearCached(key)` (Map en memoria, persiste en instancias warm de Vercel) y `withTiming(label, fn)` (mide wall time, devuelve `{ data, ms }`). TTLs: pedidos GET 10s, produccion 60s, catalogo 300s (5min), tracking 15s, surplus 15s, health 30s. `clearCached` invalida cache tras escritura
+`api/_notion.js` exporta `cached(key, ttlMs, fn)`, `clearCached(key)` (SWR: marca stale, devuelve datos viejos mientras revalida), `deleteCachedPrefix(prefix)` (hard-delete: borra entradas, fuerza cold fetch — usar tras writes), y `withTiming(label, fn)` (mide wall time, devuelve `{ data, ms }`). TTLs: pedidos GET 10s, produccion 60s, catalogo 300s (5min), tracking 15s, surplus 15s, health 30s. Tras POST/PATCH, los endpoints usan `deleteCachedPrefix("pedidos:")` para invalidacion inmediata
 
 ### Renderizado progresivo
 La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se resetea al cambiar filtro/datos
@@ -495,7 +495,7 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 - **Framework**: Vitest 4.x con jsdom
 - **Ejecutar**: `npm test` (o `npx vitest run`)
-- **23 archivos de test**, 170 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions, latencia (withTiming, AbortController timeout, health endpoint), horario (jsDayToBdIndex, isOpenDay, getOpenDaysInRange, hybrid sync, write-through)
+- **24 archivos de test**, ~182 tests cubriendo: API client, cache/dedup, estado resolution, bulk operations, timezone, unicode, telefono formats, integraciones, date suggestions, surplus plan, double submit, fmt dates, helpers pure, stats computation, bulk transitions, latencia (withTiming, AbortController timeout, health endpoint), horario (jsDayToBdIndex, isOpenDay, getOpenDaysInRange, hybrid sync, write-through), cache invalidation (deleteCachedPrefix, skipEnrich optimistic preservation)
 - **Nota Google Drive**: vitest es lento en Google Drive. Para desarrollo rapido, copiar a `/tmp/vynia-test` con `rsync -a --exclude='node_modules' --exclude='.git'` y ejecutar ahi
 
 ## Troubleshooting
@@ -593,3 +593,11 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Testing
 - **TEST-05**: Tests actualizados para double-submit: guardia useRef (bloqueo concurrente + reset tras completar), POST dedup (misma ventana, diferente body, diferente path), server-side SWR (stale return + background revalidation, fresh cache hit). Reemplaza el test documentativo anterior que solo registraba el bug
+
+## Changelog v2.13.1
+
+### Fixes
+- **FIX-36**: Productos no cargan en pedidos nuevos — fix de 4 capas: (1) reordenar invalidacion de cache frontend para ejecutarse ANTES del background refresh en `crearPedido` (antes `loadPedidos` leia cache stale), (2) `skipEnrich` ahora preserva entradas optimistas no presentes en la respuesta API (antes se perdian silenciosamente), (3) nueva `deleteCachedPrefix()` en `api/_notion.js` para borrado hard de cache tras writes (vs `clearCached` SWR para reads), (4) invalidacion server-side añadida a `POST /api/pedidos`, `POST /api/registros` (batch) y `PATCH /api/pedidos/:id`
+
+### Testing
+- **TEST-06**: Tests de cache invalidation — `deleteCachedPrefix` (match, no-match, cold-fetch-after-delete, diferencia con clearCached SWR), skipEnrich optimistic entry preservation (no en API, si en API, sin duplicados)

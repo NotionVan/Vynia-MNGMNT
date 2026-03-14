@@ -78,13 +78,19 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
         setPedidos(prev => {
           const prevMap = {};
           for (const p of prev) { prevMap[p.id] = p; }
-          return mapped.map(p => {
+          const mappedIds = new Set(mapped.map(p => p.id));
+          const merged = mapped.map(p => {
             const existing = prevMap[p.id];
             if (existing && (existing.productos || existing.importe)) {
               return { ...p, productos: existing.productos, importe: existing.importe };
             }
             return p;
           });
+          // Preserve optimistic entries not yet in API response
+          for (const p of prev) {
+            if (!mappedIds.has(p.id)) merged.unshift(p);
+          }
+          return merged;
         });
         return;
       }
@@ -432,9 +438,11 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       }, ...ps]);
 
       notify("ok", `✓ Pedido creado en Notion: ${cliente} — €${total.toFixed(2)}`);
+      // Invalidate caches BEFORE background refresh (otherwise loadPedidos reads stale cache)
+      invalidateSearchCache();
+      onInvalidateProduccion(fecha);
       // Background refresh to get server-enriched data (numPedido, etc.)
       loadPedidos(undefined, { skipEnrich: true });
-      onInvalidateProduccion(fecha); invalidateSearchCache();
       return { status: "ok", cliente, total, pedidoId: pedidoRes.id, telefono, fecha, hora, pagado, notas, lineas };
     } catch (err) {
       notify("err", "Error: " + (err.message || "").substring(0, 100));

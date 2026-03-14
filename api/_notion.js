@@ -70,6 +70,13 @@ export function clearCached(key) {
   if (entry) entry.stale = true;
 }
 
+// ─── Hard-delete cache entries by prefix — use after writes (not SWR) ───
+export function deleteCachedPrefix(prefix) {
+  for (const key of _cache.keys()) {
+    if (key.startsWith(prefix)) _cache.delete(key);
+  }
+}
+
 // ─── Server-Timing measurement ───
 export async function withTiming(label, fn) {
   const start = Date.now();

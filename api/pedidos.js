@@ -1,4 +1,4 @@
-import { notion, cached, withTiming, PROP_UNIDADES, DB_REGISTROS, loadCatalog, extractTitle, extractRichText, extractDateStart } from "./_notion.js";
+import { notion, cached, withTiming, PROP_UNIDADES, DB_REGISTROS, loadCatalog, extractTitle, extractRichText, extractDateStart, deleteCachedPrefix } from "./_notion.js";
 
 const DB_PEDIDOS = "1c418b3a-38b1-81a1-9f3c-da137557fcf6";
 // Data source ID for API 2025-09-03 (required for template support)
@@ -204,6 +204,7 @@ async function handlePost(req, res) {
       throw new Error(err.message || `Notion API error ${resp.status}`);
     }
     const page = await resp.json();
+    deleteCachedPrefix("pedidos:");
 
     return res.status(201).json({ id: page.id });
   } catch (error) {

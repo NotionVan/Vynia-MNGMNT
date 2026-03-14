@@ -1,4 +1,4 @@
-import { notion } from "../_notion.js";
+import { notion, deleteCachedPrefix } from "../_notion.js";
 
 export default async function handler(req, res) {
   if (req.method !== "PATCH") {
@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     if (properties) update.properties = properties;
     if (archived !== undefined) update.archived = archived;
     await notion.pages.update(update);
+    deleteCachedPrefix("pedidos:");
 
     return res.status(200).json({ ok: true });
   } catch (error) {

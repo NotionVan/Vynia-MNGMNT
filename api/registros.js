@@ -1,4 +1,4 @@
-import { notion, delay, cached, PROP_UNIDADES, DB_PRODUCTOS, DB_REGISTROS, loadCatalog } from "./_notion.js";
+import { notion, delay, cached, PROP_UNIDADES, DB_PRODUCTOS, DB_REGISTROS, loadCatalog, deleteCachedPrefix } from "./_notion.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -213,6 +213,7 @@ async function handlePostBatch(_req, res, pedidoPageId, lineas) {
       if (i + 10 < toCreate.length) await delay(200);
     }
 
+    deleteCachedPrefix("pedidos:");
     return res.status(201).json({ ok: true, created, failed });
   } catch (error) {
     console.error("Error creating registros batch:", error);
