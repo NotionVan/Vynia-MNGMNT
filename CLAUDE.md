@@ -601,3 +601,8 @@ La lista de pedidos usa IntersectionObserver para renderizar en lotes de 30. Se 
 
 ### Testing
 - **TEST-06**: Tests de cache invalidation — `deleteCachedPrefix` (match, no-match, cold-fetch-after-delete, diferencia con clearCached SWR), skipEnrich optimistic entry preservation (no en API, si en API, sin duplicados)
+
+## Changelog v2.13.2
+
+### Mejoras
+- **PERF-07**: Optimistic UI en todas las operaciones de escritura — `cambiarEstado`, `cambiarNotas`, `cambiarFechaPedido` y `cancelarPedido` ahora actualizan la UI al instante y hacen el PATCH a Notion en background. Si Notion falla, se hace rollback automatico al estado anterior. Elimina el loader visible en cambios de estado (antes 300-800ms de espera). Mismo patron que `confirmarPagadoChange` (ya era optimista). `cambiarEstadoBulk` no cambia (ya era optimista desde v2.13.0)

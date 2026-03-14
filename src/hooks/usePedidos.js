@@ -173,19 +173,20 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       }
       return;
     }
-    setPedidosLoading(true);
+    // Optimistic: update UI immediately, PATCH Notion in background
+    const prevEstado = pedido.estado;
+    setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, estado: nuevoEstado } : p));
+    notify("ok", `${ESTADOS[nuevoEstado]?.icon || ""} ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
+    if (nuevoEstado === "Listo para recoger" && (pedido.telefono || pedido.tel)) {
+      setWhatsappPrompt({ tel: pedido.telefono || pedido.tel, nombre: pedido.cliente || pedido.titulo || pedido.nombre });
+    }
     try {
       await notion.cambiarEstado(pedido.id, nuevoEstado);
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, estado: nuevoEstado } : p));
       onInvalidateProduccion(pedido.fecha); invalidateSearchCache();
-      notify("ok", `${ESTADOS[nuevoEstado]?.icon || ""} ${ESTADOS[nuevoEstado]?.label || nuevoEstado}`);
-      if (nuevoEstado === "Listo para recoger" && (pedido.telefono || pedido.tel)) {
-        setWhatsappPrompt({ tel: pedido.telefono || pedido.tel, nombre: pedido.cliente || pedido.titulo || pedido.nombre });
-      }
     } catch (err) {
+      // Rollback on failure
+      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, estado: prevEstado } : p));
       notify("err", err.message);
-    } finally {
-      setPedidosLoading(false);
     }
   };
 
@@ -226,17 +227,17 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       notify("ok", "Pedido cancelado");
       return;
     }
-    setPedidosLoading(true);
+    // Optimistic: remove from UI immediately
+    setPedidos(ps => ps.filter(p => p.id !== pedido.id));
+    setSelectedPedido(null);
+    notify("ok", "Pedido cancelado");
     try {
       await notion.archivarPedido(pedido.id);
-      setPedidos(ps => ps.filter(p => p.id !== pedido.id));
       onInvalidateProduccion(pedido.fecha); invalidateSearchCache();
-      setSelectedPedido(null);
-      notify("ok", "Pedido cancelado");
     } catch (err) {
+      // Rollback: re-add pedido
+      setPedidos(ps => [pedido, ...ps]);
       notify("err", err.message);
-    } finally {
-      setPedidosLoading(false);
     }
   };
 
@@ -267,17 +268,19 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       notify("ok", "Fecha actualizada");
       return true;
     }
-    setPedidosLoading(true);
+    // Optimistic: update UI immediately
+    const prevFecha = pedido.fecha;
+    const prevHora = pedido.hora;
+    setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, fecha: newFecha, hora: "" } : p));
+    notify("ok", "Fecha actualizada");
     try {
       await notion.updatePage(pedido.id, { "Fecha entrega": { date: { start: newFecha } } });
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, fecha: newFecha, hora: "" } : p));
       onInvalidateProduccion(pedido.fecha); onInvalidateProduccion(newFecha); invalidateSearchCache();
-      notify("ok", "Fecha actualizada");
       return true;
     } catch (err) {
+      // Rollback on failure
+      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, fecha: prevFecha, hora: prevHora } : p));
       notify("err", err.message);
-    } finally {
-      setPedidosLoading(false);
     }
   };
 
@@ -290,20 +293,22 @@ export default function usePedidos({ apiMode, notify, onInvalidateProduccion, on
       notify("ok", trimmed ? "Notas actualizadas" : "Notas eliminadas");
       return true;
     }
-    setPedidosLoading(true);
+    // Optimistic: update UI immediately
+    const prevNotas = pedido.notas;
+    setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, notas: trimmed } : p));
+    if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, notas: trimmed } : prev);
+    notify("ok", trimmed ? "Notas actualizadas" : "Notas eliminadas");
     try {
       await notion.updatePage(pedido.id, {
         "Notas": { rich_text: trimmed ? [{ type: "text", text: { content: trimmed } }] : [] }
       });
-      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, notas: trimmed } : p));
-      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, notas: trimmed } : prev);
       invalidateSearchCache();
-      notify("ok", trimmed ? "Notas actualizadas" : "Notas eliminadas");
       return true;
     } catch (err) {
+      // Rollback on failure
+      setPedidos(ps => ps.map(p => p.id === pedido.id ? { ...p, notas: prevNotas } : p));
+      if (selectedPedido?.id === pedido.id) setSelectedPedido(prev => prev ? { ...prev, notas: prevNotas } : prev);
       notify("err", err.message);
-    } finally {
-      setPedidosLoading(false);
     }
   };
 
